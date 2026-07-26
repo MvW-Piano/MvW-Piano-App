@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.3.0/abcjs-basic-min.js"></script>
     <style>
-        /* Standaard (Dark Mode) Variabelen */
         :root {
             --bg-dark: #0f172a;
             --bg-panel: #1e293b;
@@ -22,7 +21,6 @@
             --overlay-bg: #0f172a;
         }
 
-        /* Light Mode Variabelen */
         [data-theme="light"] {
             --bg-dark: #f1f5f9;
             --bg-panel: #ffffff;
@@ -53,7 +51,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* --- Header --- */
         header {
             background-color: var(--bg-panel);
             padding: 15px 20px;
@@ -79,7 +76,6 @@
             align-items: center;
         }
 
-        /* --- Buttons --- */
         button {
             background: var(--bg-card);
             color: var(--text-main);
@@ -129,7 +125,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* --- Main Layout --- */
         #main-container {
             flex: 1;
             display: flex;
@@ -138,7 +133,6 @@
             position: relative;
         }
 
-        /* --- Init Overlay (Startpagina) --- */
         #init-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -219,7 +213,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* --- Dashboard --- */
         #dashboard {
             width: 100%;
             padding: 20px;
@@ -267,7 +260,6 @@
             color: var(--text-muted);
         }
 
-        /* --- Module View --- */
         #module-view {
             width: 100%;
             height: 100%;
@@ -322,7 +314,6 @@
             padding-bottom: 80px;
         }
 
-        /* --- Flashcard --- */
         .flashcard {
             background: var(--piano-white);
             border-radius: 12px;
@@ -399,7 +390,6 @@
             font-size: 1rem;
         }
 
-        /* --- Virtuele Piano App --- */
         #piano-module {
             display: none;
             flex-direction: column;
@@ -450,7 +440,6 @@
         .key.black:active, .key.black.active { background: #334155; border-bottom: 4px solid var(--accent); }
         .key span { position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 14px; font-weight: 700; color: #94a3b8; pointer-events: none; }
 
-        /* --- Mobiele Optimalisaties --- */
         @media (max-width: 768px) {
             header h1 { font-size: 1.1rem; }
             header { padding: 10px; }
@@ -468,7 +457,6 @@
 </head>
 <body>
 
-    <!-- Init / Start Page met opgeschoonde uploader & Theme Toggle -->
     <div id="init-overlay">
         
         <div class="theme-toggle-container">
@@ -497,7 +485,6 @@
         <div class="creator-credit">Created by Martijn van Willigen</div>
     </div>
 
-    <!-- Hoofd Applicatie Header -->
     <header>
         <h1>Piano Masterclass</h1>
         <div class="header-controls" id="header-controls" style="display:none;">
@@ -509,7 +496,6 @@
     </header>
 
     <div id="main-container">
-        <!-- Dashboard Modules -->
         <main id="dashboard">
             <div class="modules-grid">
                 <div class="module-card" onclick="App.loadModule('notes')">
@@ -537,14 +523,12 @@
                     <p>Theoretische trappen (Romeinse cijfers) omzetten naar akkoorden.</p>
                 </div>
                 <div class="module-card" onclick="App.loadModule('piano')">
-                    <!-- Kleur gekoppeld aan het adaptieve thema (zwart/wit afhankelijk van dark/light mode) -->
                     <h2 style="color: var(--text-main);">🎹 7. Virtuele Piano</h2>
                     <p>Vrij bespeelbaar toetsenbord over 88 toetsen.</p>
                 </div>
             </div>
         </main>
 
-        <!-- Module Workspace -->
         <main id="module-view">
             <aside id="settings-sidebar">
                 <h3 id="module-title" style="color: var(--accent); font-size: 1rem;">Instellingen</h3>
@@ -553,7 +537,6 @@
             
             <section id="workspace">
                 
-                <!-- Flashcard UI (Modules 1-6) -->
                 <div class="flashcard" id="flashcard-ui">
                     <div id="abcjs-paper"></div>
                     <div id="svg-container"></div>
@@ -573,7 +556,6 @@
                     </div>
                 </div>
 
-                <!-- Virtuele Piano (Module 7) -->
                 <div id="piano-module">
                     <div class="piano-ui-controls">
                         <button class="piano-btn" onclick="PianoUI.scroll(-200)">⬅ Links</button>
@@ -581,9 +563,7 @@
                         <button class="piano-btn" onclick="PianoUI.scroll(200)">Rechts ➔</button>
                     </div>
                     <div class="piano-wrapper" id="piano-wrapper">
-                        <div class="piano-keyboard" id="piano-keys">
-                            <!-- Injected by JS -->
-                        </div>
+                        <div class="piano-keyboard" id="piano-keys"></div>
                     </div>
                 </div>
 
@@ -592,7 +572,6 @@
     </div>
 
     <script>
-        /* --- THEMA BEHEERDER --- */
         const ThemeManager = {
             init() {
                 const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -629,7 +608,6 @@
             return `${note}${oct}`;
         }
 
-        // PERFECTE ABCJS CONVERSIE - C4 (60) is exact C, C3 (48) is C, enzovoort.
         function midiToAbc(midi) {
             const notes = ['C','^C','D','^D','E','F','^F','G','^G','A','^A','B'];
             let note = notes[midi % 12];
@@ -638,7 +616,7 @@
             if (oct === 5) return note.toLowerCase();
             if (oct > 5) return note.toLowerCase() + "'".repeat(oct - 5);
             if (oct < 4) return note + ",".repeat(4 - oct);
-            return note; // oct === 4 defaults to uppercase 'C'
+            return note;
         }
 
         function shiftAbc(abcStr, octaves) { 
@@ -664,20 +642,25 @@
             return Math.floor(Math.random() * (max - min + 1) + min);
         }
 
-        /* --- AUDIO ENGINE --- */
+        /* --- AUDIO ENGINE GEOPTIMALISEERD VOOR IOS / IPAD --- */
         const AudioEngine = {
             ctx: null,
             audioCache: {},
             sampledMidiNotes: [],
             
             init() {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    // Forceer playback latencyHint zodat iOS de audio niet dempt in stille modus
+                    this.ctx = new AudioContext({ latencyHint: 'playback' });
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
             },
             
             async loadSamples(files) {
-                if (!this.ctx) this.init();
-                if (this.ctx.state === 'suspended') this.ctx.resume();
+                this.init();
                 
                 const statusDash = document.getElementById('global-audio-status');
                 statusDash.innerHTML = "<span style='color:#f59e0b;'>⏳ Bezig met inladen...</span>"; 
@@ -695,12 +678,12 @@
                             let midiMatch = file.name.match(/\d+/);
                             let midiNum = midiMatch ? parseInt(midiMatch[0]) : null;
                             
-                            if (midiNum) {
+                            if (midiNum !== null) {
                                 this.audioCache[midiNum] = buf;
                                 if (!this.sampledMidiNotes.includes(midiNum)) this.sampledMidiNotes.push(midiNum);
                             }
                             loadedCount++; 
-                        } catch (e) { console.error("Fout bij inladen", e); }
+                        } catch (e) { console.error("Fout bij decoderen van file:", file.name, e); }
                     }
                 }
                 
@@ -713,8 +696,7 @@
             },
 
             playTone(midi, duration = 1.5, volume = 0.5) {
-                if (!this.ctx) this.init();
-                if (this.ctx.state === 'suspended') this.ctx.resume();
+                this.init();
                 const now = this.ctx.currentTime;
                 
                 let buf = null;
@@ -779,7 +761,6 @@
             }
         };
 
-        // Globale functie voor interactieve SVG Kwintencirkel Audio
         window.playCircleChord = function(rootName, type) {
             const rootToMidi = {"C":60, "G":67, "D":62, "A":69, "E":64, "B":71, "F#":66, "Db":61, "Ab":68, "Eb":63, "Bb":70, "F":65, "a":69, "e":64, "b":71, "f#":66, "c#":61, "g#":68, "d#":63, "bb":70, "f":65, "c":60, "g":67, "d":62};
             let rootMidi = rootToMidi[rootName];
@@ -852,9 +833,7 @@ V:2 clef=bass
                         
                         const press = (e) => { 
                             e.preventDefault(); 
-                            if(e.type === 'touchstart' && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
-                                AudioEngine.ctx.resume();
-                            }
+                            AudioEngine.init();
                             AudioEngine.playTone(m, 2.0, 0.8); 
                             key.classList.add('active'); 
                         };
@@ -864,7 +843,7 @@ V:2 clef=bass
                         };
                         
                         key.addEventListener('mousedown', press);
-                        key.addEventListener('touchstart', press);
+                        key.addEventListener('touchstart', press, {passive: false});
                         key.addEventListener('mouseup', release);
                         key.addEventListener('mouseleave', release);
                         key.addEventListener('touchend', release);
@@ -924,8 +903,8 @@ V:2 clef=bass
             },
 
             init() {
-                document.getElementById('init-overlay').style.display = 'none';
                 AudioEngine.init();
+                document.getElementById('init-overlay').style.display = 'none';
             },
 
             showDashboard() {
@@ -1370,7 +1349,6 @@ V:2 clef=bass
             }
         });
         
-        // Initialiseer thema
         ThemeManager.init();
 
     </script>
