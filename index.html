@@ -88,12 +88,25 @@ body{
 #content-topbar h1{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); }
 .topbar-right{ display:flex; gap:8px; align-items:center; }
 
+/* ---- Bottom nav (mobiel) ---- */
+#bottom-nav{ display:none; }
+
 @media (max-width:640px){
-  #sidebar{ width:72px !important; }
-  #sidebar .brand-text, #sidebar .nav-label{ display:none; }
-  #sidebar-collapse-btn{ display:none; }
-  .sidebar-footer{ flex-wrap:wrap; gap:6px; }
-  .sidebar-icon-btn{ flex:1 1 26px; }
+  #sidebar{ display:none; }
+  #bottom-nav{
+    display:flex; overflow-x:auto; position:fixed; left:0; right:0; bottom:0; z-index:100;
+    background:var(--bg-panel); border-top:1px solid var(--border-color); box-shadow:0 -4px 14px rgba(0,0,0,.12);
+    padding:4px 2px calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+  .bnav-item{
+    flex:0 0 auto; min-width:60px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; background:transparent; border:none; border-radius:8px; color:var(--text-muted);
+    font-size:.62rem; font-weight:700; padding:6px 4px;
+  }
+  .bnav-icon{ font-size:1.15rem; }
+  .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
+  #app-shell{ flex-direction:column; }
+  #workspace{ padding-bottom:76px; }
   #content-topbar{ padding:12px 14px; }
   #content-topbar h1{ font-size:1.1rem; }
 }
@@ -198,41 +211,43 @@ select:focus{ border-color:var(--accent); }
 #answer-score{ margin-top:8px; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* Mobiel-eerst: wiel bovenaan, dan meteen de notenbalk+toetsenbord
-   eronder (het resultaat van een tik is zo direct zichtbaar zonder te
-   scrollen), en de knoppenrijen daaronder. Vanaf 640px schakelt dit om
-   naar de kolomsgewijze (kwintencirkel-links / knoppen-rechts) weergave.
-   Dit is de ENIGE breakpoint die de structuur bepaalt — fullscreen-modus
-   (hieronder) maakt dingen alleen groter, verandert nooit de structuur.
-   display:contents op .circle-left-half in mobiele modus laat zijn kinderen
-   (wiel + beide knoppenlijsten) rechtstreeks meedoen aan de order-volgorde
-   van .circle-main, zodat ze los van elkaar geplaatst kunnen worden i.p.v.
-   altijd als vast blokje vóór de notenbalk te verschijnen.
-   min-width:0 is nodig op elke flex-schakel — anders weigert een flex-item
-   onder zijn eigen inhoud te krimpen en steekt die alsnog buiten de kaart. */
-.circle-main{ width:100%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:14px; }
+/* CSS GRID met benoemde gebieden i.p.v. flexbox+order+wrap-trucs.
+   Waarom: flexbox-herschikking (order, display:contents, wrap) bleek
+   telkens onvoorspelbaar op écht mobiel/tablet zonder dat live te kunnen
+   testen. Grid-template-areas beschrijft de layout letterlijk als een
+   ASCII-tekening per breakpoint — geen giswerk over wel/niet wrappen.
+   Mobiel (standaard, geen media query nodig): één kolom, van boven naar
+   beneden — wiel, dan meteen notenbalk+toetsenbord, dan de knoppenrijen.
+   Vanaf 640px: vier kolommen naast elkaar — toonsoort-knoppen | wiel |
+   akkoordtype-knoppen | notenbalk+toetsenbord.
+   min-width:0 blijft nodig zodat een brede notenbalk-SVG nooit een kolom
+   kan dwingen breder te worden dan zijn grid-track. */
+.circle-main{
+  width:100%; min-width:0; display:grid; gap:14px;
+  grid-template-columns: 1fr;
+  grid-template-areas: "wheel" "staff" "keyjump" "chordjump";
+}
 .circle-left-half{ display:contents; }
-.circle-center{ order:1; min-width:0; width:100%; display:flex; justify-content:center; }
+.circle-center{ grid-area:wheel; min-width:0; width:100%; display:flex; justify-content:center; }
 #circle-wheel-wrap{ min-width:0; }
 #circle-wheel-wrap svg{ min-width:0; max-width:100%; }
-.circle-right-half{ order:2; width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; }
-#circle-quick-jump{ order:3; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
-#circle-chord-jump{ order:4; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
-.circle-jump-col{ display:flex; gap:5px; flex:0 0 auto; min-width:0; }
-#circle-chord-preview{ min-width:0; min-height:70px; overflow:hidden; display:flex; justify-content:center; }
-#circle-keyboard-wrap{ display:flex; justify-content:center; min-width:0; }
+.circle-right-half{ grid-area:staff; width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; justify-self:center; }
+#circle-quick-jump{ grid-area:keyjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
+#circle-chord-jump{ grid-area:chordjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
+.circle-jump-col{ min-width:0; }
+#circle-chord-preview{ min-width:0; min-height:60px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+#circle-keyboard-wrap{ display:flex; justify-content:center; min-width:0; min-height:40px; align-items:center; }
 
 @media (min-width:640px){
-  /* flex-wrap blijft bewust UIT (nowrap) vanaf hier: met wrap:wrap kon de
-     rechterhelft (notenbalk+toetsenbord) alsnog naar een eigen regel
-     springen zodra de linkerhelft — door de minimale breedte van de
-     notenbalk-SVG — net iets meer ruimte opeiste dan er over was. */
-  .circle-main{ flex-direction:row; flex-wrap:nowrap; align-items:flex-start; gap:16px; }
-  .circle-left-half{ display:flex; width:auto; min-width:0; flex:1 1 50%; flex-direction:row; flex-wrap:nowrap; justify-content:center; align-items:flex-start; gap:14px; order:0; }
-  .circle-center{ order:0; width:auto; }
-  #circle-quick-jump{ order:0; flex-direction:column; max-width:none; }
-  #circle-chord-jump{ order:0; flex-direction:column; max-width:none; }
-  .circle-right-half{ order:0; width:auto; max-width:none; min-width:0; flex:1 1 50%; padding-top:6px; }
+  .circle-main{
+    grid-template-columns: auto 1fr auto minmax(260px, 400px);
+    grid-template-areas: "keyjump wheel chordjump staff";
+    align-items:start; gap:16px;
+  }
+  .circle-center{ width:auto; }
+  #circle-quick-jump{ flex-direction:column; max-width:none; justify-self:start; }
+  #circle-chord-jump{ flex-direction:column; max-width:none; justify-self:start; }
+  .circle-right-half{ width:auto; max-width:none; padding-top:6px; justify-self:stretch; }
 }
 
 @media (min-width:820px){ .flashcard{ max-width:1100px; } }
@@ -389,6 +404,22 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
     </div>
   </aside>
 
+  <!-- Onderin-navigatie: alleen zichtbaar op smalle (mobiele) schermen,
+       vervangt daar de linker zijbalk zodat de volledige breedte
+       beschikbaar blijft voor de content (belangrijk voor de kwintencirkel). -->
+  <nav id="bottom-nav">
+    <button class="bnav-item" id="bnav-notes" onclick="App.loadModule('notes')"><span class="bnav-icon">🎯</span><span>Noten</span></button>
+    <button class="bnav-item" id="bnav-scales" onclick="App.loadModule('scales')"><span class="bnav-icon">🎵</span><span>Ladders</span></button>
+    <button class="bnav-item" id="bnav-chords" onclick="App.loadModule('chords')"><span class="bnav-icon">🎹</span><span>Akk.</span></button>
+    <button class="bnav-item" id="bnav-circle" onclick="App.loadModule('circle')"><span class="bnav-icon">🎼</span><span>Cirkel</span></button>
+    <button class="bnav-item" id="bnav-intervals" onclick="App.loadModule('intervals')"><span class="bnav-icon">👂</span><span>Interv.</span></button>
+    <button class="bnav-item" id="bnav-progressions" onclick="App.loadModule('progressions')"><span class="bnav-icon">📈</span><span>Progr.</span></button>
+    <button class="bnav-item" id="bnav-piano" onclick="App.loadModule('piano')"><span class="bnav-icon">🎹</span><span>Piano</span></button>
+    <button class="bnav-item" onclick="document.getElementById('global-sample-upload').click()"><span class="bnav-icon">📁</span><span>Samples</span></button>
+    <button class="bnav-item" onclick="ThemeManager.toggle()" id="theme-btn-bnav"><span class="bnav-icon">☀️</span><span>Thema</span></button>
+    <button class="bnav-item" onclick="App.toggleFullscreen()" id="fullscreen-btn-bnav"><span class="bnav-icon">⛶</span><span>Scherm</span></button>
+  </nav>
+
   <div id="content-area">
     <header id="content-topbar">
       <h1 id="module-title">Instellingen</h1>
@@ -483,9 +514,11 @@ const ThemeManager = {
   updateIcons(theme){
     const btnStart = document.getElementById('theme-btn-start');
     const btnHeader = document.getElementById('theme-btn-header');
+    const btnBnav = document.getElementById('theme-btn-bnav');
     const isDark = theme === 'dark';
     if (btnStart) btnStart.innerHTML = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
     if (btnHeader) btnHeader.innerHTML = isDark ? '☀️' : '🌙';
+    if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isDark ? '☀️' : '🌙'; }
   }
 };
 
@@ -935,15 +968,20 @@ const CircleWheel = {
     });
   },
 
-  playAndPreview(rootLabel, quality){
+  // Tekent (en speelt optioneel) een akkoord. Wordt zowel gebruikt bij een
+  // echte tik op het wiel (play:true) als voor de automatische eerste
+  // weergave bij het openen van de module (play:false) — zo staat er
+  // vanaf het allereerste moment al iets, en kan er nooit een sprong van
+  // leeg naar gevuld ontstaan.
+  showChord(rootLabel, quality, opts = {}){
     const rootMidi = this.rootToMidi[rootLabel];
     const formula = MusicTheory.chords[quality];
     if (rootMidi === undefined || !formula) return;
     const notes = formula.map(iv => rootMidi + iv);
-    AudioEngine.playChord(notes);
+    if (opts.play) AudioEngine.playChord(notes);
     try {
       const preview = document.getElementById('circle-chord-preview');
-      preview.style.display = 'block';
+      preview.style.display = 'flex';
       ScoreRenderer.render('circle-chord-preview', [notes]);
     } catch(e){ console.warn('Kon akkoordvoorbeeld niet tekenen:', e); }
     try { MiniKeyboard.render('circle-keyboard-wrap', notes, notes[0]); }
@@ -972,7 +1010,7 @@ const CircleWheel = {
 
   onWedgeClick(entry, ring){
     const rootLabel = ring === 'major' ? entry.maj : entry.min;
-    this.playAndPreview(rootLabel, this.selectedChordType);
+    this.showChord(rootLabel, this.selectedChordType, { play: true });
   },
 
   render(){
@@ -1085,6 +1123,14 @@ const CircleWheel = {
 
     wrap.appendChild(svg);
     this.wireInteraction(svg, wedgeLayer, cx, cy);
+
+    // Meteen een voorbeeldakkoord tonen (geluidloos) zodra de module voor
+    // het eerst laadt, zodat er nooit een sprong van leeg naar gevuld is.
+    if (!this._previewed){
+      this._previewed = true;
+      const entry = this.cofKeys[this.tonicIndex];
+      this.showChord(entry.maj, this.selectedChordType, { play: false });
+    }
   },
 
   // Eén samenhangende afhandeling voor zowel tikken (akkoord afspelen) als
@@ -1172,9 +1218,11 @@ const App = {
   loadModule(moduleId){
     this.currentModule = moduleId;
 
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item, .bnav-item').forEach(el => el.classList.remove('active'));
     const activeNav = document.getElementById('nav-' + moduleId);
     if (activeNav) activeNav.classList.add('active');
+    const activeBnav = document.getElementById('bnav-' + moduleId);
+    if (activeBnav) activeBnav.classList.add('active');
 
     const flashUI = document.getElementById('flashcard-ui');
     const pianoUI = document.getElementById('piano-module');
@@ -1542,12 +1590,12 @@ ThemeManager.init();
 (function syncFullscreenIcon(){
   const update = () => {
     const btn = document.getElementById('fullscreen-btn-header');
+    const btnBnav = document.getElementById('fullscreen-btn-bnav');
     const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.documentElement.classList.toggle('fullscreen-active', isFs);
     if (typeof CircleWheel !== 'undefined') setTimeout(() => CircleWheel.syncPreviewWidths(), 60);
-    if (!btn) return;
-    btn.innerHTML = isFs ? '⤡' : '⛶';
-    btn.title = isFs ? 'Volledig scherm afsluiten' : 'Volledig scherm';
+    if (btn){ btn.innerHTML = isFs ? '⤡' : '⛶'; btn.title = isFs ? 'Volledig scherm afsluiten' : 'Volledig scherm'; }
+    if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isFs ? '⤡' : '⛶'; }
   };
   document.addEventListener('fullscreenchange', update);
   document.addEventListener('webkitfullscreenchange', update);
