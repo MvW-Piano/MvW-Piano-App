@@ -44,6 +44,7 @@ body{
 #sidebar{
   width:216px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-color);
   display:flex; flex-direction:column; transition:width .2s ease, background-color .3s; overflow:hidden; z-index:20;
+  height:100dvh; height:100vh;
 }
 #sidebar.collapsed{ width:72px; }
 #sidebar.collapsed .brand-text, #sidebar.collapsed .nav-label{ display:none; }
@@ -58,7 +59,7 @@ body{
 .brand-badge svg{ width:19px; height:14px; }
 .brand-text{ font-family:'Fraunces',serif; font-weight:600; font-size:1.1rem; color:var(--text-main); white-space:nowrap; }
 
-.sidebar-nav{ flex:1; display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow-y:auto; }
+.sidebar-nav{ display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow-y:auto; }
 .nav-item{
   background:transparent; border:none; color:var(--text-muted); justify-content:flex-start; gap:12px;
   padding:11px 12px; border-radius:var(--radius-sm); font-size:.92rem; font-weight:600; text-align:left;
@@ -70,7 +71,7 @@ body{
 .nav-icon{ font-size:1.1rem; flex-shrink:0; width:20px; text-align:center; }
 .nav-label{ overflow:hidden; text-overflow:ellipsis; }
 
-.sidebar-footer{ display:flex; gap:6px; padding:12px 10px; border-top:1px solid var(--border-color); flex-shrink:0; }
+.sidebar-footer{ display:flex; gap:6px; padding:12px 10px; border-top:1px solid var(--border-color); flex-shrink:0; margin-top:auto; }
 .sidebar-icon-btn{
   background:transparent; border:1px solid var(--border-color); color:var(--text-muted); flex:1;
   padding:9px 6px; font-size:1rem; transition:transform .2s ease, background-color .15s;
@@ -197,22 +198,26 @@ select:focus{ border-color:var(--accent); }
 #answer-score{ margin-top:8px; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* Mobiel-eerst: wiel bovenaan, knoppenrijen als horizontale stroken
-   eronder, notenbalk/toetsenbord onderaan. Vanaf 640px schakelt dit om
+/* Mobiel-eerst: wiel bovenaan, dan meteen de notenbalk+toetsenbord
+   eronder (het resultaat van een tik is zo direct zichtbaar zonder te
+   scrollen), en de knoppenrijen daaronder. Vanaf 640px schakelt dit om
    naar de kolomsgewijze (kwintencirkel-links / knoppen-rechts) weergave.
    Dit is de ENIGE breakpoint die de structuur bepaalt — fullscreen-modus
-   (hieronder) maakt dingen alleen groter, verandert nooit de structuur,
-   waardoor er geen twee regels meer met elkaar kunnen botsen.
+   (hieronder) maakt dingen alleen groter, verandert nooit de structuur.
+   display:contents op .circle-left-half in mobiele modus laat zijn kinderen
+   (wiel + beide knoppenlijsten) rechtstreeks meedoen aan de order-volgorde
+   van .circle-main, zodat ze los van elkaar geplaatst kunnen worden i.p.v.
+   altijd als vast blokje vóór de notenbalk te verschijnen.
    min-width:0 is nodig op elke flex-schakel — anders weigert een flex-item
    onder zijn eigen inhoud te krimpen en steekt die alsnog buiten de kaart. */
 .circle-main{ width:100%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:14px; }
-.circle-left-half{ width:100%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
-.circle-center{ order:1; min-width:0; }
+.circle-left-half{ display:contents; }
+.circle-center{ order:1; min-width:0; width:100%; display:flex; justify-content:center; }
 #circle-wheel-wrap{ min-width:0; }
 #circle-wheel-wrap svg{ min-width:0; max-width:100%; }
-#circle-quick-jump{ order:2; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
-#circle-chord-jump{ order:3; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
-.circle-right-half{ width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; }
+.circle-right-half{ order:2; width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; }
+#circle-quick-jump{ order:3; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
+#circle-chord-jump{ order:4; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
 .circle-jump-col{ display:flex; gap:5px; flex:0 0 auto; min-width:0; }
 #circle-chord-preview{ min-width:0; min-height:70px; overflow:hidden; display:flex; justify-content:center; }
 #circle-keyboard-wrap{ display:flex; justify-content:center; min-width:0; }
@@ -223,11 +228,11 @@ select:focus{ border-color:var(--accent); }
      springen zodra de linkerhelft — door de minimale breedte van de
      notenbalk-SVG — net iets meer ruimte opeiste dan er over was. */
   .circle-main{ flex-direction:row; flex-wrap:nowrap; align-items:flex-start; gap:16px; }
-  .circle-left-half{ width:auto; min-width:0; flex:1 1 50%; flex-direction:row; flex-wrap:nowrap; justify-content:center; align-items:flex-start; gap:14px; }
-  .circle-center{ order:0; }
+  .circle-left-half{ display:flex; width:auto; min-width:0; flex:1 1 50%; flex-direction:row; flex-wrap:nowrap; justify-content:center; align-items:flex-start; gap:14px; order:0; }
+  .circle-center{ order:0; width:auto; }
   #circle-quick-jump{ order:0; flex-direction:column; max-width:none; }
   #circle-chord-jump{ order:0; flex-direction:column; max-width:none; }
-  .circle-right-half{ width:auto; max-width:none; min-width:0; flex:1 1 50%; padding-top:6px; }
+  .circle-right-half{ order:0; width:auto; max-width:none; min-width:0; flex:1 1 50%; padding-top:6px; }
 }
 
 @media (min-width:820px){ .flashcard{ max-width:1100px; } }
