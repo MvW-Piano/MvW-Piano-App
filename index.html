@@ -122,7 +122,8 @@ body{
   .bnav-icon{ font-size:1.15rem; }
   .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
   #app-shell{ flex-direction:column; }
-  #workspace{ padding-bottom:90px !important; }
+  /* Padding verhoogd naar 120px zodat de keyboard nooit bedekt wordt op mobiel */
+  #workspace{ padding-bottom:120px !important; }
   #content-topbar{ padding:12px 14px; }
   #content-topbar h1{ font-size:1.1rem; }
 }
@@ -470,6 +471,9 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 </div>
 
 <script>
+/* ============================================================
+   THEME MANAGER
+============================================================ */
 const ThemeManager = {
   init(){
     const saved = localStorage.getItem('pm_theme') || 'dark';
@@ -487,7 +491,7 @@ const ThemeManager = {
       CircleWheel.render();
       CircleWheel.syncPreviewWidths();
     } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
-      ScoreRenderer.render('score-paper', data.slices);
+      ScoreRenderer.render('score-paper', data.slices, data.useFlats);
     }
   },
   updateIcons(theme){
@@ -501,15 +505,20 @@ const ThemeManager = {
   }
 };
 
+/* ============================================================
+   MIDI HELPERS (Geen octaaf in output)
+============================================================ */
 const MIDI_NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function midiToName(midi, useFlats = false){
   const names = useFlats ? ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"] : MIDI_NOTES;
-  // Return ONLY the note name, without the octave number (e.g. A# instead of A#3)
   return names[midi % 12];
 }
 function randomInt(min, max){ return Math.floor(Math.random() * (max - min + 1) + min); }
 function capNote(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 
+/* ============================================================
+   AUDIO ENGINE
+============================================================ */
 const AudioEngine = {
   ctx: null, audioCache: {}, sampledMidiNotes: [],
   init(){ const AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); },
@@ -575,7 +584,6 @@ const AudioEngine = {
   },
   playChord(midiArray){ midiArray.forEach(midi => this.playTone(midi)); },
 
-  // Eerst individueel (arpeggio), daarna allemaal tegelijk. Delay = 0.5 sec.
   playArpeggioAndChord(midiArray, noteDelay = 0.5){
     if (!midiArray || midiArray.length === 0) return;
     const sorted = [...midiArray].sort((a,b) => a - b);
@@ -590,6 +598,9 @@ const AudioEngine = {
   }
 };
 
+/* ============================================================
+   SCORE RENDERER — Enharmonisch (Flats vs Sharps)
+============================================================ */
 const ScoreRenderer = {
   CANVAS_W: 620,
   CANVAS_H: 320,
@@ -598,24 +609,30 @@ const ScoreRenderer = {
   MARGIN_X: 12,
   OTTAVA_THRESHOLD: 3,
 
-  midiToKey(midi){
-    const letters =     ['c','c','d','d','e','f','f','g','g','a','a','b'];
-    const accidentals = ['', '#','', '#','', '', '#','', '#','', '#',''];
+  midiToKey(midi, useFlats){
+    const lettersSharp = ['c','c','d','d','e','f','f','g','g','a','a','b'];
+    const accSharp =     ['', '#','', '#','', '', '#','', '#','', '#',''];
+    const lettersFlat =  ['c','d','d','e','e','f','g','g','a','a','b','b'];
+    const accFlat =      ['', 'b','', 'b','', '', 'b','', 'b','', 'b',''];
     const idx = midi % 12;
     const oct = Math.floor(midi / 12) - 1;
-    return { key: `${letters[idx]}/${oct}`, acc: accidentals[idx] };
+    return useFlats
+        ? { key: `${lettersFlat[idx]}/${oct}`, acc: accFlat[idx] }
+        : { key: `${lettersSharp[idx]}/${oct}`, acc: accSharp[idx] };
   },
 
-  staffStep(midi){
-    const letters = ['c','c','d','d','e','f','f','g','g','a','a','b'];
+  staffStep(midi, useFlats){
+    const lettersSharp = ['c','c','d','d','e','f','f','g','g','a','a','b'];
+    const lettersFlat =  ['c','d','d','e','e','f','g','g','a','a','b','b'];
     const letterMap = { c:0, d:1, e:2, f:3, g:4, a:5, b:6 };
     const idx = midi % 12;
     const oct = Math.floor(midi / 12) - 1;
-    return oct * 7 + letterMap[letters[idx]];
+    const letter = useFlats ? lettersFlat[idx] : lettersSharp[idx];
+    return oct * 7 + letterMap[letter];
   },
 
-  ottavaInfo(midi, clef){
-    const step = this.staffStep(midi);
+  ottavaInfo(midi, clef, useFlats){
+    const step = this.staffStep(midi, useFlats);
     const bottomRef = clef === 'treble' ? 30 : 18; 
     const topRef    = clef === 'treble' ? 38 : 26; 
     if (step < bottomRef) return { lines: Math.floor((bottomRef - step) / 2), dir: 'below' };
@@ -623,16 +640,16 @@ const ScoreRenderer = {
     return { lines: 0, dir: null };
   },
 
-  buildNote(midis, clef){
+  buildNote(midis, clef, useFlats){
     const VF = Vex.Flow;
     if (!midis || midis.length === 0) return new VF.GhostNote('q');
     const sorted = [...midis].sort((a,b) => a - b);
     const extreme = clef === 'treble' ? sorted[sorted.length - 1] : sorted[0];
-    const info = this.ottavaInfo(extreme, clef);
+    const info = this.ottavaInfo(extreme, clef, useFlats);
     let shift = 0, ottavaLabel = null;
     if (info.lines > this.OTTAVA_THRESHOLD){
       shift = info.dir === 'below' ? 12 : -12;
-      const after = this.ottavaInfo(extreme + shift, clef);
+      const after = this.ottavaInfo(extreme + shift, clef, useFlats);
       if (after.lines <= this.OTTAVA_THRESHOLD){
         ottavaLabel = info.dir === 'below' ? '8vb' : '8va';
       } else {
@@ -641,7 +658,7 @@ const ScoreRenderer = {
     }
 
     const display = shift ? sorted.map(m => m + shift) : sorted;
-    const parsed = display.map(m => this.midiToKey(m));
+    const parsed = display.map(m => this.midiToKey(m, useFlats));
     const note = new VF.StaveNote({ keys: parsed.map(p => p.key), duration: 'q', auto_stem: true, clef });
     parsed.forEach((p, i) => {
       if (!p.acc) return;
@@ -665,19 +682,19 @@ const ScoreRenderer = {
     return note;
   },
 
-  render(containerId, slices){
+  render(containerId, slices, useFlats = false){
     const VF = Vex.Flow;
     const container = document.getElementById(containerId);
     container.innerHTML = '';
     try {
-      this._draw(VF, container, slices);
+      this._draw(VF, container, slices, useFlats);
     } catch(err){
       console.error('Notenbalk kon niet worden getekend:', err);
       container.innerHTML = '<p style="color:#c1594e; font-size:.85rem; padding:20px;">De notenbalk kon niet worden getekend. Probeer de pagina te verversen.</p>';
     }
   },
 
-  _draw(VF, container, slices){
+  _draw(VF, container, slices, useFlats){
     {
     const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
     renderer.resize(this.CANVAS_W, this.CANVAS_H);
@@ -709,8 +726,8 @@ const ScoreRenderer = {
     (slices.length ? slices : [[]]).forEach(slice => {
       const treble = slice.filter(m => m >= 60);
       const bass = slice.filter(m => m < 60);
-      trebleNotes.push(this.buildNote(treble, 'treble'));
-      bassNotes.push(this.buildNote(bass, 'bass'));
+      trebleNotes.push(this.buildNote(treble, 'treble', useFlats));
+      bassNotes.push(this.buildNote(bass, 'bass', useFlats));
     });
 
     const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
@@ -814,8 +831,8 @@ const MusicTheory = {
     "Tritonus": 6, "Reine Kwint": 7, "Kleine Sext": 8, "Grote Sext": 9, "Klein Septiem": 10, "Groot Septiem": 11, "Octaaf": 12
   },
   circle: {
-    keys: ["C","G","D","A","E","B","Gb/F#","Db","Ab","Eb","Bb","F"],
-    minors: ["Am","Em","Bm","F#m","C#m","G#m","Ebm","Bbm","Fm","Cm","Gm","Dm"],
+    keys: ["C","G","D","A","E","B","F#","Db","Ab","Eb","Bb","F"],
+    minors: ["Am","Em","Bm","F#m","C#m","G#m","D#m","Bbm","Fm","Cm","Gm","Dm"],
     accidentals: [0,1,2,3,4,5,6,-5,-4,-3,-2,-1]
   }
 };
@@ -833,10 +850,10 @@ const CircleWheel = {
   cofKeys: [
     {maj:'C', min:'Am', acc:0}, {maj:'G', min:'Em', acc:1}, {maj:'D', min:'Bm', acc:2},
     {maj:'A', min:'F#m', acc:3}, {maj:'E', min:'C#m', acc:4}, {maj:'B', min:'G#m', acc:5},
-    {maj:'Gb/F#', min:'Ebm', acc:6}, {maj:'Db', min:'Bbm', acc:-5}, {maj:'Ab', min:'Fm', acc:-4},
+    {maj:'F#', min:'D#m', acc:6}, {maj:'Db', min:'Bbm', acc:-5}, {maj:'Ab', min:'Fm', acc:-4},
     {maj:'Eb', min:'Cm', acc:-3}, {maj:'Bb', min:'Gm', acc:-2}, {maj:'F', min:'Dm', acc:-1}
   ],
-  rootToMidi: {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"Gb/F#":66,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62},
+  rootToMidi: {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"D#m":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62},
   chordAbbr: {"Majeur":"Maj","Mineur":"Min","Diminished":"Dim","Sus2":"Sus2","Sus4":"Sus4","Maj7":"Maj7","Min7":"Min7","Dom7":"Dom7","m7b5":"m7b5","Maj9":"Maj9","Min9":"Min9"},
 
   romanFor(i){
@@ -887,7 +904,8 @@ const CircleWheel = {
     try {
       const preview = document.getElementById('circle-chord-preview');
       preview.style.display = 'flex';
-      ScoreRenderer.render('circle-chord-preview', [notes]);
+      let useFlats = rootLabel.includes('b') || rootLabel === 'F' || rootLabel === 'Dm' || rootLabel === 'Gm' || rootLabel === 'Cm' || rootLabel === 'Fm' || rootLabel === 'Bbm' || rootLabel === 'Ebm';
+      ScoreRenderer.render('circle-chord-preview', [notes], useFlats);
     } catch(e){ console.warn('Kon akkoordvoorbeeld niet tekenen:', e); }
     try { MiniKeyboard.render('circle-keyboard-wrap', notes, notes[0]); }
     catch(e){ console.warn('Kon toetsenbord niet tekenen:', e); }
@@ -1015,7 +1033,7 @@ const CircleWheel = {
         labelLayer.appendChild(gStave);
       }
 
-      const rTextMaj = 142;
+      const rTextMaj = 140;
       const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle);
       const tMaj = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMaj.setAttribute("x", txMaj); tMaj.setAttribute("y", tyMaj); tMaj.setAttribute("font-family", "Inter");
@@ -1024,17 +1042,8 @@ const CircleWheel = {
       tMaj.style.pointerEvents = "none";
       tMaj.textContent = entry.maj; labelLayer.appendChild(tMaj);
 
-      const rTextMin = 76;
-      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle);
-      const tMin = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
-      tMin.setAttribute("font-size", "15"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", styleVals.inkMin);
-      tMin.setAttribute("text-anchor", "middle"); tMin.setAttribute("dominant-baseline", "central");
-      tMin.style.pointerEvents = "none";
-      tMin.textContent = entry.min; labelLayer.appendChild(tMin);
-
+      const rRomanMaj = 118;
       if (roman.major){
-        const rRomanMaj = 114;
         const txR = cx + rRomanMaj*Math.sin(effAngle), tyR = cy - rRomanMaj*Math.cos(effAngle);
         const tR = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR.setAttribute("x", txR); tR.setAttribute("y", tyR); tR.setAttribute("font-family", "Inter");
@@ -1043,8 +1052,18 @@ const CircleWheel = {
         tR.style.pointerEvents = "none";
         tR.textContent = roman.major; labelLayer.appendChild(tR);
       }
+
+      const rTextMin = 82;
+      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle);
+      const tMin = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
+      tMin.setAttribute("font-size", "15"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", styleVals.inkMin);
+      tMin.setAttribute("text-anchor", "middle"); tMin.setAttribute("dominant-baseline", "central");
+      tMin.style.pointerEvents = "none";
+      tMin.textContent = entry.min; labelLayer.appendChild(tMin);
+
+      const rRomanMin = 60;
       if (roman.minor){
-        const rRomanMin = 56;
         const txR2 = cx + rRomanMin*Math.sin(effAngle), tyR2 = cy - rRomanMin*Math.cos(effAngle);
         const tR2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR2.setAttribute("x", txR2); tR2.setAttribute("y", tyR2); tR2.setAttribute("font-family", "Inter");
@@ -1293,8 +1312,10 @@ const App = {
       let min = lvl === 'easy' ? 48 : (lvl === 'med' ? 36 : 24);
       let max = lvl === 'easy' ? 72 : (lvl === 'med' ? 84 : 96);
       let m = randomInt(min, max);
+      let useFlats = Math.random() > 0.5;
       data.type = 'note'; data.slices = [[m]]; data.m = m; 
-      data.ans = midiToName(m); // Zonder octaaf
+      data.useFlats = useFlats;
+      data.ans = midiToName(m, useFlats); 
     }
     else if (id === 'scales'){
       let typeOpt = document.getElementById('set-scale-type').value;
@@ -1303,9 +1324,11 @@ const App = {
       let root = randomInt(48, 60);
       let formula = MusicTheory.scales[type];
       let notes = formula.map(iv => root + iv);
+      let useFlats = [53, 58, 51, 56, 49, 65, 70, 63, 68, 61].includes(root);
       data.type = 'sequence';
+      data.useFlats = useFlats;
       data.slices = notes.map(n => [n]);
-      data.ans = `${midiToName(root, false)} ${type}`;
+      data.ans = `${midiToName(root, useFlats)} ${type}`;
     }
     else if (id === 'chords'){
       let typeOpt = document.getElementById('set-chord-type').value;
@@ -1317,9 +1340,12 @@ const App = {
       let inv = invSel === 'ALL' ? randomInt(0, formula.length - 1) : Math.min(parseInt(invSel), formula.length - 1);
       for (let i = 0; i < inv; i++) formula[i] += 12;
       formula.sort((a,b) => a - b);
-      data.type = 'chord'; data.slices = [formula.map(iv => root + iv)];
+      let useFlats = [53, 58, 51, 56, 49, 65, 70, 63, 68, 61].includes(root);
+      data.type = 'chord'; 
+      data.useFlats = useFlats;
+      data.slices = [formula.map(iv => root + iv)];
       let invText = inv === 0 ? "Grondligging" : `${inv}e Omkering`;
-      data.ans = `${midiToName(root, false)} ${type} (${invText})`;
+      data.ans = `${midiToName(root, useFlats)} ${type} (${invText})`;
     }
     else if (id === 'circle'){
       let mode = document.getElementById('set-circle-mode').value;
@@ -1328,6 +1354,8 @@ const App = {
         let idx = randomInt(0, 11);
         let keys = MusicTheory.circle.keys, minors = MusicTheory.circle.minors, accs = MusicTheory.circle.accidentals;
         let rootNote = "", chordType = "";
+        data.useFlats = accs[idx] < 0;
+        
         if (mode === 'quiz-rel'){
           let minorClean = minors[idx].replace(/m$/, '');
           if (Math.random() > 0.5){
@@ -1347,7 +1375,7 @@ const App = {
             rootNote = keys[idx]; chordType = "Majeur";
           }
         }
-        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"Gb/F#":66,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
+        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"D#m":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
         let rootMidi = rootToMidi[rootNote];
         let formula = MusicTheory.chords[chordType];
         data.type = 'chord'; data.slices = [formula.map(iv => rootMidi + iv)];
@@ -1360,24 +1388,37 @@ const App = {
       let names = checked.length > 0 ? checked : Object.keys(MusicTheory.intervals);
       let name = names[randomInt(0, names.length - 1)];
       let root = randomInt(48, 64), top = root + MusicTheory.intervals[name];
+      let useFlats = Math.random() > 0.5;
       data.i_mode = mode; data.type = playMode === 'melodic' ? 'sequence' : 'chord';
+      data.useFlats = useFlats;
       data.slices = playMode === 'melodic' ? [[root],[top]] : [[root, top]];
-      data.ans = `${name} (${midiToName(root, false)} → ${midiToName(top, false)})`;
+      data.ans = `${name} (${midiToName(root, useFlats)} → ${midiToName(top, useFlats)})`;
     }
     else if (id === 'progressions'){
       let kType = document.getElementById('set-prog-key').value;
       let isMaj = kType === 'maj' ? true : (kType === 'min' ? false : Math.random() > 0.5);
       let rootKeyIdx = randomInt(0, 11);
-      let rootName = MusicTheory.circle.keys[rootKeyIdx];
-      let rootMidi = 48 + rootKeyIdx;
+      
+      let rootName = isMaj ? MusicTheory.circle.keys[rootKeyIdx] : MusicTheory.circle.minors[rootKeyIdx].replace(/m$/, '');
+      
+      let accidentals = MusicTheory.circle.accidentals[rootKeyIdx];
+      data.useFlats = accidentals < 0; 
+      
+      const rootToMidiMap = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65, 
+                             "A":57,"E":64,"B":71,"C#":61,"G#":68,"D#":63};
+      let rootMidi = rootToMidiMap[rootName];
+      if(rootMidi > 64) rootMidi -= 12; 
+
       const degs = isMaj ?
         [{n:'I', iv:0, q:'Majeur'}, {n:'ii', iv:2, q:'Mineur'}, {n:'IV', iv:5, q:'Majeur'}, {n:'V', iv:7, q:'Majeur'}, {n:'vi', iv:9, q:'Mineur'}] :
-        [{n:'i', iv:0, q:'Mineur'}, {n:'III', iv:3, q:'Majeur'}, {n:'iv', iv:5, q:'Mineur'}, {n:'V', iv:7, q:'Majeur'}, {n:'VI', iv:8, q:'Mineur'}];
+        [{n:'i', iv:0, q:'Mineur'}, {n:'III', iv:3, q:'Majeur'}, {n:'iv', iv:5, q:'Mineur'}, {n:'V', iv:7, q:'Majeur'}, {n:'VI', iv:8, q:'Majeur'}];
+        
       let targetDeg = degs[randomInt(0, degs.length - 1)];
       let chordRoot = rootMidi + targetDeg.iv;
+      
       data.type = 'chord'; data.slices = [MusicTheory.chords[targetDeg.q].map(iv => chordRoot + iv)];
       data.q = `Wat is trap '${targetDeg.n}' in ${rootName} ${isMaj ? 'Majeur' : 'mineur'}?`;
-      data.ans = `${midiToName(chordRoot, false)} ${targetDeg.q}`;
+      data.ans = `${midiToName(chordRoot, data.useFlats)} ${targetDeg.q}`;
     }
 
     return data;
@@ -1417,7 +1458,7 @@ const App = {
     else {
       paper.style.display = 'flex';
       if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = data.q; }
-      ScoreRenderer.render('score-paper', data.slices);
+      ScoreRenderer.render('score-paper', data.slices, data.useFlats);
       ansDisp.innerText = data.ans;
     }
 
@@ -1443,7 +1484,7 @@ const App = {
     if (data && this.currentModule === 'intervals' && data.i_mode === 'blind'){
       const box = document.getElementById('answer-score');
       box.style.display = 'block';
-      ScoreRenderer.render('answer-score', data.slices);
+      ScoreRenderer.render('answer-score', data.slices, data.useFlats);
     }
   }
 };
