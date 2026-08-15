@@ -8,51 +8,114 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
 <title>Piano Masterclass</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
 <style>
 :root{
-  --bg-dark:#0f172a; --bg-panel:#1e293b; --bg-card:#334155;
-  --text-main:#f8fafc; --text-muted:#94a3b8; --border-color:#334155;
-  --accent:#3b82f6; --accent-hover:#2563eb;
-  --piano-white:#fffff0; --piano-black:#111; --overlay-bg:#0f172a;
+  --bg-dark:#080b14; --bg-panel:#0e1220; --bg-card:#161b2c;
+  --text-main:#f5f7fb; --text-muted:#8b93a9; --border-color:#232a3f;
+  --accent:#4f8cff; --accent-hover:#3b74e0; --accent-2:#8b5cf6;
+  --paper-bg:#161b2c; --paper-ink:#f2f4f9; --paper-border:#262d44; --paper-muted:#8b93a9;
+  --piano-white:#fdfbf3; --piano-black:#14110f; --overlay-bg:#080b14;
+  --paper-btn-bg:#1f2540; --paper-btn-hover:#28304f;
+  --radius-sm:9px; --radius-md:14px; --radius-lg:20px;
+  --shadow-sm:0 2px 8px rgba(0,0,0,.25);
+  --shadow-md:0 10px 26px rgba(0,0,0,.35);
+  --shadow-lg:0 22px 50px rgba(0,0,0,.45);
 }
 [data-theme="light"]{
-  --bg-dark:#f1f5f9; --bg-panel:#ffffff; --bg-card:#ffffff;
-  --text-main:#0f172a; --text-muted:#64748b; --border-color:#cbd5e1;
-  --overlay-bg:#f8fafc;
+  --bg-dark:#f3f4f8; --bg-panel:#ffffff; --bg-card:#ffffff;
+  --text-main:#111827; --text-muted:#6b7280; --border-color:#e5e7eb;
+  --paper-bg:#ffffff; --paper-ink:#111827; --paper-border:#e5e7eb; --paper-muted:#6b7280;
+  --overlay-bg:#f3f4f8;
+  --paper-btn-bg:#f3f4f8; --paper-btn-hover:#e8eaf0;
+  --shadow-sm:0 2px 8px rgba(16,24,40,.05);
+  --shadow-md:0 10px 26px rgba(16,24,40,.08);
+  --shadow-lg:0 22px 50px rgba(16,24,40,.10);
 }
 *{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif; user-select:none; -webkit-tap-highlight-color:transparent; }
 body{
-  background-color:var(--bg-dark); color:var(--text-main); display:flex; flex-direction:column;
+  background-color:var(--bg-dark); color:var(--text-main); display:flex; flex-direction:row;
   height:100dvh; min-height:100vh; overflow:hidden; transition:background-color .3s,color .3s;
 }
 
-/* ---- Header ---- */
-header{
-  background-color:var(--bg-panel); padding:15px 20px; display:flex; justify-content:space-between;
-  align-items:center; border-bottom:2px solid var(--accent); box-shadow:0 4px 10px rgba(0,0,0,.1);
+/* ---- Sidebar ---- */
+#app-shell{ display:flex; flex-direction:row; width:100%; height:100%; }
+#sidebar{
+  width:216px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-color);
+  display:flex; flex-direction:column; transition:width .2s ease, background-color .3s; overflow:hidden; z-index:20;
+}
+#sidebar.collapsed{ width:72px; }
+#sidebar.collapsed .brand-text, #sidebar.collapsed .nav-label{ display:none; }
+#sidebar.collapsed .sidebar-footer{ flex-wrap:wrap; }
+#sidebar.collapsed #sidebar-collapse-btn{ transform:rotate(180deg); }
+
+.sidebar-brand{ display:flex; align-items:center; gap:10px; padding:18px 16px; flex-shrink:0; }
+.brand-badge{
+  width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2));
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 6px 16px rgba(79,140,255,.3);
+}
+.brand-badge svg{ width:19px; height:14px; }
+.brand-text{ font-family:'Fraunces',serif; font-weight:600; font-size:1.1rem; color:var(--text-main); white-space:nowrap; }
+
+.sidebar-nav{ flex:1; display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow-y:auto; }
+.nav-item{
+  background:transparent; border:none; color:var(--text-muted); justify-content:flex-start; gap:12px;
+  padding:11px 12px; border-radius:var(--radius-sm); font-size:.92rem; font-weight:600; text-align:left;
+  white-space:nowrap; overflow:hidden;
+}
+.nav-item:hover{ background:var(--bg-card); color:var(--text-main); }
+.nav-item.active{ background:var(--bg-card); color:var(--accent); }
+.nav-item.active .nav-icon{ filter:none; }
+.nav-icon{ font-size:1.1rem; flex-shrink:0; width:20px; text-align:center; }
+.nav-label{ overflow:hidden; text-overflow:ellipsis; }
+
+.sidebar-footer{ display:flex; gap:6px; padding:12px 10px; border-top:1px solid var(--border-color); flex-shrink:0; }
+.sidebar-icon-btn{
+  background:transparent; border:1px solid var(--border-color); color:var(--text-muted); flex:1;
+  padding:9px 6px; font-size:1rem; transition:transform .2s ease, background-color .15s;
+}
+.sidebar-icon-btn:hover{ background:var(--bg-card); color:var(--text-main); }
+
+/* ---- Content area + topbar ---- */
+#content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+#content-topbar{
+  background-color:var(--bg-panel); padding:14px 22px; display:flex; justify-content:space-between;
+  align-items:center; border-bottom:1px solid var(--border-color); position:relative;
   z-index:10; transition:background-color .3s; flex-shrink:0;
 }
-header h1{ font-size:1.3rem; color:var(--accent); letter-spacing:.5px; font-weight:800; }
-.header-controls{ display:flex; gap:10px; align-items:center; }
+#content-topbar h1{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); }
+.topbar-right{ display:flex; gap:8px; align-items:center; }
+
+@media (max-width:640px){
+  #sidebar{ width:72px !important; }
+  #sidebar .brand-text, #sidebar .nav-label{ display:none; }
+  #sidebar-collapse-btn{ display:none; }
+  .sidebar-footer{ flex-wrap:wrap; gap:6px; }
+  .sidebar-icon-btn{ flex:1 1 26px; }
+  #content-topbar{ padding:12px 14px; }
+  #content-topbar h1{ font-size:1.1rem; }
+}
 
 /* ---- Buttons ---- */
 button{
   background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color);
-  padding:10px 16px; border-radius:8px; cursor:pointer; transition:all .2s; font-weight:600;
+  padding:10px 16px; border-radius:var(--radius-sm); cursor:pointer; transition:all .18s ease; font-weight:600;
   font-size:.95rem; display:flex; align-items:center; justify-content:center; gap:8px;
 }
-button:hover, button:active{ background:var(--border-color); transform:scale(.98); }
-button.primary{ background:var(--accent); color:#fff; border:none; }
-button.primary:hover, button.primary:active{ background:var(--accent-hover); }
-button:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+button:hover{ background:var(--border-color); }
+button:active{ transform:scale(.97); }
+button.primary{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border:none; box-shadow:0 6px 18px rgba(79,140,255,.35); }
+button.primary:hover{ filter:brightness(1.08); }
+button.primary:active{ filter:brightness(.96); }
+button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
 
 select, input[type="number"]{
   background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-color);
-  padding:12px; border-radius:6px; outline:none; font-size:.9rem; font-weight:500;
-  transition:background-color .3s, color .3s;
+  padding:12px; border-radius:var(--radius-sm); outline:none; font-size:.9rem; font-weight:500;
+  transition:background-color .3s, color .3s, border-color .2s;
 }
+select:focus{ border-color:var(--accent); }
 
 /* ---- Layout ---- */
 #main-container{ flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
@@ -64,75 +127,69 @@ select, input[type="number"]{
   overflow-y:auto; transition:background-color .3s;
 }
 .theme-toggle-container{ position:absolute; top:20px; right:20px; }
-#init-overlay h1{ color:var(--accent); font-size:2.8rem; margin-bottom:5px; font-weight:800; }
-#init-overlay p.subtitle{ margin-bottom:26px; color:var(--text-muted); font-size:1rem; }
+#init-overlay h1{ font-family:'Fraunces',serif; color:var(--accent); font-size:2.9rem; margin-bottom:6px; font-weight:600; }
+#init-overlay p.subtitle{ margin-bottom:28px; color:var(--text-muted); font-size:1rem; letter-spacing:.3px; }
 
 .brand-mark-lg{
-  width:76px; height:76px; border-radius:22px; background:var(--accent); color:#fff;
-  display:flex; align-items:center; justify-content:center; font-size:2.3rem; margin-bottom:14px;
-  box-shadow:0 14px 30px rgba(59,130,246,.35);
+  width:78px; height:78px; border-radius:24px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:2.3rem; margin-bottom:16px;
+  box-shadow:0 16px 34px rgba(79,140,255,.4);
 }
 .brand-mark-lg svg{ width:42px; height:42px; }
 
-.optional-audio{ margin-top:6px; display:flex; flex-direction:column; align-items:center; gap:8px; max-width:380px; width:100%; }
+.optional-audio{ margin-top:8px; display:flex; flex-direction:column; align-items:center; gap:8px; max-width:380px; width:100%; }
 .optional-audio .sample-btn{
-  font-size:.85rem; padding:9px 18px; background:transparent; border:1px dashed var(--border-color); color:var(--text-muted);
+  font-size:.85rem; padding:9px 18px; background:transparent; border:1px dashed var(--border-color); color:var(--text-muted); border-radius:var(--radius-sm);
 }
+.optional-audio .sample-btn:hover{ border-color:var(--accent); color:var(--text-main); background:transparent; }
 #global-audio-status{ font-size:.82rem; font-weight:600; color:var(--text-muted); }
 .audio-info{ font-size:.78rem; color:var(--text-muted); width:100%; }
 .audio-info summary{ cursor:pointer; color:var(--accent); font-weight:600; list-style:none; }
 .audio-info summary::-webkit-details-marker{ display:none; }
 .audio-info summary::before{ content:'ℹ️ '; }
 .audio-info p{ margin-top:8px; line-height:1.5; text-align:left; }
-.creator-credit{ margin-top:34px; font-size:.9rem; color:var(--text-muted); font-weight:500; letter-spacing:.5px; }
-
-/* ---- Dashboard ---- */
-#dashboard{ width:100%; padding:20px; display:flex; flex-direction:column; align-items:center; overflow-y:auto; padding-bottom:40px; gap:20px; }
-.modules-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:15px; width:100%; max-width:1000px; }
-.module-card{
-  background:var(--bg-panel); border-radius:12px; padding:20px; cursor:pointer;
-  transition:transform .2s, box-shadow .2s, background-color .3s; border:2px solid var(--accent);
-  display:flex; flex-direction:column; justify-content:space-between;
-}
-.module-card:hover{ transform:translateY(-3px); box-shadow:0 8px 20px rgba(59,130,246,.15); }
-.module-card h2{ font-size:1.1rem; margin-bottom:8px; color:var(--text-main); }
-.module-card p{ font-size:.85rem; color:var(--text-muted); }
+.creator-credit{ margin-top:34px; font-size:.85rem; color:var(--text-muted); font-weight:500; letter-spacing:.5px; }
 
 /* ---- Module view ---- */
-#module-view{ width:100%; height:100%; display:none; flex-direction:column; overflow:hidden; }
+#module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
-#settings-bar{ background:var(--bg-panel); border-bottom:1px solid var(--border-color); flex-shrink:0; transition:background-color .3s; }
+#settings-bar{ position:relative; }
 #settings-toggle{
-  width:100%; display:flex; justify-content:space-between; align-items:center; padding:13px 18px;
-  background:transparent; border:none; border-radius:0; cursor:pointer; font-size:1rem;
+  display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 16px;
+  background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); cursor:pointer; font-size:.9rem;
 }
+#settings-toggle:hover{ background:var(--border-color); }
 #settings-toggle .chev{ transition:transform .2s; color:var(--accent); }
 #settings-bar.open #settings-toggle .chev{ transform:rotate(180deg); }
 #settings-container{
-  display:flex; flex-wrap:wrap; gap:15px; padding:0 18px; max-height:0; overflow:hidden;
-  transition:max-height .25s ease, padding .25s ease;
+  position:absolute; top:calc(100% + 8px); right:0; width:320px; max-width:min(90vw, 360px);
+  background:var(--bg-panel); border:1px solid var(--border-color); border-radius:var(--radius-md); box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column; gap:14px; max-height:0; overflow:hidden; z-index:50;
+  transition:max-height .25s ease, padding .25s ease; padding:0 16px;
 }
-#settings-bar.open #settings-container{ max-height:260px; padding:0 18px 18px; }
-.setting-group{ display:flex; flex-direction:column; gap:6px; min-width:170px; flex:1; }
-.setting-group label{ font-size:.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+#settings-bar.open #settings-container{ max-height:70vh; overflow-y:auto; padding:16px; }
+.setting-group{ display:flex; flex-direction:column; gap:6px; width:100%; }
+.setting-group label{ font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
+.setting-group select{ width:100%; }
 .interval-check-grid{ display:flex; flex-wrap:wrap; gap:8px; }
 .setting-group .interval-check-grid label.interval-check{
   display:flex; align-items:center; gap:5px; background:var(--bg-dark); border:1px solid var(--border-color);
-  border-radius:6px; padding:6px 10px; font-size:.9rem; font-weight:700; color:var(--text-main);
-  cursor:pointer; text-transform:none; letter-spacing:normal;
+  border-radius:var(--radius-sm); padding:6px 10px; font-size:.88rem; font-weight:700; color:var(--text-main);
+  cursor:pointer; text-transform:none; letter-spacing:normal; font-family:'JetBrains Mono',monospace;
 }
 .interval-check input{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
 
 #workspace{
   flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:20px; background:var(--bg-dark); overflow-y:auto; width:100%;
+  padding:22px; background:var(--bg-dark); overflow-y:auto; width:100%;
 }
 
 /* ---- Flashcard ---- */
 .flashcard{
-  background:var(--piano-white); border-radius:12px; width:100%; max-width:820px; min-height:280px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15); display:flex; flex-direction:column; align-items:center;
-  justify-content:center; padding:20px; position:relative; color:#0f172a; border:1px solid #cbd5e1;
+  background:var(--paper-bg); border-radius:var(--radius-lg); width:100%; max-width:820px; min-height:280px;
+  box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
+  transition:background-color .3s, border-color .3s, color .3s;
 }
 #score-paper{ width:100%; display:flex; justify-content:center; }
 #score-paper svg, #answer-score svg{ width:100%; height:auto; display:block; }
@@ -140,31 +197,49 @@ select, input[type="number"]{
 #answer-score{ margin-top:8px; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* Linkerhelft (50%): toonsoort-knoppen | cirkel | akkoordtype-knoppen.
-   Rechterhelft (50%): notenbalk boven toetsenbord, altijd in exact
-   dezelfde breedte (die breedte wordt na elk akkoord in JS gemeten aan
-   het toetsenbord en op de notenbalk toegepast — zo blijven ze precies
-   onder elkaar staan, in elke schermgrootte en in/uit fullscreen).
+/* Mobiel-eerst: wiel bovenaan, knoppenrijen als horizontale stroken
+   eronder, notenbalk/toetsenbord onderaan. Vanaf 640px schakelt dit om
+   naar de kolomsgewijze (kwintencirkel-links / knoppen-rechts) weergave.
+   Dit is de ENIGE breakpoint die de structuur bepaalt — fullscreen-modus
+   (hieronder) maakt dingen alleen groter, verandert nooit de structuur,
+   waardoor er geen twee regels meer met elkaar kunnen botsen.
    min-width:0 is nodig op elke flex-schakel — anders weigert een flex-item
    onder zijn eigen inhoud te krimpen en steekt die alsnog buiten de kaart. */
-.circle-main{ width:100%; display:flex; flex-wrap:wrap; align-items:flex-start; min-width:0; }
-.circle-left-half{ flex:1 1 50%; min-width:0; display:flex; justify-content:center; align-items:flex-start; gap:14px; }
-.circle-jump-col{ display:flex; flex-direction:column; gap:5px; flex:0 0 auto; }
-.circle-center{ display:flex; flex-direction:column; align-items:center; flex:0 0 auto; min-width:0; }
-.circle-right-half{ flex:1 1 50%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; padding-top:6px; }
+.circle-main{ width:100%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:14px; }
+.circle-left-half{ width:100%; min-width:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.circle-center{ order:1; min-width:0; }
+#circle-wheel-wrap{ min-width:0; }
+#circle-wheel-wrap svg{ min-width:0; max-width:100%; }
+#circle-quick-jump{ order:2; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
+#circle-chord-jump{ order:3; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; }
+.circle-right-half{ width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; }
+.circle-jump-col{ display:flex; gap:5px; flex:0 0 auto; min-width:0; }
 #circle-chord-preview{ min-width:0; min-height:70px; overflow:hidden; display:flex; justify-content:center; }
 #circle-keyboard-wrap{ display:flex; justify-content:center; min-width:0; }
+
+@media (min-width:640px){
+  /* flex-wrap blijft bewust UIT (nowrap) vanaf hier: met wrap:wrap kon de
+     rechterhelft (notenbalk+toetsenbord) alsnog naar een eigen regel
+     springen zodra de linkerhelft — door de minimale breedte van de
+     notenbalk-SVG — net iets meer ruimte opeiste dan er over was. */
+  .circle-main{ flex-direction:row; flex-wrap:nowrap; align-items:flex-start; gap:16px; }
+  .circle-left-half{ width:auto; min-width:0; flex:1 1 50%; flex-direction:row; flex-wrap:nowrap; justify-content:center; align-items:flex-start; gap:14px; }
+  .circle-center{ order:0; }
+  #circle-quick-jump{ order:0; flex-direction:column; max-width:none; }
+  #circle-chord-jump{ order:0; flex-direction:column; max-width:none; }
+  .circle-right-half{ width:auto; max-width:none; min-width:0; flex:1 1 50%; padding-top:6px; }
+}
 
 @media (min-width:820px){ .flashcard{ max-width:1100px; } }
 @media (min-width:1150px){ .flashcard{ max-width:1320px; } }
 
-/* Echte browser-fullscreen (via de knop naast licht/donker): gebruikt de
-   volledige beschikbare ruimte, ongeacht browser-schaling/DPI — dit werkt
-   dus ook wanneer de min-width media queries hierboven (door Windows-
-   schaalinstellingen) niet zouden aanslaan. */
+/* Echte browser-fullscreen (via de knop naast licht/donker): maakt alles
+   groter, ongeacht browser-schaling/DPI — verandert bewust NOOIT de
+   structuur (die regelt uitsluitend de min-width:640px breakpoint
+   hierboven), om precies de conflicten te vermijden die eerder de
+   kwintencirkel in fullscreen deden verspringen. */
 html.fullscreen-active #workspace{ padding:28px; }
 html.fullscreen-active .flashcard{ max-width:min(1700px, 97vw); }
-html.fullscreen-active .circle-main{ gap:20px; }
 html.fullscreen-active .circle-jump-btn{ font-size:1rem; height:40px; padding:0 10px; }
 html.fullscreen-active .mini-key.white{ width:32px; height:112px; }
 html.fullscreen-active .mini-key.black{ width:19px; height:68px; margin-left:-9.5px; margin-right:-9.5px; }
@@ -175,45 +250,37 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 #circle-svg:active{ cursor:grabbing; }
 
 .circle-jump-btn{
-  width:56px; height:32px; padding:0 6px; border-radius:15px; font-size:.76rem; font-weight:700;
-  color:#57534e; background:#f1ebdc; border:1px solid #ddd3bd; flex-shrink:0;
+  width:56px; height:32px; padding:0 6px; border-radius:var(--radius-sm); font-size:.76rem; font-weight:700;
+  color:var(--paper-ink); background:var(--paper-btn-bg); border:1px solid var(--paper-border); flex-shrink:0; font-family:'JetBrains Mono',monospace;
+  transition:all .15s ease;
 }
-.circle-jump-btn.active{ color:#fff; background:var(--accent); border-color:var(--accent); }
+.circle-jump-btn:hover{ background:var(--paper-btn-hover); }
+.circle-jump-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(79,140,255,.35); }
 .circle-jump-btn.chord{ width:60px; }
-
-/* Smalle/mobiele schermen: wiel bovenaan, knoppenrijen als horizontale
-   stroken eronder, notenbalk/toetsenbord onderaan. */
-@media (max-width:640px){
-  .circle-main{ flex-direction:column; align-items:center; }
-  .circle-left-half{ flex-direction:column; align-items:center; width:100%; }
-  .circle-center{ order:1; }
-  #circle-quick-jump{ order:2; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; }
-  #circle-chord-jump{ order:3; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; }
-  .circle-right-half{ width:100%; max-width:340px; }
-}
 
 .setting-group.circle-extra-select{ width:100%; max-width:280px; }
 .setting-group.circle-extra-select label{ color:#57534e !important; }
 .setting-group.circle-extra-select select{ background:#fff; color:#1e293b; border-color:#cbd5e1; }
 
 .mini-key{ position:relative; flex-shrink:0; user-select:none; }
-.mini-key.white{ width:24px; height:88px; background:#fffdf9; border:1px solid #cbbfa0; border-radius:0 0 3px 3px; z-index:1; }
-.mini-key.black{ width:15px; height:54px; background:#241f1a; margin-left:-7.5px; margin-right:-7.5px; z-index:2; border-radius:0 0 2px 2px; }
-.mini-key .mk-dot{ position:absolute; left:50%; transform:translateX(-50%); width:11px; height:11px; border-radius:50%; bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.3); }
+.mini-key.white{ width:24px; height:88px; background:#fefcf6; border:1px solid var(--paper-border); border-radius:0 0 4px 4px; z-index:1; }
+.mini-key.black{ width:15px; height:54px; background:#1c1712; margin-left:-7.5px; margin-right:-7.5px; z-index:2; border-radius:0 0 3px 3px; }
+.mini-key .mk-dot{ position:absolute; left:50%; transform:translateX(-50%); width:11px; height:11px; border-radius:50%; bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.35); }
 .mini-key.black .mk-dot{ bottom:8px; }
-.mini-key .mk-dot.root{ background:#3b82f6; }
+.mini-key .mk-dot.root{ background:var(--accent); }
 .mini-key .mk-dot.tone{ background:#22c55e; }
 
 .text-quiz-display{ font-size:1.5rem; font-weight:bold; text-align:center; margin:15px 0; display:none; }
 #answer-display{
-  margin-top:10px; margin-bottom:10px; font-size:1.4rem; font-weight:800; color:var(--accent-hover);
-  min-height:34px; opacity:0; transition:opacity .3s; text-align:center;
+  margin-top:10px; margin-bottom:10px; font-size:1.4rem; font-weight:800; font-family:'JetBrains Mono',monospace;
+  color:var(--accent-hover); min-height:34px; opacity:0; transition:opacity .3s; text-align:center;
 }
 #answer-display.visible{ opacity:1; }
 
 .flashcard-actions{ width:100%; max-width:400px; margin-top:15px; display:flex; flex-direction:column; gap:15px; }
 .action-row-top{ display:flex; gap:10px; justify-content:center; }
-.action-row-top button{ color:#1e293b; font-weight:700; background:#e2e8f0; border:1px solid #cbd5e1; }
+.action-row-top button{ color:var(--paper-ink); font-weight:700; background:var(--paper-btn-bg); border:1px solid var(--paper-border); }
+.action-row-top button:hover{ background:var(--paper-btn-hover); }
 .action-row-bottom{ display:flex; gap:10px; }
 .action-row-bottom button{ flex:1; padding:14px; font-size:1rem; }
 .swipe-hint{ text-align:center; font-size:.75rem; color:var(--text-muted); margin-top:6px; }
@@ -228,20 +295,16 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 }
 .piano-keyboard{ display:flex; position:relative; height:250px; min-width:max-content; padding:0 40px; }
 .key{ cursor:pointer; flex-shrink:0; border-radius:0 0 6px 6px; user-select:none; }
-.key.white{ width:50px; height:100%; background:var(--piano-white); border:1px solid #cbd5e1; position:relative; z-index:1; box-shadow:inset 0 -4px 6px rgba(0,0,0,.1); }
-.key.white:active, .key.white.active{ background:#e2e8f0; border-bottom:6px solid var(--accent); }
+.key.white{ width:50px; height:100%; background:var(--piano-white); border:1px solid #ddd0b5; position:relative; z-index:1; box-shadow:inset 0 -4px 6px rgba(0,0,0,.1); }
+.key.white:active, .key.white.active{ background:#eee7d6; border-bottom:6px solid var(--accent); }
 .key.black{ width:30px; height:60%; background:var(--piano-black); margin-left:-15px; margin-right:-15px; z-index:2; border-radius:0 0 4px 4px; box-shadow:inset 0 -4px 4px rgba(255,255,255,.2); }
-.key.black:active, .key.black.active{ background:#334155; border-bottom:4px solid var(--accent); }
-.key span{ position:absolute; bottom:15px; width:100%; text-align:center; font-size:14px; font-weight:700; color:#94a3b8; pointer-events:none; }
+.key.black:active, .key.black.active{ background:#33291f; border-bottom:4px solid var(--accent); }
+.key span{ position:absolute; bottom:15px; width:100%; text-align:center; font-size:14px; font-weight:700; color:#a9987a; pointer-events:none; }
 
 /* ---- Mobile ---- */
 @media (max-width:768px){
-  header h1{ font-size:1.1rem; }
-  header{ padding:10px; }
-  #settings-container{ flex-direction:row; flex-wrap:wrap; }
-  .setting-group{ flex:1; min-width:140px; }
-  #workspace{ padding:10px; justify-content:flex-start; }
-  .flashcard{ min-height:240px; padding:10px; }
+  #workspace{ padding:12px; justify-content:flex-start; }
+  .flashcard{ min-height:240px; padding:14px; }
   .piano-keyboard{ height:200px; }
   .key.white{ width:44px; }
   .key.black{ width:28px; margin-left:-14px; margin-right:-14px; }
@@ -253,7 +316,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 <!-- Init / Start Page -->
 <div id="init-overlay">
   <div class="theme-toggle-container">
-    <button onclick="ThemeManager.toggle()" id="theme-btn-start" style="background:transparent; border-color:var(--border-color); color:var(--text-main);">☀️ Light Mode</button>
+    <button onclick="ThemeManager.toggle()" id="theme-btn-start" class="header-icon-btn">☀️ Light Mode</button>
   </div>
 
   <div class="brand-mark-lg">
@@ -287,62 +350,56 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   <div class="creator-credit">Created by Martijn van Willigen</div>
 </div>
 
-<!-- Hoofd Applicatie Header -->
-<header>
-  <h1>Piano Masterclass</h1>
-  <div class="header-controls" id="header-controls" style="display:none;">
-    <button onclick="App.toggleFullscreen()" id="fullscreen-btn-header" style="background:transparent; border-color:var(--border-color); color:var(--text-main); font-size:1.1rem; padding:8px 12px;" title="Volledig scherm">⛶</button>
-    <button onclick="ThemeManager.toggle()" id="theme-btn-header" style="background:transparent; border-color:var(--border-color); color:var(--text-main); font-size:1.1rem; padding:8px 12px;" title="Wissel Thema">☀️</button>
-    <button onclick="App.showDashboard()">⟵ Dashboard</button>
-  </div>
-</header>
-
-<div id="main-container">
-  <!-- Dashboard Modules -->
-  <main id="dashboard">
-    <div class="modules-grid">
-      <div class="module-card" onclick="App.loadModule('notes')">
-        <h2 style="color:#60a5fa;">🎯 1. Noten Snellezen</h2>
-        <p>Train je zichtlezen op de Grand Staff. Van makkelijk tot volledige 88 toetsen.</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('scales')">
-        <h2 style="color:#34d399;">🎵 2. Toonladders</h2>
-        <p>Oefen majeur, mineur, pentatonisch en blues door alle 12 toonsoorten.</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('chords')">
-        <h2 style="color:#fbbf24;">🎹 3. Akkoorden</h2>
-        <p>Herken drieklanken en septiem/none akkoorden inclusief omkeringen.</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('circle')">
-        <h2 style="color:#f87171;">🎼 4. Kwintencirkel</h2>
-        <p>Interactieve kwintencirkel en theoretische relatie-quizzen (Inclusief Audio).</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('intervals')">
-        <h2 style="color:#c084fc;">👂 5. Intervallen</h2>
-        <p>Visuele en gehoortraining voor muzikale afstanden.</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('progressions')">
-        <h2 style="color:#fb923c;">📈 6. Akkoordprogressies</h2>
-        <p>Theoretische trappen (Romeinse cijfers) omzetten naar akkoorden.</p>
-      </div>
-      <div class="module-card" onclick="App.loadModule('piano')">
-        <h2 style="color:var(--text-main);">🎹 7. Virtuele Piano</h2>
-        <p>Vrij bespeelbaar toetsenbord over 88 toetsen.</p>
-      </div>
+<!-- App-schil: zijbalk + inhoud -->
+<div id="app-shell">
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-badge">
+        <svg viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="12" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="23" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="34" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="7" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+          <rect x="18" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+          <rect x="29" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+        </svg>
+      </span>
+      <span class="brand-text">Masterclass</span>
     </div>
-  </main>
-
-  <!-- Module Workspace -->
-  <main id="module-view">
-    <div id="settings-bar">
-      <button id="settings-toggle" onclick="App.toggleSettings()">
-        <strong id="module-title" style="color:var(--accent); font-size:1rem;">Instellingen</strong>
-        <span class="chev">▾</span>
-      </button>
-      <div id="settings-container"></div>
+    <nav class="sidebar-nav">
+      <button class="nav-item" id="nav-notes" onclick="App.loadModule('notes')" title="Noten Snellezen"><span class="nav-icon">🎯</span><span class="nav-label">Noten Snellezen</span></button>
+      <button class="nav-item" id="nav-scales" onclick="App.loadModule('scales')" title="Toonladders"><span class="nav-icon">🎵</span><span class="nav-label">Toonladders</span></button>
+      <button class="nav-item" id="nav-chords" onclick="App.loadModule('chords')" title="Akkoorden"><span class="nav-icon">🎹</span><span class="nav-label">Akkoorden</span></button>
+      <button class="nav-item" id="nav-circle" onclick="App.loadModule('circle')" title="Kwintencirkel"><span class="nav-icon">🎼</span><span class="nav-label">Kwintencirkel</span></button>
+      <button class="nav-item" id="nav-intervals" onclick="App.loadModule('intervals')" title="Intervallen"><span class="nav-icon">👂</span><span class="nav-label">Intervallen</span></button>
+      <button class="nav-item" id="nav-progressions" onclick="App.loadModule('progressions')" title="Akkoordprogressies"><span class="nav-icon">📈</span><span class="nav-label">Progressies</span></button>
+      <button class="nav-item" id="nav-piano" onclick="App.loadModule('piano')" title="Virtuele Piano"><span class="nav-icon">🎹</span><span class="nav-label">Vrij Spelen</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-icon-btn" onclick="document.getElementById('global-sample-upload').click()" title="Eigen pianogeluid laden">📁</button>
+      <button class="sidebar-icon-btn" onclick="ThemeManager.toggle()" id="theme-btn-header" title="Wissel thema">☀️</button>
+      <button class="sidebar-icon-btn" onclick="App.toggleFullscreen()" id="fullscreen-btn-header" title="Volledig scherm">⛶</button>
+      <button class="sidebar-icon-btn" onclick="App.toggleSidebar()" id="sidebar-collapse-btn" title="Zijbalk in/uitklappen">◀</button>
     </div>
+  </aside>
 
-    <section id="workspace">
+  <div id="content-area">
+    <header id="content-topbar">
+      <h1 id="module-title">Instellingen</h1>
+      <div class="topbar-right">
+        <div id="settings-bar">
+          <button id="settings-toggle" onclick="App.toggleSettings()">
+            ⚙ Instellingen
+            <span class="chev">▾</span>
+          </button>
+          <div id="settings-container"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="module-view">
+      <section id="workspace">
       <!-- Flashcard UI (Modules 1-6) -->
       <div class="flashcard" id="flashcard-ui">
         <div id="score-paper"></div>
@@ -391,6 +448,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
       </div>
     </section>
   </main>
+  </div>
 </div>
 
 <script>
@@ -409,8 +467,12 @@ const ThemeManager = {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('pm_theme', next);
     this.updateIcons(next);
-    if (App.currentModule === 'circle' && App.history[App.historyIndex]?.c_mode === 'visual'){
+    const data = App.history && App.history[App.historyIndex];
+    if (App.currentModule === 'circle' && data?.c_mode === 'visual'){
       CircleWheel.render();
+      CircleWheel.syncPreviewWidths();
+    } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
+      ScoreRenderer.render('score-paper', data.slices);
     }
   },
   updateIcons(theme){
@@ -641,6 +703,11 @@ const ScoreRenderer = {
     renderer.resize(this.CANVAS_W, this.CANVAS_H);
     const ctx = renderer.getContext();
     ctx.setFont('Inter, Arial', 10);
+    // Notenbalk-inkt volgt het actieve thema: licht op donker, donker op licht.
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const ink = isDark ? '#f2f4f9' : '#111827';
+    if (ctx.setFillStyle) ctx.setFillStyle(ink);
+    if (ctx.setStrokeStyle) ctx.setStrokeStyle(ink);
 
     const staveWidth = this.CANVAS_W - this.MARGIN_X * 2;
     const trebleStave = new VF.Stave(this.MARGIN_X, this.TREBLE_Y, staveWidth);
@@ -1077,6 +1144,7 @@ const App = {
   init(){
     document.getElementById('init-overlay').style.display = 'none';
     AudioEngine.init();
+    this.loadModule('notes');
   },
 
   toggleFullscreen(){
@@ -1092,29 +1160,27 @@ const App = {
     }
   },
 
-  showDashboard(){
-    document.getElementById('dashboard').style.display = 'flex';
-    document.getElementById('module-view').style.display = 'none';
-    document.getElementById('header-controls').style.display = 'none';
-    this.currentModule = null;
-  },
+  toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); },
 
   toggleSettings(){ document.getElementById('settings-bar').classList.toggle('open'); },
 
   loadModule(moduleId){
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('module-view').style.display = 'flex';
-    document.getElementById('header-controls').style.display = 'flex';
     this.currentModule = moduleId;
+
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const activeNav = document.getElementById('nav-' + moduleId);
+    if (activeNav) activeNav.classList.add('active');
 
     const flashUI = document.getElementById('flashcard-ui');
     const pianoUI = document.getElementById('piano-module');
     const settingsBar = document.getElementById('settings-bar');
     const swipeHint = document.getElementById('swipe-hint');
+    settingsBar.classList.remove('open');
 
     if (moduleId === 'piano'){
       flashUI.style.display = 'none'; swipeHint.style.display = 'none';
       pianoUI.style.display = 'flex'; settingsBar.style.display = 'none';
+      document.getElementById('module-title').innerText = 'Virtuele Piano';
       PianoUI.init();
     } else {
       flashUI.style.display = 'flex'; swipeHint.style.display = 'block';
