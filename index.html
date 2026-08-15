@@ -1369,11 +1369,12 @@ const App = {
         let keys = MusicTheory.circle.keys, minors = MusicTheory.circle.minors, accs = MusicTheory.circle.accidentals;
         let rootNote = "", chordType = "";
         if (mode === 'quiz-rel'){
+          let minorClean = capNote(minors[idx]).replace(/m$/, '');
           if (Math.random() > 0.5){
-            data.q = `Wat is de relatieve mineur van ${keys[idx]} Majeur?`; data.ans = `${capNote(minors[idx])} mineur`;
+            data.q = `Wat is de relatieve mineur van ${keys[idx]} Majeur?`; data.ans = `${minorClean} mineur`;
             rootNote = minors[idx]; chordType = "Mineur";
           } else {
-            data.q = `Wat is de relatieve majeur van ${capNote(minors[idx])} mineur?`; data.ans = `${keys[idx]} Majeur`;
+            data.q = `Wat is de relatieve majeur van ${minorClean} mineur?`; data.ans = `${keys[idx]} Majeur`;
             rootNote = keys[idx]; chordType = "Majeur";
           }
         } else {
