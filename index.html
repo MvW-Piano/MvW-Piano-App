@@ -14,7 +14,7 @@
 :root{
   --bg-dark:#080b14; --bg-panel:#0e1220; --bg-card:#161b2c;
   --text-main:#f5f7fb; --text-muted:#8b93a9; --border-color:#232a3f;
-  --accent:#4f8cff; --accent-hover:#3b74e0; --accent-2:#8b5cf6;
+  --accent:#3b82f6; --accent-hover:#2563eb; --accent-2:#60a5fa;
   --paper-bg:#161b2c; --paper-ink:#f2f4f9; --paper-border:#262d44; --paper-muted:#8b93a9;
   --piano-white:#fdfbf3; --piano-black:#14110f; --overlay-bg:#080b14;
   --paper-btn-bg:#1f2540; --paper-btn-hover:#28304f;
@@ -30,7 +30,7 @@
   --wheel-line: var(--bg-dark);
   --wheel-ink: #ffffff;
   --wheel-ink-min: #ffffff;
-  --wheel-stave: #f2f4f9; /* Witte inkt voor staves in Dark Mode */
+  --wheel-stave: #f2f4f9;
 }
 [data-theme="light"]{
   --bg-dark:#f3f4f8; --bg-panel:#ffffff; --bg-card:#ffffff;
@@ -49,7 +49,7 @@
   --wheel-line: #ffffff;
   --wheel-ink: #ffffff;
   --wheel-ink-min: #1e3a8a;
-  --wheel-stave: #111827; /* Donkere inkt voor staves in Light Mode */
+  --wheel-stave: #111827;
 }
 
 *{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif; user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -72,7 +72,7 @@ body{
 .sidebar-brand{ display:flex; align-items:center; gap:10px; padding:18px 16px; flex-shrink:0; }
 .brand-badge{
   width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2));
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 6px 16px rgba(79,140,255,.3);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 6px 16px rgba(59,130,246,.3);
 }
 .brand-badge svg{ width:19px; height:14px; }
 .brand-text{ font-family:'Fraunces',serif; font-weight:600; font-size:1.1rem; color:var(--text-main); white-space:nowrap; }
@@ -122,8 +122,7 @@ body{
   .bnav-icon{ font-size:1.15rem; }
   .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
   #app-shell{ flex-direction:column; }
-  /* Flinke padding-bottom zodat scrollen de elementen BOHEN de bottom nav brengt */
-  #workspace{ padding-bottom:140px !important; }
+  #workspace{ padding-bottom:90px !important; }
   #content-topbar{ padding:12px 14px; }
   #content-topbar h1{ font-size:1.1rem; }
 }
@@ -135,7 +134,7 @@ button{
 }
 button:hover{ background:var(--border-color); }
 button:active{ transform:scale(.97); }
-button.primary{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border:none; box-shadow:0 6px 18px rgba(79,140,255,.35); }
+button.primary{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border:none; box-shadow:0 6px 18px rgba(59,130,246,.35); }
 button.primary:hover{ filter:brightness(1.08); }
 button.primary:active{ filter:brightness(.96); }
 button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
@@ -160,7 +159,7 @@ select:focus{ border-color:var(--accent); }
 .brand-mark-lg{
   width:78px; height:78px; border-radius:24px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
   display:flex; align-items:center; justify-content:center; font-size:2.3rem; margin-bottom:16px;
-  box-shadow:0 16px 34px rgba(79,140,255,.4);
+  box-shadow:0 16px 34px rgba(59,130,246,.4);
 }
 .brand-mark-lg svg{ width:42px; height:42px; }
 
@@ -215,7 +214,7 @@ select:focus{ border-color:var(--accent); }
   box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center;
   justify-content:flex-start; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
   transition:background-color .3s, border-color .3s, color .3s;
-  flex: 0 0 auto; /* voorkomt samendrukken op mobiel */
+  flex: 0 0 auto;
   margin: 0 auto auto auto;
 }
 
@@ -225,9 +224,7 @@ select:focus{ border-color:var(--accent); }
 #answer-score{ margin-top:8px; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* Robuuste Flexbox Layout voor de Kwintencirkel. 
-   Mobiel: Alles netjes onder elkaar. 
-   Desktop: Twee duidelijke kolommen (Bediening links, Resultaat rechts) */
+/* Robuuste Flexbox Layout voor de Kwintencirkel. */
 .circle-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 24px; }
 .circle-left-half { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 #circle-quick-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; order: 1; }
@@ -240,7 +237,6 @@ select:focus{ border-color:var(--accent); }
 #circle-chord-preview { min-height: 80px; display: flex; justify-content: center; width: 100%; overflow: hidden;}
 #circle-keyboard-wrap { display: flex; justify-content: center; width: 100%; min-height: 40px; align-items: center;}
 
-/* Layout voor Tablet en Desktop (Naast elkaar) */
 @media (min-width: 900px) {
   .circle-main { flex-direction: row; align-items: flex-start; justify-content: center; gap: 40px; }
   .circle-left-half { flex-direction: row; flex: 1; align-items: center; justify-content: center; gap: 20px; }
@@ -257,8 +253,7 @@ html.fullscreen-active .mini-key.black{ width:19px; height:68px; margin-left:-9.
 html.fullscreen-active .mini-key .mk-dot{ width:15px; height:15px; bottom:22px; }
 html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 
-#circle-svg{ touch-action:none; cursor:grab; }
-#circle-svg:active{ cursor:grabbing; }
+#circle-svg{ cursor:pointer; }
 
 .circle-jump-btn{
   width:56px; height:32px; padding:0 6px; border-radius:var(--radius-sm); font-size:.76rem; font-weight:700;
@@ -266,7 +261,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   transition:all .15s ease;
 }
 .circle-jump-btn:hover{ background:var(--paper-btn-hover); }
-.circle-jump-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(79,140,255,.35); }
+.circle-jump-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(59,130,246,.35); }
 .circle-jump-btn.chord{ width:60px; }
 
 .mini-key{ position:relative; flex-shrink:0; user-select:none; }
@@ -277,12 +272,11 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 .mini-key .mk-dot.root{ background:var(--accent); }
 .mini-key .mk-dot.tone{ background:#22c55e; }
 
-/* Mobiele Mini Keyboard fix */
 @media (max-width: 640px) {
-    .mini-key.white { width: 20px; height: 76px; }
-    .mini-key.black { width: 12px; height: 48px; margin-left: -6px; margin-right: -6px; }
-    .mini-key .mk-dot { width: 9px; height: 9px; bottom: 14px; }
-    .mini-key.black .mk-dot { bottom: 6px; }
+    .mini-key.white { width: 17px; height: 68px; }
+    .mini-key.black { width: 10px; height: 40px; margin-left: -5px; margin-right: -5px; }
+    .mini-key .mk-dot { width: 8px; height: 8px; bottom: 12px; }
+    .mini-key.black .mk-dot { bottom: 5px; }
 }
 
 .text-quiz-display{ font-size:1.5rem; font-weight:bold; text-align:center; margin:15px 0; display:none; }
@@ -510,6 +504,7 @@ const ThemeManager = {
 const MIDI_NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function midiToName(midi, useFlats = false){
   const names = useFlats ? ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"] : MIDI_NOTES;
+  // Return ONLY the note name, without the octave number (e.g. A# instead of A#3)
   return names[midi % 12];
 }
 function randomInt(min, max){ return Math.floor(Math.random() * (max - min + 1) + min); }
@@ -578,7 +573,21 @@ const AudioEngine = {
   playSequence(midiSlices, delaySec = 0.5){
     midiSlices.forEach((slice, index) => { setTimeout(() => { slice.forEach(midi => this.playTone(midi)); }, index * delaySec * 1000); });
   },
-  playChord(midiArray){ midiArray.forEach(midi => this.playTone(midi)); }
+  playChord(midiArray){ midiArray.forEach(midi => this.playTone(midi)); },
+
+  // Eerst individueel (arpeggio), daarna allemaal tegelijk. Delay = 0.5 sec.
+  playArpeggioAndChord(midiArray, noteDelay = 0.5){
+    if (!midiArray || midiArray.length === 0) return;
+    const sorted = [...midiArray].sort((a,b) => a - b);
+    sorted.forEach((midi, index) => {
+      setTimeout(() => {
+        this.playTone(midi, 1.0, 0.6);
+      }, index * noteDelay * 1000);
+    });
+    setTimeout(() => {
+      this.playChord(sorted);
+    }, sorted.length * noteDelay * 1000 + 120);
+  }
 };
 
 const ScoreRenderer = {
@@ -820,10 +829,6 @@ const CircleWheel = {
   tonicIndex: 0,
   selectedChordType: 'Majeur',
   wired: false,
-  dragging: false,
-  dragStartAngle: 0,
-  dragBaseRotation: 0,
-  liveRotation: 0,
 
   cofKeys: [
     {maj:'C', min:'Am', acc:0}, {maj:'G', min:'Em', acc:1}, {maj:'D', min:'Bm', acc:2},
@@ -878,7 +883,7 @@ const CircleWheel = {
     const formula = MusicTheory.chords[quality];
     if (rootMidi === undefined || !formula) return;
     const notes = formula.map(iv => rootMidi + iv);
-    if (opts.play) AudioEngine.playChord(notes);
+    if (opts.play) AudioEngine.playArpeggioAndChord(notes, 0.5);
     try {
       const preview = document.getElementById('circle-chord-preview');
       preview.style.display = 'flex';
@@ -915,7 +920,6 @@ const CircleWheel = {
     const sharpY = [-8, -2, -10, -4, 2, -6, 0];
     const flatY = [0, -6, 2, -4, 4, -2, -8];
 
-    // Note: styleVals.staveInk properly supports the dark/light mode toggle
     let html = `<path d="M -20 -8 L 24 -8 M -20 -4 L 24 -4 M -20 0 L 24 0 M -20 4 L 24 4 M -20 8 L 24 8" stroke="${styleVals.staveInk}" stroke-width="0.8"/>`;
     html += `<text x="-24" y="0" font-size="28" font-family="serif" fill="${styleVals.staveInk}" dominant-baseline="central">𝄞</text>`;
 
@@ -937,11 +941,9 @@ const CircleWheel = {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("id", "circle-svg");
-    // Viewbox vergroot naar 480x480 zodat de staves ruim passen zonder clip-offs
     svg.setAttribute("viewBox", "0 0 480 480");
     svg.style.filter = "drop-shadow(0 8px 24px rgba(0,0,0,0.12))";
 
-    // Nieuwe, ruime geometrie voor echte ring-vorming (donuts met gat in het midden)
     const cx = 240, cy = 240;
     const rOuter = 160;
     const rInner = 100;
@@ -981,9 +983,7 @@ const CircleWheel = {
       let h1x = cx + rHole * Math.sin(a1), h1y = cy - rHole * Math.cos(a1);
       let h2x = cx + rHole * Math.sin(a2), h2y = cy - rHole * Math.cos(a2);
 
-      // Major Wedge (Buitenste Ring, perfect gesloten path)
       const gMaj = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      gMaj.style.cursor = "pointer";
       gMaj.setAttribute('data-ring', 'major'); gMaj.setAttribute('data-index', i);
       const pMaj = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pMaj.setAttribute("d", `M ${i1x} ${i1y} L ${o1x} ${o1y} A ${rOuter} ${rOuter} 0 0 1 ${o2x} ${o2y} L ${i2x} ${i2y} A ${rInner} ${rInner} 0 0 0 ${i1x} ${i1y} Z`);
@@ -993,9 +993,7 @@ const CircleWheel = {
       if (isTonic) pMaj.setAttribute("stroke", "var(--accent)");
       gMaj.appendChild(pMaj); wedgeLayer.appendChild(gMaj);
 
-      // Minor Wedge (Binnenste Ring, perfect gesloten path)
       const gMin = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      gMin.style.cursor = "pointer";
       gMin.setAttribute('data-ring', 'minor'); gMin.setAttribute('data-index', i);
       const pMin = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pMin.setAttribute("d", `M ${h1x} ${h1y} L ${i1x} ${i1y} A ${rInner} ${rInner} 0 0 1 ${i2x} ${i2y} L ${h2x} ${h2y} A ${rHole} ${rHole} 0 0 0 ${h1x} ${h1y} Z`);
@@ -1004,11 +1002,9 @@ const CircleWheel = {
       pMin.setAttribute("stroke-width", "2");
       gMin.appendChild(pMin); wedgeLayer.appendChild(gMin);
 
-      // --- Labels & Staves (Altijd rechtop) ---
       const effAngleDeg = i*30 + wheelRotation;
       const effAngle = effAngleDeg * Math.PI/180;
 
-      // Staves
       if (entry.acc !== 0) {
         const rStave = 202;
         const txStave = cx + rStave*Math.sin(effAngle), tyStave = cy - rStave*Math.cos(effAngle);
@@ -1019,9 +1015,8 @@ const CircleWheel = {
         labelLayer.appendChild(gStave);
       }
 
-      // Major Text (Netjes verdeeld t.o.v. de Roman)
-      const rTextMaj = 138;
-      const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle) + 2;
+      const rTextMaj = 142;
+      const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle);
       const tMaj = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMaj.setAttribute("x", txMaj); tMaj.setAttribute("y", tyMaj); tMaj.setAttribute("font-family", "Inter");
       tMaj.setAttribute("font-size", "24"); tMaj.setAttribute("font-weight", "700"); tMaj.setAttribute("fill", styleVals.ink);
@@ -1029,9 +1024,8 @@ const CircleWheel = {
       tMaj.style.pointerEvents = "none";
       tMaj.textContent = entry.maj; labelLayer.appendChild(tMaj);
 
-      // Minor Text
-      const rTextMin = 80;
-      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle) + 2;
+      const rTextMin = 76;
+      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle);
       const tMin = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
       tMin.setAttribute("font-size", "15"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", styleVals.inkMin);
@@ -1039,29 +1033,30 @@ const CircleWheel = {
       tMin.style.pointerEvents = "none";
       tMin.textContent = entry.min; labelLayer.appendChild(tMin);
 
-      // Romeinse Cijfers (Strak gecentreerd onder de letternaam)
       if (roman.major){
-        const rRomanMaj = 116;
-        const txR = cx + rRomanMaj*Math.sin(effAngle), tyR = cy - rRomanMaj*Math.cos(effAngle) + 4;
+        const rRomanMaj = 114;
+        const txR = cx + rRomanMaj*Math.sin(effAngle), tyR = cy - rRomanMaj*Math.cos(effAngle);
         const tR = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR.setAttribute("x", txR); tR.setAttribute("y", tyR); tR.setAttribute("font-family", "Inter");
         tR.setAttribute("font-size", "11"); tR.setAttribute("font-weight", "700"); tR.setAttribute("fill", styleVals.ink);
-        tR.setAttribute("opacity", "0.85"); tR.setAttribute("text-anchor", "middle"); tR.style.pointerEvents = "none";
+        tR.setAttribute("opacity", "0.9"); tR.setAttribute("text-anchor", "middle"); tR.setAttribute("dominant-baseline", "central");
+        tR.style.pointerEvents = "none";
         tR.textContent = roman.major; labelLayer.appendChild(tR);
       }
       if (roman.minor){
-        const rRomanMin = 60;
-        const txR2 = cx + rRomanMin*Math.sin(effAngle), tyR2 = cy - rRomanMin*Math.cos(effAngle) + 4;
+        const rRomanMin = 56;
+        const txR2 = cx + rRomanMin*Math.sin(effAngle), tyR2 = cy - rRomanMin*Math.cos(effAngle);
         const tR2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR2.setAttribute("x", txR2); tR2.setAttribute("y", tyR2); tR2.setAttribute("font-family", "Inter");
         tR2.setAttribute("font-size", "10"); tR2.setAttribute("font-weight", "700"); tR2.setAttribute("fill", styleVals.inkMin);
-        tR2.setAttribute("opacity", "0.85"); tR2.setAttribute("text-anchor", "middle"); tR2.style.pointerEvents = "none";
+        tR2.setAttribute("opacity", "0.9"); tR2.setAttribute("text-anchor", "middle"); tR2.setAttribute("dominant-baseline", "central");
+        tR2.style.pointerEvents = "none";
         tR2.textContent = roman.minor; labelLayer.appendChild(tR2);
       }
     }
 
     wrap.appendChild(svg);
-    this.wireInteraction(svg, wedgeLayer, cx, cy);
+    this.wireInteraction(svg);
 
     if (!this._previewed){
       this._previewed = true;
@@ -1070,50 +1065,15 @@ const CircleWheel = {
     }
   },
 
-  wireInteraction(svg, wedgeLayer, cx, cy){
-    let startX = 0, startY = 0, moved = false, pressedEl = null;
-    const getAngle = (clientX, clientY) => {
-      const rect = svg.getBoundingClientRect();
-      const px = rect.left + rect.width/2, py = rect.top + rect.height/2;
-      return Math.atan2(clientX - px, -(clientY - py)) * 180/Math.PI;
-    };
-    const onDown = (e) => {
-      this.dragging = true; moved = false;
-      startX = e.clientX; startY = e.clientY;
-      pressedEl = e.target.closest ? e.target.closest('[data-ring]') : null;
-      try { svg.setPointerCapture(e.pointerId); } catch(err){}
-      this.dragStartAngle = getAngle(e.clientX, e.clientY);
-      this.dragBaseRotation = -this.tonicIndex * 30;
-      wedgeLayer.style.transition = 'none';
-    };
-    const onMove = (e) => {
-      if (!this.dragging) return;
-      const dx = e.clientX - startX, dy = e.clientY - startY;
-      if (Math.sqrt(dx*dx + dy*dy) > 6) moved = true;
-      if (!moved) return;
-      const angle = getAngle(e.clientX, e.clientY);
-      this.liveRotation = this.dragBaseRotation + (angle - this.dragStartAngle);
-      wedgeLayer.setAttribute('transform', `rotate(${this.liveRotation} ${cx} ${cy})`);
-    };
-    const onUp = (e) => {
-      if (!this.dragging) return;
-      this.dragging = false;
-      try { svg.releasePointerCapture(e.pointerId); } catch(err){}
-      if (moved){
-        wedgeLayer.style.transition = 'transform .4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        const steps = Math.round(this.liveRotation / 30);
-        this.tonicIndex = ((-steps) % 12 + 12) % 12;
-        this.render();
-      } else if (pressedEl){
+  wireInteraction(svg){
+    svg.addEventListener('click', (e) => {
+      const pressedEl = e.target.closest ? e.target.closest('[data-ring]') : null;
+      if (pressedEl){
         const ring = pressedEl.getAttribute('data-ring');
         const idx = parseInt(pressedEl.getAttribute('data-index'));
         this.onWedgeClick(this.cofKeys[idx], ring);
       }
-    };
-    svg.addEventListener('pointerdown', onDown);
-    svg.addEventListener('pointermove', onMove);
-    svg.addEventListener('pointerup', onUp);
-    svg.addEventListener('pointercancel', () => { this.dragging = false; });
+    });
   }
 };
 
@@ -1369,7 +1329,7 @@ const App = {
         let keys = MusicTheory.circle.keys, minors = MusicTheory.circle.minors, accs = MusicTheory.circle.accidentals;
         let rootNote = "", chordType = "";
         if (mode === 'quiz-rel'){
-          let minorClean = capNote(minors[idx]).replace(/m$/, '');
+          let minorClean = minors[idx].replace(/m$/, '');
           if (Math.random() > 0.5){
             data.q = `Wat is de relatieve mineur van ${keys[idx]} Majeur?`; data.ans = `${minorClean} mineur`;
             rootNote = minors[idx]; chordType = "Mineur";
@@ -1387,7 +1347,7 @@ const App = {
             rootNote = keys[idx]; chordType = "Majeur";
           }
         }
-        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
+        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"Gb/F#":66,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
         let rootMidi = rootToMidi[rootNote];
         let formula = MusicTheory.chords[chordType];
         data.type = 'chord'; data.slices = [formula.map(iv => rootMidi + iv)];
@@ -1412,7 +1372,7 @@ const App = {
       let rootMidi = 48 + rootKeyIdx;
       const degs = isMaj ?
         [{n:'I', iv:0, q:'Majeur'}, {n:'ii', iv:2, q:'Mineur'}, {n:'IV', iv:5, q:'Majeur'}, {n:'V', iv:7, q:'Majeur'}, {n:'vi', iv:9, q:'Mineur'}] :
-        [{n:'i', iv:0, q:'Mineur'}, {n:'III', iv:3, q:'Majeur'}, {n:'iv', iv:5, q:'Mineur'}, {n:'V', iv:7, q:'Majeur'}, {n:'VI', iv:8, q:'Majeur'}];
+        [{n:'i', iv:0, q:'Mineur'}, {n:'III', iv:3, q:'Majeur'}, {n:'iv', iv:5, q:'Mineur'}, {n:'V', iv:7, q:'Majeur'}, {n:'VI', iv:8, q:'Mineur'}];
       let targetDeg = degs[randomInt(0, degs.length - 1)];
       let chordRoot = rootMidi + targetDeg.iv;
       data.type = 'chord'; data.slices = [MusicTheory.chords[targetDeg.q].map(iv => chordRoot + iv)];
@@ -1467,7 +1427,13 @@ const App = {
   playCurrent(){
     let data = this.history[this.historyIndex];
     if (!data || data.type === 'none') return;
-    if (data.type === 'note' || data.type === 'chord') AudioEngine.playChord(data.slices[0]);
+    if (data.type === 'note' || data.type === 'chord'){
+      if (['chords', 'progressions', 'circle'].includes(this.currentModule)){
+        AudioEngine.playArpeggioAndChord(data.slices[0], 0.5);
+      } else {
+        AudioEngine.playChord(data.slices[0]);
+      }
+    }
     else if (data.type === 'sequence') AudioEngine.playSequence(data.slices, 0.4);
   },
 
