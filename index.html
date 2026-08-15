@@ -22,6 +22,15 @@
   --shadow-sm:0 2px 8px rgba(0,0,0,.25);
   --shadow-md:0 10px 26px rgba(0,0,0,.35);
   --shadow-lg:0 22px 50px rgba(0,0,0,.45);
+  
+  /* Kwintencirkel Licht Blauw (Dark Mode) */
+  --wheel-maj: #3b82f6; 
+  --wheel-min: #60a5fa; 
+  --wheel-bg: var(--bg-panel);
+  --wheel-line: var(--bg-dark);
+  --wheel-ink: #ffffff;
+  --wheel-ink-min: #ffffff;
+  --wheel-stave: #f2f4f9; /* Witte inkt voor staves in Dark Mode */
 }
 [data-theme="light"]{
   --bg-dark:#f3f4f8; --bg-panel:#ffffff; --bg-card:#ffffff;
@@ -32,18 +41,27 @@
   --shadow-sm:0 2px 8px rgba(16,24,40,.05);
   --shadow-md:0 10px 26px rgba(16,24,40,.08);
   --shadow-lg:0 22px 50px rgba(16,24,40,.10);
+
+  /* Kwintencirkel Licht Blauw (Light Mode) */
+  --wheel-maj: #60a5fa;
+  --wheel-min: #93c5fd;
+  --wheel-bg: #f9fafb;
+  --wheel-line: #ffffff;
+  --wheel-ink: #ffffff;
+  --wheel-ink-min: #1e3a8a;
+  --wheel-stave: #111827; /* Donkere inkt voor staves in Light Mode */
 }
+
 *{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif; user-select:none; -webkit-tap-highlight-color:transparent; }
 body{
   background-color:var(--bg-dark); color:var(--text-main); display:flex; flex-direction:row;
   height:100dvh; min-height:100vh; overflow:hidden; transition:background-color .3s,color .3s;
 }
 
-/* ---- Sidebar ---- */
 #app-shell{ display:flex; flex-direction:row; width:100%; height:100%; }
 #sidebar{
   width:216px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-color);
-  display:flex; flex-direction:column; transition:width .2s ease, background-color .3s; overflow:hidden; z-index:20;
+  display:flex; flex-direction:column; transition:width .3s cubic-bezier(0.4, 0, 0.2, 1), background-color .3s; overflow:hidden; z-index:20;
   height:100dvh; height:100vh;
 }
 #sidebar.collapsed{ width:72px; }
@@ -74,11 +92,10 @@ body{
 .sidebar-footer{ display:flex; gap:6px; padding:12px 10px; border-top:1px solid var(--border-color); flex-shrink:0; margin-top:auto; }
 .sidebar-icon-btn{
   background:transparent; border:1px solid var(--border-color); color:var(--text-muted); flex:1;
-  padding:9px 6px; font-size:1rem; transition:transform .2s ease, background-color .15s;
+  padding:9px 6px; font-size:1rem; transition:transform .2s ease, background-color .15s; border-radius: 8px; cursor:pointer;
 }
 .sidebar-icon-btn:hover{ background:var(--bg-card); color:var(--text-main); }
 
-/* ---- Content area + topbar ---- */
 #content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #content-topbar{
   background-color:var(--bg-panel); padding:14px 22px; display:flex; justify-content:space-between;
@@ -88,7 +105,6 @@ body{
 #content-topbar h1{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); }
 .topbar-right{ display:flex; gap:8px; align-items:center; }
 
-/* ---- Bottom nav (mobiel) ---- */
 #bottom-nav{ display:none; }
 
 @media (max-width:640px){
@@ -106,12 +122,12 @@ body{
   .bnav-icon{ font-size:1.15rem; }
   .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
   #app-shell{ flex-direction:column; }
-  #workspace{ padding-bottom:76px; }
+  /* Flinke padding-bottom zodat scrollen de elementen BOHEN de bottom nav brengt */
+  #workspace{ padding-bottom:140px !important; }
   #content-topbar{ padding:12px 14px; }
   #content-topbar h1{ font-size:1.1rem; }
 }
 
-/* ---- Buttons ---- */
 button{
   background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color);
   padding:10px 16px; border-radius:var(--radius-sm); cursor:pointer; transition:all .18s ease; font-weight:600;
@@ -131,10 +147,7 @@ select, input[type="number"]{
 }
 select:focus{ border-color:var(--accent); }
 
-/* ---- Layout ---- */
 #main-container{ flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-
-/* ---- Init overlay ---- */
 #init-overlay{
   position:fixed; inset:0; background:var(--overlay-bg); display:flex; flex-direction:column;
   justify-content:center; align-items:center; z-index:9999; text-align:center; padding:20px;
@@ -164,7 +177,6 @@ select:focus{ border-color:var(--accent); }
 .audio-info p{ margin-top:8px; line-height:1.5; text-align:left; }
 .creator-credit{ margin-top:34px; font-size:.85rem; color:var(--text-muted); font-weight:500; letter-spacing:.5px; }
 
-/* ---- Module view ---- */
 #module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
 #settings-bar{ position:relative; }
@@ -194,72 +206,51 @@ select:focus{ border-color:var(--accent); }
 .interval-check input{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
 
 #workspace{
-  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:22px; background:var(--bg-dark); overflow-y:auto; width:100%;
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:22px; background:var(--bg-dark); overflow-y:auto; overflow-x:hidden; width:100%;
 }
 
-/* ---- Flashcard ---- */
 .flashcard{
-  background:var(--paper-bg); border-radius:var(--radius-lg); width:100%; max-width:820px; min-height:280px;
+  background:var(--paper-bg); border-radius:var(--radius-lg); width:100%; max-width:1400px; min-height:280px;
   box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center;
-  justify-content:center; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
+  justify-content:flex-start; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
   transition:background-color .3s, border-color .3s, color .3s;
+  flex: 0 0 auto; /* voorkomt samendrukken op mobiel */
+  margin: 0 auto auto auto;
 }
+
 #score-paper{ width:100%; display:flex; justify-content:center; }
 #score-paper svg, #answer-score svg{ width:100%; height:auto; display:block; }
 #circle-chord-preview svg{ height:auto; display:block; }
 #answer-score{ margin-top:8px; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* CSS GRID met benoemde gebieden i.p.v. flexbox+order+wrap-trucs.
-   Waarom: flexbox-herschikking (order, display:contents, wrap) bleek
-   telkens onvoorspelbaar op écht mobiel/tablet zonder dat live te kunnen
-   testen. Grid-template-areas beschrijft de layout letterlijk als een
-   ASCII-tekening per breakpoint — geen giswerk over wel/niet wrappen.
-   Mobiel (standaard, geen media query nodig): één kolom, van boven naar
-   beneden — wiel, dan meteen notenbalk+toetsenbord, dan de knoppenrijen.
-   Vanaf 640px: vier kolommen naast elkaar — toonsoort-knoppen | wiel |
-   akkoordtype-knoppen | notenbalk+toetsenbord.
-   min-width:0 blijft nodig zodat een brede notenbalk-SVG nooit een kolom
-   kan dwingen breder te worden dan zijn grid-track. */
-.circle-main{
-  width:100%; min-width:0; display:grid; gap:14px;
-  grid-template-columns: 1fr;
-  grid-template-areas: "wheel" "staff" "keyjump" "chordjump";
-}
-.circle-left-half{ display:contents; }
-.circle-center{ grid-area:wheel; min-width:0; width:100%; display:flex; justify-content:center; }
-#circle-wheel-wrap{ min-width:0; }
-#circle-wheel-wrap svg{ min-width:0; max-width:100%; }
-.circle-right-half{ grid-area:staff; width:100%; max-width:340px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; justify-self:center; }
-#circle-quick-jump{ grid-area:keyjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
-#circle-chord-jump{ grid-area:chordjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
-.circle-jump-col{ min-width:0; }
-#circle-chord-preview{ min-width:0; min-height:60px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-#circle-keyboard-wrap{ display:flex; justify-content:center; min-width:0; min-height:40px; align-items:center; }
+/* Robuuste Flexbox Layout voor de Kwintencirkel. 
+   Mobiel: Alles netjes onder elkaar. 
+   Desktop: Twee duidelijke kolommen (Bediening links, Resultaat rechts) */
+.circle-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.circle-left-half { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+#circle-quick-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; order: 1; }
+.circle-center { width: 100%; max-width: 440px; display: flex; justify-content: center; position: relative; order: 2; }
+#circle-chord-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; order: 3; }
+#circle-wheel-wrap { width: 100%; display: flex; justify-content: center;}
+#circle-wheel-wrap svg { width: 100%; max-width: 100%; height: auto; display: block; }
 
-@media (min-width:640px){
-  .circle-main{
-    grid-template-columns: auto 1fr auto minmax(260px, 400px);
-    grid-template-areas: "keyjump wheel chordjump staff";
-    align-items:start; gap:16px;
-  }
-  .circle-center{ width:auto; }
-  #circle-quick-jump{ flex-direction:column; max-width:none; justify-self:start; }
-  #circle-chord-jump{ flex-direction:column; max-width:none; justify-self:start; }
-  .circle-right-half{ width:auto; max-width:none; padding-top:6px; justify-self:stretch; }
+.circle-right-half { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; order: 4; }
+#circle-chord-preview { min-height: 80px; display: flex; justify-content: center; width: 100%; overflow: hidden;}
+#circle-keyboard-wrap { display: flex; justify-content: center; width: 100%; min-height: 40px; align-items: center;}
+
+/* Layout voor Tablet en Desktop (Naast elkaar) */
+@media (min-width: 900px) {
+  .circle-main { flex-direction: row; align-items: flex-start; justify-content: center; gap: 40px; }
+  .circle-left-half { flex-direction: row; flex: 1; align-items: center; justify-content: center; gap: 20px; }
+  #circle-quick-jump, #circle-chord-jump { flex-direction: column; width: auto; order: unset; }
+  .circle-center { order: unset; }
+  .circle-right-half { width: 380px; flex-shrink: 0; padding-top: 10px; order: unset; }
 }
 
-@media (min-width:820px){ .flashcard{ max-width:1100px; } }
-@media (min-width:1150px){ .flashcard{ max-width:1320px; } }
-
-/* Echte browser-fullscreen (via de knop naast licht/donker): maakt alles
-   groter, ongeacht browser-schaling/DPI — verandert bewust NOOIT de
-   structuur (die regelt uitsluitend de min-width:640px breakpoint
-   hierboven), om precies de conflicten te vermijden die eerder de
-   kwintencirkel in fullscreen deden verspringen. */
 html.fullscreen-active #workspace{ padding:28px; }
-html.fullscreen-active .flashcard{ max-width:min(1700px, 97vw); }
+html.fullscreen-active .flashcard{ max-width:min(1800px, 98vw); }
 html.fullscreen-active .circle-jump-btn{ font-size:1rem; height:40px; padding:0 10px; }
 html.fullscreen-active .mini-key.white{ width:32px; height:112px; }
 html.fullscreen-active .mini-key.black{ width:19px; height:68px; margin-left:-9.5px; margin-right:-9.5px; }
@@ -278,10 +269,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 .circle-jump-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(79,140,255,.35); }
 .circle-jump-btn.chord{ width:60px; }
 
-.setting-group.circle-extra-select{ width:100%; max-width:280px; }
-.setting-group.circle-extra-select label{ color:#57534e !important; }
-.setting-group.circle-extra-select select{ background:#fff; color:#1e293b; border-color:#cbd5e1; }
-
 .mini-key{ position:relative; flex-shrink:0; user-select:none; }
 .mini-key.white{ width:24px; height:88px; background:#fefcf6; border:1px solid var(--paper-border); border-radius:0 0 4px 4px; z-index:1; }
 .mini-key.black{ width:15px; height:54px; background:#1c1712; margin-left:-7.5px; margin-right:-7.5px; z-index:2; border-radius:0 0 3px 3px; }
@@ -289,6 +276,14 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 .mini-key.black .mk-dot{ bottom:8px; }
 .mini-key .mk-dot.root{ background:var(--accent); }
 .mini-key .mk-dot.tone{ background:#22c55e; }
+
+/* Mobiele Mini Keyboard fix */
+@media (max-width: 640px) {
+    .mini-key.white { width: 20px; height: 76px; }
+    .mini-key.black { width: 12px; height: 48px; margin-left: -6px; margin-right: -6px; }
+    .mini-key .mk-dot { width: 9px; height: 9px; bottom: 14px; }
+    .mini-key.black .mk-dot { bottom: 6px; }
+}
 
 .text-quiz-display{ font-size:1.5rem; font-weight:bold; text-align:center; margin:15px 0; display:none; }
 #answer-display{
@@ -305,7 +300,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 .action-row-bottom button{ flex:1; padding:14px; font-size:1rem; }
 .swipe-hint{ text-align:center; font-size:.75rem; color:var(--text-muted); margin-top:6px; }
 
-/* ---- Virtual piano ---- */
 #piano-module{ display:none; flex-direction:column; width:100%; height:100%; background:var(--bg-panel); overflow:hidden; transition:background-color .3s; }
 .piano-ui-controls{ display:flex; justify-content:space-between; width:100%; max-width:600px; margin:0 auto; padding:20px; gap:10px; }
 .piano-btn{ flex:1; }
@@ -321,9 +315,8 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 .key.black:active, .key.black.active{ background:#33291f; border-bottom:4px solid var(--accent); }
 .key span{ position:absolute; bottom:15px; width:100%; text-align:center; font-size:14px; font-weight:700; color:#a9987a; pointer-events:none; }
 
-/* ---- Mobile ---- */
 @media (max-width:768px){
-  #workspace{ padding:12px; justify-content:flex-start; }
+  #workspace{ padding:12px; }
   .flashcard{ min-height:240px; padding:14px; }
   .piano-keyboard{ height:200px; }
   .key.white{ width:44px; }
@@ -370,7 +363,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   <div class="creator-credit">Created by Martijn van Willigen</div>
 </div>
 
-<!-- App-schil: zijbalk + inhoud -->
+<!-- App-schil -->
 <div id="app-shell">
   <aside id="sidebar">
     <div class="sidebar-brand">
@@ -404,9 +397,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
     </div>
   </aside>
 
-  <!-- Onderin-navigatie: alleen zichtbaar op smalle (mobiele) schermen,
-       vervangt daar de linker zijbalk zodat de volledige breedte
-       beschikbaar blijft voor de content (belangrijk voor de kwintencirkel). -->
   <nav id="bottom-nav">
     <button class="bnav-item" id="bnav-notes" onclick="App.loadModule('notes')"><span class="bnav-icon">🎯</span><span>Noten</span></button>
     <button class="bnav-item" id="bnav-scales" onclick="App.loadModule('scales')"><span class="bnav-icon">🎵</span><span>Ladders</span></button>
@@ -436,17 +426,16 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 
     <main id="module-view">
       <section id="workspace">
-      <!-- Flashcard UI (Modules 1-6) -->
       <div class="flashcard" id="flashcard-ui">
         <div id="score-paper"></div>
         <div id="svg-container">
           <div class="circle-main">
             <div class="circle-left-half">
-              <div id="circle-quick-jump" class="circle-jump-col"></div>
+              <div id="circle-quick-jump"></div>
               <div class="circle-center">
                 <div id="circle-wheel-wrap"></div>
               </div>
-              <div id="circle-chord-jump" class="circle-jump-col"></div>
+              <div id="circle-chord-jump"></div>
             </div>
             <div class="circle-right-half">
               <div id="circle-chord-preview"></div>
@@ -471,7 +460,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
       </div>
       <p class="swipe-hint" id="swipe-hint">Swipe ⬅➔ op de kaart om te wisselen</p>
 
-      <!-- Virtuele Piano (Module 7) -->
       <div id="piano-module">
         <div class="piano-ui-controls">
           <button class="piano-btn" onclick="PianoUI.scroll(-200)">⬅ Links</button>
@@ -488,9 +476,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 </div>
 
 <script>
-/* ============================================================
-   THEME MANAGER
-============================================================ */
 const ThemeManager = {
   init(){
     const saved = localStorage.getItem('pm_theme') || 'dark';
@@ -522,24 +507,14 @@ const ThemeManager = {
   }
 };
 
-/* ============================================================
-   MIDI HELPERS
-============================================================ */
 const MIDI_NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function midiToName(midi, useFlats = false){
   const names = useFlats ? ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"] : MIDI_NOTES;
-  const note = names[midi % 12];
-  const oct = Math.floor(midi / 12) - 1;
-  return `${note}${oct}`;
+  return names[midi % 12];
 }
 function randomInt(min, max){ return Math.floor(Math.random() * (max - min + 1) + min); }
-// Notenamen worden altijd met een hoofdletter geschreven (Bb, F#, ...),
-// ook voor mineur-toonsoorten — alleen het woord "mineur" zelf blijft klein.
 function capNote(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 
-/* ============================================================
-   AUDIO ENGINE
-============================================================ */
 const AudioEngine = {
   ctx: null, audioCache: {}, sampledMidiNotes: [],
   init(){ const AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); },
@@ -606,34 +581,12 @@ const AudioEngine = {
   playChord(midiArray){ midiArray.forEach(midi => this.playTone(midi)); }
 };
 
-/* ============================================================
-   SCORE RENDERER — VexFlow grand staff
-   Waarom VexFlow i.p.v. ABCJS: ABCJS berekent lay-out vanuit tekstnotatie
-   en past de ruimte tussen de balken en de totale hoogte per keer aan op
-   basis van de inhoud. Daardoor "sprong" de grand staff in grootte tussen
-   vragen. VexFlow is een low-level tekenbibliotheek: wij bepalen zelf de
-   exacte y-positie van beide balken (dus ook waar middle C precies in het
-   midden valt) en die posities liggen script-breed vast. VexFlow tekent
-   bovendien alle hulplijntjes automatisch en correct per notenbalk, dus
-   noten die van de bassleutel naar de vioolsleutel "overlopen" landen
-   vanzelf op de juiste plek zonder botsende hulplijntjes.
-============================================================ */
 const ScoreRenderer = {
   CANVAS_W: 620,
   CANVAS_H: 320,
-  TREBLE_Y: 110,     // vaste y-positie vioolsleutel — nooit afhankelijk van inhoud
-  // Correcte notatie-conventie voor een grand staff: middle C valt precies
-  // één notenbalklijn-afstand onder de vioolsleutel EN één lijn-afstand
-  // boven de basleutel (dus in totaal 2 lijn-afstanden tussen de balken).
-  // Bij de standaard VexFlow-lijnafstand van 10px betekent dat een balk-
-  // hoogte van 40px + 20px tussenruimte = 60px van start tot start.
-  // Ruime marge boven/onder zodat ook de uiterste noten (C1/C7 in het
-  // moeilijke niveau van Noten Snellezen) met al hun hulplijntjes passen.
+  TREBLE_Y: 110,
   STAVE_GAP: 60,
   MARGIN_X: 12,
-
-  // Vanaf hoeveel hulplijntjes we naar 8va/8vb overschakelen — muziektheorie
-  // gebruikt hier algemeen een grens rond de 4 hulplijntjes.
   OTTAVA_THRESHOLD: 3,
 
   midiToKey(midi){
@@ -644,8 +597,6 @@ const ScoreRenderer = {
     return { key: `${letters[idx]}/${oct}`, acc: accidentals[idx] };
   },
 
-  // Absolute diatonische lijn/spatie-positie van een noot (elke letternaam
-  // telt als 1 stap) — gebruikt om hulplijntjes te tellen t.o.v. de balk.
   staffStep(midi){
     const letters = ['c','c','d','d','e','f','f','g','g','a','a','b'];
     const letterMap = { c:0, d:1, e:2, f:3, g:4, a:5, b:6 };
@@ -654,12 +605,10 @@ const ScoreRenderer = {
     return oct * 7 + letterMap[letters[idx]];
   },
 
-  // Hoeveel hulplijntjes een noot nodig heeft op een gegeven sleutel, en
-  // aan welke kant (boven/onder de balk).
   ottavaInfo(midi, clef){
     const step = this.staffStep(midi);
-    const bottomRef = clef === 'treble' ? 30 : 18; // onderlijn: E4 / G2
-    const topRef    = clef === 'treble' ? 38 : 26; // bovenlijn: F5 / A3
+    const bottomRef = clef === 'treble' ? 30 : 18; 
+    const topRef    = clef === 'treble' ? 38 : 26; 
     if (step < bottomRef) return { lines: Math.floor((bottomRef - step) / 2), dir: 'below' };
     if (step > topRef)    return { lines: Math.floor((step - topRef) / 2), dir: 'above' };
     return { lines: 0, dir: null };
@@ -669,11 +618,6 @@ const ScoreRenderer = {
     const VF = Vex.Flow;
     if (!midis || midis.length === 0) return new VF.GhostNote('q');
     const sorted = [...midis].sort((a,b) => a - b);
-
-    // Als de meest extreme noot in dit akkoord te veel hulplijntjes nodig
-    // heeft, verschuiven we de HELE notatie (niet het geluid) een octaaf
-    // dichter naar de balk toe en markeren we dat met 8va/8vb — precies
-    // zoals genoteerde piano-muziek dat doet i.p.v. steeds meer hulplijntjes.
     const extreme = clef === 'treble' ? sorted[sorted.length - 1] : sorted[0];
     const info = this.ottavaInfo(extreme, clef);
     let shift = 0, ottavaLabel = null;
@@ -683,23 +627,15 @@ const ScoreRenderer = {
       if (after.lines <= this.OTTAVA_THRESHOLD){
         ottavaLabel = info.dir === 'below' ? '8vb' : '8va';
       } else {
-        shift = 0; // extreem geval: val terug op de ongewijzigde weergave i.p.v. blijven verschuiven
+        shift = 0; 
       }
     }
 
     const display = shift ? sorted.map(m => m + shift) : sorted;
     const parsed = display.map(m => this.midiToKey(m));
-    // BELANGRIJK: clef moet expliciet aan de noot worden meegegeven. Zonder
-    // dit gebruikt VexFlow altijd de vioolsleutel-regels om de verticale
-    // positie te berekenen — ook voor noten op de basleutel-balk — waardoor
-    // basleutel-noten véél te laag met te veel hulplijntjes werden getekend.
     const note = new VF.StaveNote({ keys: parsed.map(p => p.key), duration: 'q', auto_stem: true, clef });
     parsed.forEach((p, i) => {
       if (!p.acc) return;
-      // Verschillende VexFlow-builds gebruiken addModifier(modifier, index)
-      // of addModifier(index, modifier). We proberen de gangbare volgorde
-      // eerst en vallen terug op de andere, zodat een kruis/mol nooit de
-      // hele weergave kan laten crashen.
       const accidental = new VF.Accidental(p.acc);
       try { note.addModifier(accidental, i); }
       catch(e1){
@@ -720,9 +656,6 @@ const ScoreRenderer = {
     return note;
   },
 
-  // slices: array van noot-arrays (midi-getallen). Elke noot wordt op de
-  // balk gezet die bij zijn toonhoogte hoort (>=C4 vioolsleutel, anders
-  // basleutel) — zo ontstaat vanzelf een mooie overloop tussen de balken.
   render(containerId, slices){
     const VF = Vex.Flow;
     const container = document.getElementById(containerId);
@@ -741,7 +674,6 @@ const ScoreRenderer = {
     renderer.resize(this.CANVAS_W, this.CANVAS_H);
     const ctx = renderer.getContext();
     ctx.setFont('Inter, Arial', 10);
-    // Notenbalk-inkt volgt het actieve thema: licht op donker, donker op licht.
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const ink = isDark ? '#f2f4f9' : '#111827';
     if (ctx.setFillStyle) ctx.setFillStyle(ink);
@@ -783,9 +715,6 @@ const ScoreRenderer = {
     trebleVoice.draw(ctx, trebleStave);
     bassVoice.draw(ctx, bassStave);
 
-    // Vaste viewBox -> de SVG schaalt vloeiend mee met elk schermformaat
-    // (telefoon/tablet) terwijl de interne verhoudingen (en dus de positie
-    // van middle C) altijd exact hetzelfde blijven.
     const svg = container.querySelector('svg');
     if (svg){
       svg.setAttribute('viewBox', `0 0 ${this.CANVAS_W} ${this.CANVAS_H}`);
@@ -796,9 +725,6 @@ const ScoreRenderer = {
   }
 };
 
-/* ============================================================
-   VIRTUAL PIANO
-============================================================ */
 const PianoUI = {
   initialized: false,
   init(){
@@ -840,16 +766,8 @@ const PianoUI = {
   }
 };
 
-/* ============================================================
-   MINI KEYBOARD — statisch 2-octaaf klavier (C4-C6) voor akkoord-
-   voorbeelden: alleen de gekleurde bolletjes veranderen, het klavier
-   zelf blijft altijd hetzelfde formaat.
-============================================================ */
 const MiniKeyboard = {
-  START: 60, // C4
-  END: 88,   // E6 — 3 witte + 2 zwarte toetsen extra t.o.v. C6, zodat ook
-             // akkoorden als B Maj9 (hoogste noot C#6) volledig zichtbaar zijn
-
+  START: 60, END: 88,
   render(containerId, activeMidis = [], rootMidi = null){
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -861,7 +779,6 @@ const MiniKeyboard = {
       const isBlack = [1,3,6,8,10].includes(m % 12);
       const key = document.createElement('div');
       key.className = `mini-key ${isBlack ? 'black' : 'white'}`;
-
       if (activeMidis.includes(m)){
         const dot = document.createElement('span');
         dot.className = 'mk-dot ' + (m === rootMidi ? 'root' : 'tone');
@@ -873,9 +790,6 @@ const MiniKeyboard = {
   }
 };
 
-/* ============================================================
-   MUSIC THEORY DATA
-============================================================ */
 const MusicTheory = {
   scales: {
     "Majeur": [0,2,4,5,7,9,11,12], "Mineur Natuurlijk": [0,2,3,5,7,8,10,12], "Mineur Harmonisch": [0,2,3,5,7,8,11,12],
@@ -891,8 +805,8 @@ const MusicTheory = {
     "Tritonus": 6, "Reine Kwint": 7, "Kleine Sext": 8, "Grote Sext": 9, "Klein Septiem": 10, "Groot Septiem": 11, "Octaaf": 12
   },
   circle: {
-    keys: ["C","G","D","A","E","B","F#","Db","Ab","Eb","Bb","F"],
-    minors: ["a","e","b","f#","c#","g#","d#","bb","f","c","g","d"],
+    keys: ["C","G","D","A","E","B","Gb/F#","Db","Ab","Eb","Bb","F"],
+    minors: ["Am","Em","Bm","F#m","C#m","G#m","Ebm","Bbm","Fm","Cm","Gm","Dm"],
     accidentals: [0,1,2,3,4,5,6,-5,-4,-3,-2,-1]
   }
 };
@@ -902,14 +816,6 @@ const INTERVAL_ABBR = {
   "Grote Sext":"M6", "Klein Septiem":"m7", "Groot Septiem":"M7", "Octaaf":"P8"
 };
 
-/* ============================================================
-   CIRCLE WHEEL — interactieve, draaibare kwintencirkel
-   - tonicIndex bepaalt welke toonsoort "boven" (12 uur) staat
-   - Romeinse cijfers worden bij elke draai herberekend t.o.v. tonicIndex
-   - de gekleurde taartpunten draaien echt mee (CSS transform + transition),
-     de tekst wordt na elke draai vers herpositioneerd zodat die altijd
-     rechtop leesbaar blijft
-============================================================ */
 const CircleWheel = {
   tonicIndex: 0,
   selectedChordType: 'Majeur',
@@ -920,15 +826,14 @@ const CircleWheel = {
   liveRotation: 0,
 
   cofKeys: [
-    {maj:'C', min:'a', a:'0'}, {maj:'G', min:'e', a:'1#'}, {maj:'D', min:'b', a:'2#'},
-    {maj:'A', min:'f#', a:'3#'}, {maj:'E', min:'c#', a:'4#'}, {maj:'B', min:'g#', a:'5#'},
-    {maj:'F#', min:'d#', a:'6#'}, {maj:'Db', min:'bb', a:'5b'}, {maj:'Ab', min:'f', a:'4b'},
-    {maj:'Eb', min:'c', a:'3b'}, {maj:'Bb', min:'g', a:'2b'}, {maj:'F', min:'d', a:'1b'}
+    {maj:'C', min:'Am', acc:0}, {maj:'G', min:'Em', acc:1}, {maj:'D', min:'Bm', acc:2},
+    {maj:'A', min:'F#m', acc:3}, {maj:'E', min:'C#m', acc:4}, {maj:'B', min:'G#m', acc:5},
+    {maj:'Gb/F#', min:'Ebm', acc:6}, {maj:'Db', min:'Bbm', acc:-5}, {maj:'Ab', min:'Fm', acc:-4},
+    {maj:'Eb', min:'Cm', acc:-3}, {maj:'Bb', min:'Gm', acc:-2}, {maj:'F', min:'Dm', acc:-1}
   ],
-  rootToMidi: {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"a":69,"e":64,"b":71,"f#":66,"c#":61,"g#":68,"d#":63,"bb":70,"f":65,"c":60,"g":67,"d":62},
+  rootToMidi: {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"Gb/F#":66,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62},
   chordAbbr: {"Majeur":"Maj","Mineur":"Min","Diminished":"Dim","Sus2":"Sus2","Sus4":"Sus4","Maj7":"Maj7","Min7":"Min7","Dom7":"Dom7","m7b5":"m7b5","Maj9":"Maj9","Min9":"Min9"},
 
-  // Romeinse trap-functie van positie i t.o.v. de huidige tonic (boven).
   romanFor(i){
     let offset = (i - this.tonicIndex) % 12;
     if (offset > 6) offset -= 12;
@@ -968,11 +873,6 @@ const CircleWheel = {
     });
   },
 
-  // Tekent (en speelt optioneel) een akkoord. Wordt zowel gebruikt bij een
-  // echte tik op het wiel (play:true) als voor de automatische eerste
-  // weergave bij het openen van de module (play:false) — zo staat er
-  // vanaf het allereerste moment al iets, en kan er nooit een sprong van
-  // leeg naar gevuld ontstaan.
   showChord(rootLabel, quality, opts = {}){
     const rootMidi = this.rootToMidi[rootLabel];
     const formula = MusicTheory.chords[quality];
@@ -989,11 +889,6 @@ const CircleWheel = {
     this.syncPreviewWidths();
   },
 
-  // Notenbalk en toetsenbord moeten altijd precies dezelfde breedte hebben
-  // zodat ze mooi onder elkaar staan — ongeacht schermgrootte of fullscreen.
-  // De notenbalk is een responsieve SVG (viewBox), het toetsenbord heeft
-  // vaste pixelbreedtes; dus meten we het toetsenbord en leggen we die
-  // breedte expliciet op de notenbalk, i.p.v. beide los te laten schalen.
   syncPreviewWidths(){
     requestAnimationFrame(() => {
       const kbRow = document.querySelector('#circle-keyboard-wrap > div');
@@ -1013,6 +908,26 @@ const CircleWheel = {
     this.showChord(rootLabel, this.selectedChordType, { play: true });
   },
 
+  drawStave(g, accCount, styleVals) {
+    if (accCount === 0) return;
+    const isSharp = accCount > 0;
+    const count = Math.abs(accCount);
+    const sharpY = [-8, -2, -10, -4, 2, -6, 0];
+    const flatY = [0, -6, 2, -4, 4, -2, -8];
+
+    // Note: styleVals.staveInk properly supports the dark/light mode toggle
+    let html = `<path d="M -20 -8 L 24 -8 M -20 -4 L 24 -4 M -20 0 L 24 0 M -20 4 L 24 4 M -20 8 L 24 8" stroke="${styleVals.staveInk}" stroke-width="0.8"/>`;
+    html += `<text x="-24" y="0" font-size="28" font-family="serif" fill="${styleVals.staveInk}" dominant-baseline="central">𝄞</text>`;
+
+    for (let i = 0; i < count; i++) {
+        let x = -5 + (i * 4.5);
+        let y = isSharp ? sharpY[i] : flatY[i];
+        let symbol = isSharp ? '♯' : '♭';
+        html += `<text x="${x}" y="${y}" font-size="12" font-family="sans-serif" fill="${styleVals.staveInk}" dominant-baseline="central" font-weight="bold">${symbol}</text>`;
+    }
+    g.innerHTML = html;
+  },
+
   render(){
     this.renderQuickJump();
     this.renderChordJump();
@@ -1022,17 +937,31 @@ const CircleWheel = {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("id", "circle-svg");
-    svg.setAttribute("viewBox", "0 0 400 400");
-    svg.style.width = "100%"; svg.style.maxWidth = "340px";
-    svg.style.filter = "drop-shadow(0 4px 10px rgba(0,0,0,0.18))";
+    // Viewbox vergroot naar 480x480 zodat de staves ruim passen zonder clip-offs
+    svg.setAttribute("viewBox", "0 0 480 480");
+    svg.style.filter = "drop-shadow(0 8px 24px rgba(0,0,0,0.12))";
 
-    const cx = 200, cy = 200, rOuter = 160, rInner = 100, rTextMaj = 130, rTextMin = 70, rTextAcc = 194, rRoman = 168;
+    // Nieuwe, ruime geometrie voor echte ring-vorming (donuts met gat in het midden)
+    const cx = 240, cy = 240;
+    const rOuter = 160;
+    const rInner = 100;
+    const rHole = 45;
     const wheelRotation = -this.tonicIndex * 30;
+
+    const style = getComputedStyle(document.body);
+    const styleVals = {
+        majFill: style.getPropertyValue('--wheel-maj').trim(),
+        minFill: style.getPropertyValue('--wheel-min').trim(),
+        lineStr: style.getPropertyValue('--wheel-line').trim(),
+        ink: style.getPropertyValue('--wheel-ink').trim(),
+        inkMin: style.getPropertyValue('--wheel-ink-min').trim(),
+        staveInk: style.getPropertyValue('--wheel-stave').trim()
+    };
 
     const wedgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
     wedgeLayer.setAttribute("id", "circle-wedge-layer");
     wedgeLayer.setAttribute("transform", `rotate(${wheelRotation} ${cx} ${cy})`);
-    wedgeLayer.style.transition = 'transform .35s ease';
+    wedgeLayer.style.transition = 'transform .4s cubic-bezier(0.34, 1.56, 0.64, 1)';
     svg.appendChild(wedgeLayer);
 
     const labelLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -1041,82 +970,92 @@ const CircleWheel = {
     for (let i = 0; i < 12; i++){
       const entry = this.cofKeys[i];
       const roman = this.romanFor(i);
-      const hue = i * 30;
       const isTonic = i === this.tonicIndex;
 
-      // --- taartpunten (draaien mee met de wedgeLayer, dus in hun eigen,
-      // niet-geroteerde hoekcoördinaten getekend) ---
-      let angle1 = (i*30 - 15) * Math.PI/180, angle2 = ((i+1)*30 - 15) * Math.PI/180;
-      let x1 = cx + rOuter * Math.sin(angle1), y1 = cy - rOuter * Math.cos(angle1);
-      let x2 = cx + rOuter * Math.sin(angle2), y2 = cy - rOuter * Math.cos(angle2);
-      let ix1 = cx + rInner * Math.sin(angle1), iy1 = cy - rInner * Math.cos(angle1);
-      let ix2 = cx + rInner * Math.sin(angle2), iy2 = cy - rInner * Math.cos(angle2);
+      let a1 = (i*30 - 15) * Math.PI/180, a2 = ((i+1)*30 - 15) * Math.PI/180;
 
+      let o1x = cx + rOuter * Math.sin(a1), o1y = cy - rOuter * Math.cos(a1);
+      let o2x = cx + rOuter * Math.sin(a2), o2y = cy - rOuter * Math.cos(a2);
+      let i1x = cx + rInner * Math.sin(a1), i1y = cy - rInner * Math.cos(a1);
+      let i2x = cx + rInner * Math.sin(a2), i2y = cy - rInner * Math.cos(a2);
+      let h1x = cx + rHole * Math.sin(a1), h1y = cy - rHole * Math.cos(a1);
+      let h2x = cx + rHole * Math.sin(a2), h2y = cy - rHole * Math.cos(a2);
+
+      // Major Wedge (Buitenste Ring, perfect gesloten path)
       const gMaj = document.createElementNS("http://www.w3.org/2000/svg", "g");
       gMaj.style.cursor = "pointer";
-      gMaj.style.opacity = roman.major ? '1' : '.4';
       gMaj.setAttribute('data-ring', 'major'); gMaj.setAttribute('data-index', i);
-      const path1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path1.setAttribute("d", `M ${cx} ${cy} L ${x1} ${y1} A ${rOuter} ${rOuter} 0 0 1 ${x2} ${y2} Z`);
-      path1.setAttribute("fill", `hsl(${hue},65%,85%)`);
-      path1.setAttribute("stroke", isTonic ? "var(--accent)" : "var(--border-color)");
-      path1.setAttribute("stroke-width", isTonic ? "3" : "1");
-      gMaj.appendChild(path1);
-      wedgeLayer.appendChild(gMaj);
+      const pMaj = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pMaj.setAttribute("d", `M ${i1x} ${i1y} L ${o1x} ${o1y} A ${rOuter} ${rOuter} 0 0 1 ${o2x} ${o2y} L ${i2x} ${i2y} A ${rInner} ${rInner} 0 0 0 ${i1x} ${i1y} Z`);
+      pMaj.setAttribute("fill", styleVals.majFill);
+      pMaj.setAttribute("stroke", styleVals.lineStr);
+      pMaj.setAttribute("stroke-width", "2");
+      if (isTonic) pMaj.setAttribute("stroke", "var(--accent)");
+      gMaj.appendChild(pMaj); wedgeLayer.appendChild(gMaj);
 
+      // Minor Wedge (Binnenste Ring, perfect gesloten path)
       const gMin = document.createElementNS("http://www.w3.org/2000/svg", "g");
       gMin.style.cursor = "pointer";
-      gMin.style.opacity = roman.minor ? '1' : '.4';
       gMin.setAttribute('data-ring', 'minor'); gMin.setAttribute('data-index', i);
-      const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path2.setAttribute("d", `M ${cx} ${cy} L ${ix1} ${iy1} A ${rInner} ${rInner} 0 0 1 ${ix2} ${iy2} Z`);
-      path2.setAttribute("fill", `hsl(${hue},50%,72%)`);
-      path2.setAttribute("stroke", "var(--border-color)"); path2.setAttribute("stroke-width", "1");
-      gMin.appendChild(path2);
-      wedgeLayer.appendChild(gMin);
+      const pMin = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pMin.setAttribute("d", `M ${h1x} ${h1y} L ${i1x} ${i1y} A ${rInner} ${rInner} 0 0 1 ${i2x} ${i2y} L ${h2x} ${h2y} A ${rHole} ${rHole} 0 0 0 ${h1x} ${h1y} Z`);
+      pMin.setAttribute("fill", styleVals.minFill);
+      pMin.setAttribute("stroke", styleVals.lineStr);
+      pMin.setAttribute("stroke-width", "2");
+      gMin.appendChild(pMin); wedgeLayer.appendChild(gMin);
 
-      // --- labels (vers getekend op de effectieve hoek, dus altijd rechtop) ---
+      // --- Labels & Staves (Altijd rechtop) ---
       const effAngleDeg = i*30 + wheelRotation;
       const effAngle = effAngleDeg * Math.PI/180;
-      const ink = '#241f1a';
 
-      const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle) + 8;
+      // Staves
+      if (entry.acc !== 0) {
+        const rStave = 202;
+        const txStave = cx + rStave*Math.sin(effAngle), tyStave = cy - rStave*Math.cos(effAngle);
+        const gStave = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        gStave.setAttribute("transform", `translate(${txStave}, ${tyStave}) scale(1.3)`);
+        gStave.style.pointerEvents = "none";
+        this.drawStave(gStave, entry.acc, styleVals);
+        labelLayer.appendChild(gStave);
+      }
+
+      // Major Text (Netjes verdeeld t.o.v. de Roman)
+      const rTextMaj = 138;
+      const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle) + 2;
       const tMaj = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMaj.setAttribute("x", txMaj); tMaj.setAttribute("y", tyMaj); tMaj.setAttribute("font-family", "Inter");
-      tMaj.setAttribute("font-size", "22"); tMaj.setAttribute("font-weight", "bold"); tMaj.setAttribute("fill", ink);
-      tMaj.setAttribute("text-anchor", "middle"); tMaj.style.pointerEvents = "none";
+      tMaj.setAttribute("font-size", "24"); tMaj.setAttribute("font-weight", "700"); tMaj.setAttribute("fill", styleVals.ink);
+      tMaj.setAttribute("text-anchor", "middle"); tMaj.setAttribute("dominant-baseline", "central");
+      tMaj.style.pointerEvents = "none";
       tMaj.textContent = entry.maj; labelLayer.appendChild(tMaj);
 
-      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle) + 5;
+      // Minor Text
+      const rTextMin = 80;
+      const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle) + 2;
       const tMin = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
-      tMin.setAttribute("font-size", "14"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", ink);
-      tMin.setAttribute("text-anchor", "middle"); tMin.style.pointerEvents = "none";
-      tMin.textContent = capNote(entry.min) + "m"; labelLayer.appendChild(tMin);
+      tMin.setAttribute("font-size", "15"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", styleVals.inkMin);
+      tMin.setAttribute("text-anchor", "middle"); tMin.setAttribute("dominant-baseline", "central");
+      tMin.style.pointerEvents = "none";
+      tMin.textContent = entry.min; labelLayer.appendChild(tMin);
 
-      const txAcc = cx + rTextAcc*Math.sin(effAngle), tyAcc = cy - rTextAcc*Math.cos(effAngle) + 5;
-      const tAcc = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      tAcc.setAttribute("x", txAcc); tAcc.setAttribute("y", tyAcc); tAcc.setAttribute("font-family", "Inter");
-      tAcc.setAttribute("font-size", "13"); tAcc.setAttribute("font-weight", "bold"); tAcc.setAttribute("fill", "var(--accent)");
-      tAcc.setAttribute("text-anchor", "middle"); tAcc.style.pointerEvents = "none";
-      tAcc.textContent = entry.a; labelLayer.appendChild(tAcc);
-
-      // Romeinse trapfunctie t.o.v. de huidige tonic (alleen bij de 7 diatonische akkoorden)
+      // Romeinse Cijfers (Strak gecentreerd onder de letternaam)
       if (roman.major){
-        const txR = cx + rRoman*Math.sin(effAngle), tyR = cy - rRoman*Math.cos(effAngle) + 4;
+        const rRomanMaj = 116;
+        const txR = cx + rRomanMaj*Math.sin(effAngle), tyR = cy - rRomanMaj*Math.cos(effAngle) + 4;
         const tR = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR.setAttribute("x", txR); tR.setAttribute("y", tyR); tR.setAttribute("font-family", "Inter");
-        tR.setAttribute("font-size", "13"); tR.setAttribute("font-weight", "800"); tR.setAttribute("fill", "#1e293b");
-        tR.setAttribute("text-anchor", "middle"); tR.style.pointerEvents = "none";
+        tR.setAttribute("font-size", "11"); tR.setAttribute("font-weight", "700"); tR.setAttribute("fill", styleVals.ink);
+        tR.setAttribute("opacity", "0.85"); tR.setAttribute("text-anchor", "middle"); tR.style.pointerEvents = "none";
         tR.textContent = roman.major; labelLayer.appendChild(tR);
       }
       if (roman.minor){
-        const rMinRoman = rTextMin - 26;
-        const txR2 = cx + rMinRoman*Math.sin(effAngle), tyR2 = cy - rMinRoman*Math.cos(effAngle) + 4;
+        const rRomanMin = 60;
+        const txR2 = cx + rRomanMin*Math.sin(effAngle), tyR2 = cy - rRomanMin*Math.cos(effAngle) + 4;
         const tR2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
         tR2.setAttribute("x", txR2); tR2.setAttribute("y", tyR2); tR2.setAttribute("font-family", "Inter");
-        tR2.setAttribute("font-size", "11"); tR2.setAttribute("font-weight", "800"); tR2.setAttribute("fill", "#3f3a33");
-        tR2.setAttribute("text-anchor", "middle"); tR2.style.pointerEvents = "none";
+        tR2.setAttribute("font-size", "10"); tR2.setAttribute("font-weight", "700"); tR2.setAttribute("fill", styleVals.inkMin);
+        tR2.setAttribute("opacity", "0.85"); tR2.setAttribute("text-anchor", "middle"); tR2.style.pointerEvents = "none";
         tR2.textContent = roman.minor; labelLayer.appendChild(tR2);
       }
     }
@@ -1124,8 +1063,6 @@ const CircleWheel = {
     wrap.appendChild(svg);
     this.wireInteraction(svg, wedgeLayer, cx, cy);
 
-    // Meteen een voorbeeldakkoord tonen (geluidloos) zodra de module voor
-    // het eerst laadt, zodat er nooit een sprong van leeg naar gevuld is.
     if (!this._previewed){
       this._previewed = true;
       const entry = this.cofKeys[this.tonicIndex];
@@ -1133,10 +1070,6 @@ const CircleWheel = {
     }
   },
 
-  // Eén samenhangende afhandeling voor zowel tikken (akkoord afspelen) als
-  // ronddraaien (met vinger/muis). We gebruiken uitsluitend pointer-events
-  // i.p.v. het losse 'click'-event, omdat setPointerCapture 'click' anders
-  // naar het svg-element zelf omleidt en de taartpunten stom blijven.
   wireInteraction(svg, wedgeLayer, cx, cy){
     let startX = 0, startY = 0, moved = false, pressedEl = null;
     const getAngle = (clientX, clientY) => {
@@ -1167,7 +1100,7 @@ const CircleWheel = {
       this.dragging = false;
       try { svg.releasePointerCapture(e.pointerId); } catch(err){}
       if (moved){
-        wedgeLayer.style.transition = 'transform .35s ease';
+        wedgeLayer.style.transition = 'transform .4s cubic-bezier(0.34, 1.56, 0.64, 1)';
         const steps = Math.round(this.liveRotation / 30);
         this.tonicIndex = ((-steps) % 12 + 12) % 12;
         this.render();
@@ -1184,9 +1117,6 @@ const CircleWheel = {
   }
 };
 
-/* ============================================================
-   APP
-============================================================ */
 const App = {
   currentModule: null, history: [], historyIndex: -1,
 
@@ -1368,7 +1298,6 @@ const App = {
     c.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       if (saved._checks && saved._checks[cb.value] !== undefined) cb.checked = saved._checks[cb.value];
       cb.addEventListener('change', () => {
-        // Nooit alle intervallen laten uitschakelen — anders is er niets meer om te oefenen.
         const group = cb.closest('.interval-check-grid');
         if (group && !group.querySelector('input[type="checkbox"]:checked')) { cb.checked = true; return; }
         this.persistSettings(id);
@@ -1401,28 +1330,22 @@ const App = {
 
     if (id === 'notes'){
       let lvl = document.getElementById('set-level').value;
-      // Makkelijk: C3-C5, Gemiddeld: C2-C6, Moeilijk: C1-C7. Verder dan dat
-      // wordt in echte pianonotatie doorgaans met 8va/8vb genoteerd i.p.v.
-      // steeds meer hulplijntjes — C1/C7 (circa 4 hulplijntjes) ligt precies
-      // op de grens waarbij het nog leesbaar blijft zonder ottava-tekens.
       let min = lvl === 'easy' ? 48 : (lvl === 'med' ? 36 : 24);
       let max = lvl === 'easy' ? 72 : (lvl === 'med' ? 84 : 96);
       let m = randomInt(min, max);
-      data.type = 'note'; data.slices = [[m]]; data.m = m; data.ans = midiToName(m);
+      data.type = 'note'; data.slices = [[m]]; data.m = m; 
+      data.ans = midiToName(m); // Zonder octaaf
     }
     else if (id === 'scales'){
       let typeOpt = document.getElementById('set-scale-type').value;
       let types = typeOpt === 'ALL' ? Object.keys(MusicTheory.scales) : [typeOpt];
       let type = types[randomInt(0, types.length - 1)];
-      // Root dicht bij middle C (C3-C4) zodat de toonladder altijd compact
-      // rond het midden van de grand staff blijft staan, met een natuurlijke
-      // overloop tussen bas- en vioolsleutel in plaats van ver weg te zakken.
       let root = randomInt(48, 60);
       let formula = MusicTheory.scales[type];
       let notes = formula.map(iv => root + iv);
       data.type = 'sequence';
       data.slices = notes.map(n => [n]);
-      data.ans = `${midiToName(root, false).slice(0,-1)} ${type}`;
+      data.ans = `${midiToName(root, false)} ${type}`;
     }
     else if (id === 'chords'){
       let typeOpt = document.getElementById('set-chord-type').value;
@@ -1431,14 +1354,12 @@ const App = {
       let type = types[randomInt(0, types.length - 1)];
       let root = randomInt(48, 60);
       let formula = [...MusicTheory.chords[type]];
-      // Een specifieke omkering wordt geclipt op wat het akkoord daadwerkelijk
-      // heeft (bv. een drieklank heeft geen 3e omkering).
       let inv = invSel === 'ALL' ? randomInt(0, formula.length - 1) : Math.min(parseInt(invSel), formula.length - 1);
       for (let i = 0; i < inv; i++) formula[i] += 12;
       formula.sort((a,b) => a - b);
       data.type = 'chord'; data.slices = [formula.map(iv => root + iv)];
       let invText = inv === 0 ? "Grondligging" : `${inv}e Omkering`;
-      data.ans = `${midiToName(root, false).slice(0,-1)} ${type} (${invText})`;
+      data.ans = `${midiToName(root, false)} ${type} (${invText})`;
     }
     else if (id === 'circle'){
       let mode = document.getElementById('set-circle-mode').value;
@@ -1465,7 +1386,7 @@ const App = {
             rootNote = keys[idx]; chordType = "Majeur";
           }
         }
-        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"a":69,"e":64,"b":71,"f#":66,"c#":61,"g#":68,"d#":63,"bb":70,"f":65,"c":60,"g":67,"d":62};
+        const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"Ebm":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
         let rootMidi = rootToMidi[rootNote];
         let formula = MusicTheory.chords[chordType];
         data.type = 'chord'; data.slices = [formula.map(iv => rootMidi + iv)];
@@ -1480,7 +1401,7 @@ const App = {
       let root = randomInt(48, 64), top = root + MusicTheory.intervals[name];
       data.i_mode = mode; data.type = playMode === 'melodic' ? 'sequence' : 'chord';
       data.slices = playMode === 'melodic' ? [[root],[top]] : [[root, top]];
-      data.ans = `${name} (${midiToName(root, false).slice(0,-1)} → ${midiToName(top, false).slice(0,-1)})`;
+      data.ans = `${name} (${midiToName(root, false)} → ${midiToName(top, false)})`;
     }
     else if (id === 'progressions'){
       let kType = document.getElementById('set-prog-key').value;
@@ -1495,7 +1416,7 @@ const App = {
       let chordRoot = rootMidi + targetDeg.iv;
       data.type = 'chord'; data.slices = [MusicTheory.chords[targetDeg.q].map(iv => chordRoot + iv)];
       data.q = `Wat is trap '${targetDeg.n}' in ${rootName} ${isMaj ? 'Majeur' : 'mineur'}?`;
-      data.ans = `${midiToName(chordRoot, false).slice(0,-1)} ${targetDeg.q}`;
+      data.ans = `${midiToName(chordRoot, false)} ${targetDeg.q}`;
     }
 
     return data;
@@ -1503,11 +1424,9 @@ const App = {
 
   renderData(data){
     const ansDisp = document.getElementById('answer-display');
-    // Instant verbergen (geen transitie) zodat het oude antwoord nooit even
-    // kort zichtbaar "flitst" terwijl de nieuwe tekst al is ingevuld.
     ansDisp.style.transition = 'none';
     ansDisp.classList.remove('visible');
-    void ansDisp.offsetHeight; // forceer reflow
+    void ansDisp.offsetHeight; 
     ansDisp.style.transition = '';
 
     const paper = document.getElementById('score-paper');
@@ -1520,8 +1439,6 @@ const App = {
     let id = this.currentModule;
     const isCircleVisual = (id === 'circle' && data.c_mode === 'visual');
 
-    // De interactieve kwintencirkel heeft geen "vorige/volgende/toon
-    // antwoord" nodig — je tikt de akkoorden direct op het wiel aan.
     document.getElementById('flashcard-actions').style.display = isCircleVisual ? 'none' : 'flex';
     document.getElementById('swipe-hint').style.display = isCircleVisual ? 'none' : 'block';
 
@@ -1564,11 +1481,6 @@ const App = {
   }
 };
 
-/* ============================================================
-   SWIPE — vorige/volgende op de kaart, handig onderweg
-   (geen resize-listener meer nodig: de SVG schaalt vloeiend mee
-   via de vaste viewBox, dus de grand staff verspringt nooit.)
-============================================================ */
 (function initSwipe(){
   const card = document.getElementById('flashcard-ui');
   let startX = 0, startY = 0;
