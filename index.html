@@ -592,7 +592,7 @@ const ThemeManager = {
       // "gebakken" door VexFlow) moet apart ververst worden, anders blijft
       // het er met de oude, onleesbare thema-kleuren bij staan.
       if (CircleWheel._previewed){
-        CircleWheel.showChord(CircleWheel.selectedRootLabel, CircleWheel.selectedChordType, { play: false });
+        CircleWheel.showChord(CircleWheel.lastShown.root, CircleWheel.lastShown.quality, { play: false });
       }
     } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
       App.applyPaperMaxWidth(App.currentModule);
@@ -966,11 +966,14 @@ const INTERVAL_ABBR = {
 
 const CircleWheel = {
   tonicIndex: 0,
+  // Akkoordsoort voor de tonica (bovenste noot) — uitsluitend gestuurd door
+  // de akkoordsoort-knoppen rechts, en terug naar 'Majeur' (de standaard)
+  // zodra de tonica verandert (draaien/toonsoort-knop links).
   selectedChordType: 'Majeur',
-  // Onthoudt welke toonsoort/wortel het laatst is aangeklikt op het wiel
-  // (bijv. "Am"), zodat een latere klik op een andere akkoordsoort-knop
-  // (Dim, Sus4, ...) diezelfde wortel hergebruikt i.p.v. steeds C te tonen.
-  selectedRootLabel: 'C',
+  // Wat er nu daadwerkelijk op de notenbalk/keyboard te zien is — kan een
+  // taartpunt (bijv. "Am") OF de tonica in een gekozen akkoordsoort zijn.
+  // Alleen gebruikt om na een thema-wissel exact hetzelfde te hertekenen.
+  lastShown: { root: 'C', quality: 'Majeur' },
   wired: false,
 
   cofKeys: [
@@ -1002,7 +1005,15 @@ const CircleWheel = {
       btn.className = 'circle-jump-btn' + (i === this.tonicIndex ? ' active' : '');
       btn.textContent = entry.maj;
       btn.title = 'Zet ' + entry.maj + ' bovenaan';
-      btn.addEventListener('click', () => { this.tonicIndex = i; this.render(); });
+      btn.addEventListener('click', () => {
+        this.tonicIndex = i;
+        // Zelfde "enige functie" als draaien: alleen de toonsoort
+        // bovenaan zetten. De akkoordsoort-knoppen rechts springen terug
+        // naar Majeur (de standaard voor de nieuwe tonica) — zonder zelf
+        // iets nieuws te laten horen/zien.
+        this.selectedChordType = 'Majeur';
+        this.render();
+      });
       jump.appendChild(btn);
     });
   },
@@ -1019,11 +1030,12 @@ const CircleWheel = {
       btn.addEventListener('click', () => {
         this.selectedChordType = k;
         this.renderChordJump();
-        // Meteen de vorige geklikte grondtoon opnieuw laten horen/zien maar
-        // dan in deze nieuwe akkoordsoort — bijv. eerst C-maj gehoord, dan
-        // op "Dim" klikken laat direct C-dim horen zonder opnieuw op het
-        // wiel te hoeven klikken.
-        this.showChord(this.selectedRootLabel, k, { play: true });
+        // Deze knoppen gaan ALTIJD over de tonica (de noot bovenaan het
+        // wiel), nooit over de laatst aangeklikte taartpunt — zo kun je
+        // bijv. Dim/Sus4/... van de huidige toonsoort beluisteren zonder
+        // dat een eerdere klik op bijv. "Am" dat overneemt.
+        const tonicRoot = this.cofKeys[this.tonicIndex].maj;
+        this.showChord(tonicRoot, k, { play: true });
       });
       jump.appendChild(btn);
     });
@@ -1033,6 +1045,11 @@ const CircleWheel = {
     const rootMidi = this.rootToMidi[rootLabel];
     const formula = MusicTheory.chords[quality];
     if (rootMidi === undefined || !formula) return;
+    // Onthoudt wat er nu op de notenbalk/keyboard te zien is — los van de
+    // tonica-gebonden `selectedChordType` hierboven — zodat een thema-wissel
+    // (zie ThemeManager.toggle) precies datzelfde kan hertekenen, ook als
+    // het laatst een taartpunt was i.p.v. een akkoordsoort-knop.
+    this.lastShown = { root: rootLabel, quality };
     const notes = formula.map(iv => rootMidi + iv);
     if (opts.play) AudioEngine.playArpeggioAndChord(notes, 0.5);
     try {
@@ -1052,15 +1069,13 @@ const CircleWheel = {
 
   onWedgeClick(entry, ring){
     const rootLabel = ring === 'major' ? entry.maj : entry.min;
-    // Een klik op het wiel toont altijd de "standaard" akkoordsoort die bij
-    // die ring hoort (buitenring = majeur, binnenring = mineur) — ongeacht
-    // welke akkoordsoort-knop nog aanstond van een vorige keer. Zonder dit
-    // klonk bijv. de mineur-ring "Am" toch als A-majeur als "Maj" nog
-    // geselecteerd was.
+    // Een klik op een taartpunt toont altijd de "standaard" akkoordsoort
+    // die bij die ring hoort (buitenring = majeur, binnenring = mineur) —
+    // bijv. Am (binnenring, vi) klinkt altijd als A-mineur. Dit raakt NIET
+    // aan `selectedChordType`/de akkoordsoort-knoppen rechts — die gaan
+    // uitsluitend over de tonica (zie renderChordJump), niet over welke
+    // taartpunt je toevallig aanklikt.
     const quality = ring === 'major' ? 'Majeur' : 'Mineur';
-    this.selectedChordType = quality;
-    this.selectedRootLabel = rootLabel;
-    this.renderChordJump();
     this.showChord(rootLabel, quality, { play: true });
   },
 
@@ -1243,7 +1258,6 @@ const CircleWheel = {
     if (!this._previewed){
       this._previewed = true;
       const entry = this.cofKeys[this.tonicIndex];
-      this.selectedRootLabel = entry.maj;
       this.showChord(entry.maj, this.selectedChordType, { play: false });
     }
   },
@@ -1308,6 +1322,10 @@ const CircleWheel = {
         setTimeout(() => { this._suppressClick = false; }, 250);
         const steps = Math.round(-accumulated / 30);
         this.tonicIndex = ((this.tonicIndex + steps) % 12 + 12) % 12;
+        // Zelfde "enige functie" als de toonsoort-knoppen links: draaien
+        // zet alleen de tonica, de akkoordsoort-knoppen rechts springen
+        // terug naar Majeur (de standaard voor de nieuwe tonica).
+        this.selectedChordType = 'Majeur';
         this.render();
       } else {
         // Nauwelijks beweging (een tik): geen echte draai, gewoon de
