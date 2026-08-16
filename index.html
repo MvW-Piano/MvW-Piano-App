@@ -327,7 +327,7 @@ select:focus{ border-color:var(--accent); }
 #circle-quick-jump{ display:none; }
 #circle-chord-jump{ grid-area:chordjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
 .circle-jump-col{ min-width:0; }
-#circle-chord-preview{ min-width:0; min-height:60px; max-width:280px; overflow:hidden; display:flex; align-items:center; justify-content:center; width:100%; }
+#circle-chord-preview{ min-width:0; min-height:60px; max-width:330px; overflow:hidden; display:flex; align-items:center; justify-content:center; width:100%; }
 #circle-keyboard-wrap{ display:flex; justify-content:center; justify-content:safe center; min-width:0; min-height:40px; align-items:center; overflow-x:auto; max-width:100%; width:100%; }
 
 @media (min-width:900px){
@@ -592,10 +592,10 @@ const ThemeManager = {
       // "gebakken" door VexFlow) moet apart ververst worden, anders blijft
       // het er met de oude, onleesbare thema-kleuren bij staan.
       if (CircleWheel._previewed){
-        const entry = CircleWheel.cofKeys[CircleWheel.tonicIndex];
-        CircleWheel.showChord(entry.maj, CircleWheel.selectedChordType, { play: false });
+        CircleWheel.showChord(CircleWheel.selectedRootLabel, CircleWheel.selectedChordType, { play: false });
       }
     } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
+      App.applyPaperMaxWidth(App.currentModule);
       ScoreRenderer.render('score-paper', data.slices, data.useFlats, App.paperRenderOpts(App.currentModule));
     }
   },
@@ -967,6 +967,10 @@ const INTERVAL_ABBR = {
 const CircleWheel = {
   tonicIndex: 0,
   selectedChordType: 'Majeur',
+  // Onthoudt welke toonsoort/wortel het laatst is aangeklikt op het wiel
+  // (bijv. "Am"), zodat een latere klik op een andere akkoordsoort-knop
+  // (Dim, Sus4, ...) diezelfde wortel hergebruikt i.p.v. steeds C te tonen.
+  selectedRootLabel: 'C',
   wired: false,
 
   cofKeys: [
@@ -1012,7 +1016,15 @@ const CircleWheel = {
       btn.className = 'circle-jump-btn chord' + (k === this.selectedChordType ? ' active' : '');
       btn.textContent = this.chordAbbr[k] || k.slice(0,5);
       btn.title = k;
-      btn.addEventListener('click', () => { this.selectedChordType = k; this.renderChordJump(); });
+      btn.addEventListener('click', () => {
+        this.selectedChordType = k;
+        this.renderChordJump();
+        // Meteen de vorige geklikte grondtoon opnieuw laten horen/zien maar
+        // dan in deze nieuwe akkoordsoort — bijv. eerst C-maj gehoord, dan
+        // op "Dim" klikken laat direct C-dim horen zonder opnieuw op het
+        // wiel te hoeven klikken.
+        this.showChord(this.selectedRootLabel, k, { play: true });
+      });
       jump.appendChild(btn);
     });
   },
@@ -1032,7 +1044,7 @@ const CircleWheel = {
       // het toetsenbord eronder komt nu van gedeelde CSS-centrering
       // (justify-content:safe center), niet meer van JS die de breedtes
       // geforceerd gelijk maakte — dat verhield zich niet met deze crop.
-      ScoreRenderer.render('circle-chord-preview', [notes], useFlats, { canvasW: 220 });
+      ScoreRenderer.render('circle-chord-preview', [notes], useFlats, { canvasW: 275 });
     } catch(e){ console.warn('Kon akkoordvoorbeeld niet tekenen:', e); }
     try { MiniKeyboard.render('circle-keyboard-wrap', notes, notes[0]); }
     catch(e){ console.warn('Kon toetsenbord niet tekenen:', e); }
@@ -1040,7 +1052,16 @@ const CircleWheel = {
 
   onWedgeClick(entry, ring){
     const rootLabel = ring === 'major' ? entry.maj : entry.min;
-    this.showChord(rootLabel, this.selectedChordType, { play: true });
+    // Een klik op het wiel toont altijd de "standaard" akkoordsoort die bij
+    // die ring hoort (buitenring = majeur, binnenring = mineur) — ongeacht
+    // welke akkoordsoort-knop nog aanstond van een vorige keer. Zonder dit
+    // klonk bijv. de mineur-ring "Am" toch als A-majeur als "Maj" nog
+    // geselecteerd was.
+    const quality = ring === 'major' ? 'Majeur' : 'Mineur';
+    this.selectedChordType = quality;
+    this.selectedRootLabel = rootLabel;
+    this.renderChordJump();
+    this.showChord(rootLabel, quality, { play: true });
   },
 
   drawStave(g, accCount, styleVals) {
@@ -1222,6 +1243,7 @@ const CircleWheel = {
     if (!this._previewed){
       this._previewed = true;
       const entry = this.cofKeys[this.tonicIndex];
+      this.selectedRootLabel = entry.maj;
       this.showChord(entry.maj, this.selectedChordType, { play: false });
     }
   },
@@ -1268,11 +1290,22 @@ const CircleWheel = {
     const endDrag = () => {
       if (!dragging) return;
       dragging = false;
-      if (Math.abs(accumulated) > 3){
+      // Drempel iets ruimer dan voorheen (3°→6°): met een muis beweegt de
+      // cursor bij een gewone klik al snel een paar graden mee, waardoor een
+      // simpele klik hier eerder als "echte draai" werd gezien dan bij een
+      // vinger op een touchscreen (vandaar dat dit alleen op desktop opviel).
+      if (Math.abs(accumulated) > 6){
         // Echte draai: naar dichtstbijzijnde toonsoort (stappen van 30°)
         // afronden en het wiel definitief opnieuw tekenen met de nieuwe
         // tonica — de tijdelijke rotor-transform verdwijnt daarmee vanzelf.
         this._suppressClick = true;
+        // Vangnet: render() hieronder vervangt dit svg-element, waardoor de
+        // browser het bijbehorende 'click'-event (dat _suppressClick anders
+        // resette) soms helemaal niet meer afvuurt — dan bleef _suppressClick
+        // permanent 'true' staan en werd ELKE volgende klik op het wiel
+        // stilletjes genegeerd (geen geluid meer, precies dit was de bug).
+        // Deze timeout herstelt de vlag sowieso, ook zonder dat click-event.
+        setTimeout(() => { this._suppressClick = false; }, 250);
         const steps = Math.round(-accumulated / 30);
         this.tonicIndex = ((this.tonicIndex + steps) % 12 + 12) % 12;
         this.render();
@@ -1400,10 +1433,26 @@ const App = {
   // maar een handjevol noten aan het begin van de balk staan (leesbaarder,
   // ziet er niet grotendeels leeg uit); undefined = volle breedte, nodig
   // voor Toonladders waar een hele reeks noten over de balk verspreid staat.
-  PAPER_CANVAS_W: { notes: 150, chords: 220, progressions: 220, intervals: 260 },
+  // Waren te strak ingezoomd (notes/chords/progressions); ~1,25x breder
+  // (=80% van de vorige zoom) gebracht op basis van gebruikersfeedback, met
+  // "intervals" (Blind Audio > Toon Antwoord) als het bevestigd-goede
+  // ijkpunt — die waarde bleef daarom ongewijzigd.
+  PAPER_CANVAS_W: { notes: 188, chords: 275, progressions: 275, intervals: 260 },
   paperRenderOpts(id){
     const w = this.PAPER_CANVAS_W[id];
     return w ? { canvasW: w } : {};
+  },
+  // #score-paper krijgt CSS width:100%, dus zonder cap wordt een smalle
+  // canvasW (bijv. 188 voor Noten Snellezen) op een brede desktop-kaart
+  // (tot 1400px) enorm uitgerekt — dezelfde valkuil als eerder al opgelost
+  // voor #answer-score/#circle-chord-preview met een vaste max-width, hier
+  // per module berekend met dezelfde verhouding als het bevestigd-goede
+  // Intervallen-antwoordvoorbeeld (460px bij canvasW 260 ≈ 1,77x).
+  // Toonladders (geen entry in PAPER_CANVAS_W) blijft bewust ongelimiteerd —
+  // die had al vóór alle crop-wijzigingen de volle breedte, zonder klachten.
+  applyPaperMaxWidth(id){
+    const w = this.PAPER_CANVAS_W[id];
+    document.getElementById('score-paper').style.maxWidth = w ? Math.round(w * 1.77) + 'px' : '';
   },
 
   // ---- Instellingen: knoppen i.p.v. dropdowns, opgeslagen per module ----
@@ -1800,6 +1849,7 @@ const App = {
     else {
       paper.style.display = 'flex';
       if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = data.q; }
+      this.applyPaperMaxWidth(id);
       ScoreRenderer.render('score-paper', data.slices, data.useFlats, this.paperRenderOpts(id));
       ansDisp.innerText = data.ans;
     }
