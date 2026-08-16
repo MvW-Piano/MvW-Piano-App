@@ -30,6 +30,7 @@
   --wheel-line: var(--bg-dark);
   --wheel-ink: #ffffff;
   --wheel-ink-min: #ffffff;
+  --wheel-ink-dim: #ffffff;
   --wheel-stave: #f2f4f9;
   --wheel-tonic: #f3f4f8;
 }
@@ -50,6 +51,7 @@
   --wheel-line: #ffffff;
   --wheel-ink: #ffffff;
   --wheel-ink-min: #1e3a8a;
+  --wheel-ink-dim: #6b7280;
   --wheel-stave: #111827;
   --wheel-tonic: #080b14;
 }
@@ -1067,15 +1069,25 @@ const CircleWheel = {
     catch(e){ console.warn('Kon toetsenbord niet tekenen:', e); }
   },
 
-  onWedgeClick(entry, ring){
+  onWedgeClick(idx, ring){
+    // Alleen taartpunten die daadwerkelijk bij de huidige toonsoort horen
+    // (I/ii/iii/IV/V/vi/vii°) reageren — de overige 5×2 combinaties zijn
+    // gedimd getekend (zie render()) en hier dus bewust inert.
+    const roman = this.romanFor(idx);
+    const isDiatonic = ring === 'major' ? !!roman.major : !!roman.minor;
+    if (!isDiatonic) return;
+
+    const entry = this.cofKeys[idx];
     const rootLabel = ring === 'major' ? entry.maj : entry.min;
     // Een klik op een taartpunt toont altijd de "standaard" akkoordsoort
-    // die bij die ring hoort (buitenring = majeur, binnenring = mineur) —
-    // bijv. Am (binnenring, vi) klinkt altijd als A-mineur. Dit raakt NIET
-    // aan `selectedChordType`/de akkoordsoort-knoppen rechts — die gaan
-    // uitsluitend over de tonica (zie renderChordJump), niet over welke
-    // taartpunt je toevallig aanklikt.
-    const quality = ring === 'major' ? 'Majeur' : 'Mineur';
+    // die bij die trap hoort (buitenring = majeur, binnenring = mineur) —
+    // bijv. Am (binnenring, vi) klinkt altijd als A-mineur. Uitzondering:
+    // trap vii° is muziektheoretisch VERMINDERD, niet mineur, ook al staat
+    // hij op de binnenring (bijv. in C majeur: B-D-F, niet B-D-F#).
+    // Dit raakt NIET aan `selectedChordType`/de akkoordsoort-knoppen rechts
+    // — die gaan uitsluitend over de tonica (zie renderChordJump), niet
+    // over welke taartpunt je toevallig aanklikt.
+    const quality = ring === 'major' ? 'Majeur' : (roman.minor === 'vii°' ? 'Diminished' : 'Mineur');
     this.showChord(rootLabel, quality, { play: true });
   },
 
@@ -1133,6 +1145,7 @@ const CircleWheel = {
         lineStr: style.getPropertyValue('--wheel-line').trim(),
         ink: style.getPropertyValue('--wheel-ink').trim(),
         inkMin: style.getPropertyValue('--wheel-ink-min').trim(),
+        inkDim: style.getPropertyValue('--wheel-ink-dim').trim(),
         staveInk: style.getPropertyValue('--wheel-stave').trim()
     };
 
@@ -1166,8 +1179,16 @@ const CircleWheel = {
       let h1x = cx + rHole * Math.sin(a1), h1y = cy - rHole * Math.cos(a1);
       let h2x = cx + rHole * Math.sin(a2), h2y = cy - rHole * Math.cos(a2);
 
+      // Niet-diatonische taartpunten (horen niet bij de huidige toonsoort,
+      // bijv. F#m als C bovenaan staat) worden gedimd én zijn niet klikbaar
+      // — zie onWedgeClick, dat dezelfde romanFor()-uitkomst gebruikt om ze
+      // te negeren.
+      const DIM_OPACITY = '0.32';
+      const isDarkTheme = document.documentElement.getAttribute('data-theme') !== 'light';
+
       const gMaj = document.createElementNS("http://www.w3.org/2000/svg", "g");
       gMaj.setAttribute('data-ring', 'major'); gMaj.setAttribute('data-index', i);
+      if (!roman.major) gMaj.setAttribute('opacity', DIM_OPACITY);
       const pMaj = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pMaj.setAttribute("d", `M ${i1x} ${i1y} L ${o1x} ${o1y} A ${rOuter} ${rOuter} 0 0 1 ${o2x} ${o2y} L ${i2x} ${i2y} A ${rInner} ${rInner} 0 0 0 ${i1x} ${i1y} Z`);
       pMaj.setAttribute("fill", styleVals.majFill);
@@ -1177,6 +1198,7 @@ const CircleWheel = {
 
       const gMin = document.createElementNS("http://www.w3.org/2000/svg", "g");
       gMin.setAttribute('data-ring', 'minor'); gMin.setAttribute('data-index', i);
+      if (!roman.minor) gMin.setAttribute('opacity', DIM_OPACITY);
       const pMin = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pMin.setAttribute("d", `M ${h1x} ${h1y} L ${i1x} ${i1y} A ${rInner} ${rInner} 0 0 1 ${i2x} ${i2y} L ${h2x} ${h2y} A ${rHole} ${rHole} 0 0 0 ${h1x} ${h1y} Z`);
       pMin.setAttribute("fill", styleVals.minFill);
@@ -1200,8 +1222,15 @@ const CircleWheel = {
       const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle);
       const tMaj = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMaj.setAttribute("x", txMaj); tMaj.setAttribute("y", tyMaj); tMaj.setAttribute("font-family", "Inter");
-      tMaj.setAttribute("font-size", "24"); tMaj.setAttribute("font-weight", "700"); tMaj.setAttribute("fill", styleVals.ink);
+      tMaj.setAttribute("font-size", "24"); tMaj.setAttribute("font-weight", "700");
+      // Gedimde buitenring-letters: in het lichte thema een aparte grijzere
+      // inktkleur i.p.v. de gewone (witte) ink op lage opacity — wit op
+      // lichtblauw bij lage opacity was daar nauwelijks leesbaar. In het
+      // donkere thema blijft dit exact zoals het was (--wheel-ink-dim is
+      // daar gelijk aan --wheel-ink, en dezelfde lage opacity).
+      tMaj.setAttribute("fill", roman.major ? styleVals.ink : styleVals.inkDim);
       tMaj.setAttribute("text-anchor", "middle"); tMaj.setAttribute("dominant-baseline", "central");
+      if (!roman.major) tMaj.setAttribute('opacity', isDarkTheme ? DIM_OPACITY : '0.85');
       tMaj.style.pointerEvents = "none";
       tMaj.textContent = entry.maj; labelLayer.appendChild(tMaj);
 
@@ -1220,6 +1249,7 @@ const CircleWheel = {
       tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
       tMin.setAttribute("font-size", "15"); tMin.setAttribute("font-weight", "600"); tMin.setAttribute("fill", styleVals.inkMin);
       tMin.setAttribute("text-anchor", "middle"); tMin.setAttribute("dominant-baseline", "central");
+      if (!roman.minor) tMin.setAttribute('opacity', DIM_OPACITY);
       tMin.style.pointerEvents = "none";
       tMin.textContent = entry.min; labelLayer.appendChild(tMin);
 
@@ -1263,16 +1293,6 @@ const CircleWheel = {
   },
 
   wireInteraction(svg, rotor, cx, cy){
-    svg.addEventListener('click', (e) => {
-      if (this._suppressClick){ this._suppressClick = false; return; }
-      const pressedEl = e.target.closest ? e.target.closest('[data-ring]') : null;
-      if (pressedEl){
-        const ring = pressedEl.getAttribute('data-ring');
-        const idx = parseInt(pressedEl.getAttribute('data-index'));
-        this.onWedgeClick(this.cofKeys[idx], ring);
-      }
-    });
-
     // Sleep-om-te-draaien: het wiel kan met muis of vinger rondgedraaid
     // worden i.p.v. alleen via de losse toonsoort-knoppen. De hoek t.o.v.
     // het middelpunt wordt via getScreenCTM omgerekend naar SVG-coördinaten,
@@ -1284,15 +1304,27 @@ const CircleWheel = {
       return Math.atan2(loc.x - cx, -(loc.y - cy)) * 180 / Math.PI;
     };
 
-    let dragging = false, lastAngle = 0, accumulated = 0;
+    let dragging = false, lastAngle = 0, accumulated = 0, startX = 0, startY = 0, lastX = 0, lastY = 0, pressedWedge = null;
 
+    // Er is BEWUST geen aparte 'click'-listener meer: `svg.setPointerCapture`
+    // hieronder (nodig om het slepen buiten de svg-rand te kunnen blijven
+    // volgen) bleek in deze browser ook de `target` van het daaropvolgende
+    // 'click'-event te herschrijven naar de svg zelf i.p.v. de aangeklikte
+    // taartpunt — waardoor `e.target.closest('[data-ring]')` niets meer
+    // vond en klikken (dus ook het geluid) willekeurig in het niets vielen.
+    // We onthouden nu zelf welke taartpunt bij pointerdown werd geraakt (vóór
+    // capture actief is) en gebruiken dat direct bij het loslaten.
     svg.addEventListener('pointerdown', (e) => {
       dragging = true; accumulated = 0;
+      startX = lastX = e.clientX; startY = lastY = e.clientY;
       lastAngle = pointToAngle(e.clientX, e.clientY);
+      const el = e.target.closest ? e.target.closest('[data-ring]') : null;
+      pressedWedge = el ? { ring: el.getAttribute('data-ring'), idx: parseInt(el.getAttribute('data-index')) } : null;
       svg.setPointerCapture(e.pointerId);
     });
     svg.addEventListener('pointermove', (e) => {
       if (!dragging) return;
+      lastX = e.clientX; lastY = e.clientY;
       const angle = pointToAngle(e.clientX, e.clientY);
       let step = angle - lastAngle;
       if (step > 180) step -= 360;
@@ -1304,22 +1336,18 @@ const CircleWheel = {
     const endDrag = () => {
       if (!dragging) return;
       dragging = false;
-      // Drempel iets ruimer dan voorheen (3°→6°): met een muis beweegt de
-      // cursor bij een gewone klik al snel een paar graden mee, waardoor een
-      // simpele klik hier eerder als "echte draai" werd gezien dan bij een
-      // vinger op een touchscreen (vandaar dat dit alleen op desktop opviel).
-      if (Math.abs(accumulated) > 6){
+      // Klik-vs-sleep beslissen op basis van VERPLAATSTE PIXELS, niet van de
+      // opgebouwde hoek: dicht bij het midden van het wiel (bijv. de
+      // binnenring/mineur-taartpunten) staat een paar pixels muis-tril al
+      // gelijk aan een grote hoekverandering (hoek is zeer gevoelig bij
+      // kleine straal) — daardoor werd een doodgewone klik daar bijna altijd
+      // als "sleep" gezien. Pixelafstand is overal op het wiel even
+      // betrouwbaar.
+      const movedPx = Math.hypot(lastX - startX, lastY - startY);
+      if (movedPx > 8){
         // Echte draai: naar dichtstbijzijnde toonsoort (stappen van 30°)
         // afronden en het wiel definitief opnieuw tekenen met de nieuwe
         // tonica — de tijdelijke rotor-transform verdwijnt daarmee vanzelf.
-        this._suppressClick = true;
-        // Vangnet: render() hieronder vervangt dit svg-element, waardoor de
-        // browser het bijbehorende 'click'-event (dat _suppressClick anders
-        // resette) soms helemaal niet meer afvuurt — dan bleef _suppressClick
-        // permanent 'true' staan en werd ELKE volgende klik op het wiel
-        // stilletjes genegeerd (geen geluid meer, precies dit was de bug).
-        // Deze timeout herstelt de vlag sowieso, ook zonder dat click-event.
-        setTimeout(() => { this._suppressClick = false; }, 250);
         const steps = Math.round(-accumulated / 30);
         this.tonicIndex = ((this.tonicIndex + steps) % 12 + 12) % 12;
         // Zelfde "enige functie" als de toonsoort-knoppen links: draaien
@@ -1328,10 +1356,10 @@ const CircleWheel = {
         this.selectedChordType = 'Majeur';
         this.render();
       } else {
-        // Nauwelijks beweging (een tik): geen echte draai, gewoon de
-        // rotor terugzetten en de normale click (taartpunt-preview) laten
-        // doorgaan.
+        // Nauwelijks beweging (een tik): geen echte draai — rotor terugzetten
+        // en, als de tik op een taartpunt landde, die meteen afhandelen.
         rotor.removeAttribute('transform');
+        if (pressedWedge) this.onWedgeClick(pressedWedge.idx, pressedWedge.ring);
       }
     };
     svg.addEventListener('pointerup', endDrag);
