@@ -181,17 +181,6 @@ select:focus{ border-color:var(--accent); }
 }
 .brand-mark-lg svg{ width:42px; height:42px; }
 
-.optional-audio{ margin-top:8px; display:flex; flex-direction:column; align-items:center; gap:8px; max-width:380px; width:100%; }
-.optional-audio .sample-btn{
-  font-size:.85rem; padding:9px 18px; background:transparent; border:1px dashed var(--border-color); color:var(--text-muted); border-radius:var(--radius-sm);
-}
-.optional-audio .sample-btn:hover{ border-color:var(--accent); color:var(--text-main); background:transparent; }
-#global-audio-status{ font-size:.82rem; font-weight:600; color:var(--text-muted); }
-.audio-info{ font-size:.78rem; color:var(--text-muted); width:100%; }
-.audio-info summary{ cursor:pointer; color:var(--accent); font-weight:600; list-style:none; }
-.audio-info summary::-webkit-details-marker{ display:none; }
-.audio-info summary::before{ content:'ℹ️ '; }
-.audio-info p{ margin-top:8px; line-height:1.5; text-align:left; }
 .creator-credit{ margin-top:34px; font-size:.85rem; color:var(--text-muted); font-weight:500; letter-spacing:.5px; }
 
 #module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
@@ -449,16 +438,13 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 
   <button class="primary" style="font-size:1.2rem; padding:15px 40px;" onclick="App.init()">Start Applicatie</button>
 
-  <div class="optional-audio">
-    <input type="file" id="global-sample-upload" multiple webkitdirectory directory accept="audio/wav,audio/mpeg,audio/x-wav,.wav" style="display:none;" onchange="App.handleFileUpload(event)">
-    <button class="sample-btn" onclick="document.getElementById('global-sample-upload').click()">🎹 Eigen pianogeluid laden (optioneel)</button>
-    <div id="global-audio-status">Standaard synthesizer actief</div>
-    <details class="audio-info">
-      <summary>Meer uitleg</summary>
-      <p>Kies je map met .wav bestanden (zoals Yamaha CFX) voor natuurgetrouw geluid — je selecteert de hele map in één keer. Browsers staan om veiligheidsredenen nooit toe dat een pagina zelf bestanden van je toestel leest, dus je kiest de map elke sessie opnieuw.</p>
-      <p id="prev-samples-hint" style="display:none;"></p>
-    </details>
-  </div>
+  <!-- Eigen pianogeluid (WAV-samples) laden is een optionele, geavanceerde
+       functie voor een klein aantal gebruikers — bereikbaar via het
+       map-icoon in het menu (zijbalk/onderbalk), niet meer expliciet
+       uitgelegd op deze pagina. Zie README_Eigen_Pianogeluid.md voor uitleg
+       die je aan iemand anders kunt meesturen. Deze input moet WEL blijven
+       bestaan (verborgen): het menu-icoon triggert 'm via zijn id. -->
+  <input type="file" id="global-sample-upload" multiple webkitdirectory directory accept="audio/wav,audio/mpeg,audio/x-wav,.wav" style="display:none;" onchange="App.handleFileUpload(event)">
 
   <div class="creator-credit">Created by Martijn van Willigen</div>
 </div>
@@ -636,8 +622,7 @@ const AudioEngine = {
   async loadSamples(files){
     if (!this.ctx) this.init();
     if (this.ctx.state === 'suspended') this.ctx.resume();
-    const statusDash = document.getElementById('global-audio-status');
-    statusDash.innerHTML = "<span style='color:#f59e0b;'>⏳ Bezig met inladen...</span>";
+    console.log('🎹 Eigen pianogeluid: bezig met inladen...');
     let loadedCount = 0;
     this.sampledMidiNotes = []; this.audioCache = {};
     for(let file of files){
@@ -654,10 +639,9 @@ const AudioEngine = {
     }
     if (loadedCount > 0){
       this.sampledMidiNotes.sort((a,b) => a - b);
-      statusDash.innerHTML = `<span style="color:#10b981;">✅ Succes: ${loadedCount} Multi-samples actief</span>`;
-      localStorage.setItem('pm_last_sample_count', String(loadedCount));
+      console.log(`🎹 Eigen pianogeluid: ${loadedCount} samples geladen en actief.`);
     } else {
-      statusDash.innerHTML = `<span style="color:#f87171;">⚠️ Geen bruikbare bestanden gevonden.</span>`;
+      console.warn('🎹 Eigen pianogeluid: geen bruikbare .wav/.mp3-bestanden gevonden in de gekozen map.');
     }
   },
 
@@ -2007,16 +1991,6 @@ ThemeManager.init();
   };
   document.addEventListener('fullscreenchange', update);
   document.addEventListener('webkitfullscreenchange', update);
-})();
-(function showPrevSamplesHint(){
-  const count = localStorage.getItem('pm_last_sample_count');
-  if (count){
-    const hint = document.getElementById('prev-samples-hint');
-    if (hint){
-      hint.style.display = 'block';
-      hint.textContent = `Vorige keer had je ${count} samples geladen — kies opnieuw je map om die weer te gebruiken.`;
-    }
-  }
 })();
 </script>
 </body>
