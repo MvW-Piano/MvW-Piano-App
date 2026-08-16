@@ -66,7 +66,7 @@ body{
 #sidebar{
   width:216px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-color);
   display:flex; flex-direction:column; transition:width .3s cubic-bezier(0.4, 0, 0.2, 1), background-color .3s; overflow:hidden; z-index:20;
-  height:100dvh; height:100vh;
+  height:100vh; height:100dvh;
 }
 #sidebar.collapsed{ width:72px; }
 #sidebar.collapsed .brand-text, #sidebar.collapsed .nav-label{ display:none; }
@@ -81,7 +81,7 @@ body{
 .brand-badge svg{ width:19px; height:14px; }
 .brand-text{ font-family:'Fraunces',serif; font-weight:600; font-size:1.1rem; color:var(--text-main); white-space:nowrap; }
 
-.sidebar-nav{ display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow-y:auto; }
+.sidebar-nav{ display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow-y:auto; flex:1 1 auto; min-height:0; }
 .nav-item{
   background:transparent; border:none; color:var(--text-muted); justify-content:flex-start; gap:12px;
   padding:11px 12px; border-radius:var(--radius-sm); font-size:.92rem; font-weight:600; text-align:left;
