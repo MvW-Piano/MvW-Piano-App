@@ -31,6 +31,7 @@
   --wheel-ink: #ffffff;
   --wheel-ink-min: #ffffff;
   --wheel-stave: #f2f4f9;
+  --wheel-tonic: #f3f4f8;
 }
 [data-theme="light"]{
   --bg-dark:#f3f4f8; --bg-panel:#ffffff; --bg-card:#ffffff;
@@ -50,6 +51,7 @@
   --wheel-ink: #ffffff;
   --wheel-ink-min: #1e3a8a;
   --wheel-stave: #111827;
+  --wheel-tonic: #080b14;
 }
 
 *{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif; user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -99,11 +101,22 @@ body{
 #content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #content-topbar{
   background-color:var(--bg-panel); padding:14px 22px; display:flex; justify-content:space-between;
-  align-items:center; border-bottom:1px solid var(--border-color); position:relative;
-  z-index:10; transition:background-color .3s; flex-shrink:0;
+  align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); position:relative;
+  z-index:30; transition:background-color .3s; flex-shrink:0;
 }
-#content-topbar h1{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); }
+#content-topbar h1{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); flex-shrink:0; }
 .topbar-right{ display:flex; gap:8px; align-items:center; }
+#header-quick-row{ display:none; }
+
+.dropdown-group{ position:relative; }
+.dropdown-trigger{ display:flex; align-items:center; gap:6px; }
+.dropdown-panel{
+  position:absolute; top:calc(100% + 8px); right:0; min-width:220px; max-width:min(90vw, 340px);
+  background:var(--bg-panel); border:1px solid transparent; border-radius:var(--radius-md); box-shadow:none;
+  display:flex; flex-wrap:wrap; gap:6px; padding:0; max-height:0; overflow:hidden; z-index:60;
+  transition:max-height .2s ease, padding .2s ease;
+}
+.dropdown-group.open .dropdown-panel{ max-height:60vh; overflow-y:auto; padding:12px; border-color:var(--border-color); box-shadow:var(--shadow-lg); }
 
 #bottom-nav{ display:none; }
 
@@ -122,8 +135,10 @@ body{
   .bnav-icon{ font-size:1.15rem; }
   .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
   #app-shell{ flex-direction:column; }
-  /* Padding verhoogd naar 120px zodat de keyboard nooit bedekt wordt op mobiel */
-  #workspace{ padding-bottom:120px !important; }
+  /* Genoeg ruimte zodat Vorige/Volgende nooit door de onderbalk worden
+     afgesneden, maar niet zo veel dat elke korte oefening al hoeft te
+     scrollen. */
+  #workspace{ padding-bottom:90px !important; }
   #content-topbar{ padding:12px 14px; }
   #content-topbar h1{ font-size:1.1rem; }
 }
@@ -179,71 +194,155 @@ select:focus{ border-color:var(--accent); }
 
 #module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
-#settings-bar{ position:relative; }
-#settings-toggle{
-  display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 16px;
-  background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); cursor:pointer; font-size:.9rem;
+/* Altijd-zichtbare instellingenbalk boven de kaart — knoppen i.p.v. een
+   uitklapbaar dropdown-menu, zodat je in één tik kunt wisselen (zelfde
+   patroon als de kwintencirkel). */
+#quick-controls{
+  width:100%; max-width:1400px; display:flex; flex-wrap:wrap; gap:16px 24px;
+  justify-content:center; margin-bottom:18px; padding:14px 18px; background:var(--bg-panel);
+  border:1px solid var(--border-color); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
 }
-#settings-toggle:hover{ background:var(--border-color); }
-#settings-toggle .chev{ transition:transform .2s; color:var(--accent); }
-#settings-bar.open #settings-toggle .chev{ transform:rotate(180deg); }
-#settings-container{
-  position:absolute; top:calc(100% + 8px); right:0; width:320px; max-width:min(90vw, 360px);
-  background:var(--bg-panel); border:1px solid var(--border-color); border-radius:var(--radius-md); box-shadow:var(--shadow-lg);
-  display:flex; flex-direction:column; gap:14px; max-height:0; overflow:hidden; z-index:50;
-  transition:max-height .25s ease, padding .25s ease; padding:0 16px;
+#quick-controls:empty{ display:none; margin-bottom:0; }
+.setting-group{ display:flex; flex-direction:column; gap:6px; align-items:center; }
+.setting-group label{
+  display:inline-flex; align-items:center; gap:6px; font-size:.68rem; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.6px; font-weight:700;
 }
-#settings-bar.open #settings-container{ max-height:70vh; overflow-y:auto; padding:16px; }
-.setting-group{ display:flex; flex-direction:column; gap:6px; width:100%; }
-.setting-group label{ font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
-.setting-group select{ width:100%; }
-.interval-check-grid{ display:flex; flex-wrap:wrap; gap:8px; }
-.setting-group .interval-check-grid label.interval-check{
-  display:flex; align-items:center; gap:5px; background:var(--bg-dark); border:1px solid var(--border-color);
-  border-radius:var(--radius-sm); padding:6px 10px; font-size:.88rem; font-weight:700; color:var(--text-main);
-  cursor:pointer; text-transform:none; letter-spacing:normal; font-family:'JetBrains Mono',monospace;
+.aa-icon{ width:19px; height:19px; flex-shrink:0; }
+.aa-delay-val{ text-transform:none; letter-spacing:0; color:var(--text-main); }
+.auto-adv-controls{ display:flex; flex-wrap:wrap; gap:16px 24px; justify-content:center; }
+/* Knop-labels met een korte mobiele variant (bijv. "Niv 1 (C3-C5)" i.p.v.
+   "Makkelijk (C3-C5)") — standaard (breed scherm) toont de volledige tekst. */
+.lbl-short{ display:none; }
+.opt-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.opt-btn{
+  background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-color);
+  border-radius:var(--radius-sm); padding:8px 14px; font-size:.85rem; font-weight:700; cursor:pointer;
+  transition:all .15s ease; font-family:'JetBrains Mono',monospace;
 }
-.interval-check input{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
+.opt-btn:hover{ background:var(--border-color); }
+.opt-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(59,130,246,.35); }
+
+.auto-delay-slider{
+  -webkit-appearance:none; appearance:none; width:150px; height:6px; border-radius:3px;
+  background:var(--border-color); outline:none; cursor:pointer;
+}
+.auto-delay-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2)); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.auto-delay-slider::-moz-range-thumb{
+  width:20px; height:20px; border-radius:50%; border:none;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2)); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
 
 #workspace{
-  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; justify-content:safe center;
   padding:22px; background:var(--bg-dark); overflow-y:auto; overflow-x:hidden; width:100%;
+}
+
+/* ---- Instellingen: breed scherm (header) vs. smal scherm (inklapbaar) ----
+   Deze regels staan bewust NA de basis #quick-controls-regel hierboven: bij
+   gelijke CSS-specificiteit wint de latere regel, dus alleen zo overschrijft
+   de inklap-logica hieronder ook echt de basisstijl i.p.v. andersom. */
+.force-hidden{ display:none !important; }
+
+@media (min-width:900px){
+  #header-quick-row{ display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; justify-content:center; flex:1; }
+  #header-quick-row .setting-group{ flex-direction:row; gap:8px; }
+  /* Tekst-labels verbergen (de knoppen zijn al duidelijk), maar het
+     icoontje + de bedenktijd-waarde blijven zichtbaar — anders lijkt de
+     bedenktijd-slider te ontbreken omdat er niets meer bij staat. */
+  #header-quick-row .setting-group label .setting-label-text{ display:none; }
+  #header-quick-row #quick-controls{ display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; justify-content:center;
+    background:none; border:none; padding:0; margin:0; box-shadow:none; max-width:none; }
+  #mobile-settings-toggle{ display:none; }
+}
+
+@media (max-width:899px){
+  #mobile-settings-toggle{
+    width:100%; max-width:1400px; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:12px 16px; margin-bottom:12px; background:var(--bg-panel); border:1px solid var(--border-color);
+    border-radius:var(--radius-md); cursor:pointer; font-size:.92rem;
+  }
+  #mobile-settings-toggle .chev{ transition:transform .2s; color:var(--accent); }
+  #mobile-settings-toggle.open .chev{ transform:rotate(180deg); }
+  #quick-controls{ max-height:0 !important; overflow:hidden !important; padding:0 18px !important; margin-bottom:0 !important; border-width:0 !important; transition:max-height .25s ease, padding .25s ease; }
+  #mobile-settings-toggle.open + #quick-controls{ max-height:2000px !important; padding:14px 18px !important; border-width:1px !important; margin-bottom:18px !important; overflow-y:visible !important; }
+
+  /* Automatisch Doorgaan + Geluid naast elkaar, Bedenktijd eronder over de
+     volle breedte i.p.v. alle drie los onder elkaar. */
+  .auto-adv-controls{ display:grid; grid-template-columns:1fr 1fr; grid-template-areas:"auto sound" "delay delay"; gap:14px 16px; }
+  .auto-adv-controls .aa-toggle[data-role="auto"]{ grid-area:auto; }
+  .auto-adv-controls .aa-toggle[data-role="sound"]{ grid-area:sound; }
+  .auto-adv-controls .aa-delay{ grid-area:delay; }
+  .auto-adv-controls .auto-delay-slider{ width:100%; max-width:280px; }
+
+  /* "Niveau"-label weg op mobiel (de knoppen zijn zelfverklarend); blijft
+     wel staan op breed scherm. Specificiteit moet .setting-group label
+     verslaan, vandaar de dubbele class-selector. */
+  .setting-group label.mobile-hide-label{ display:none; }
+  .lbl-full{ display:none; }
+  .lbl-short{ display:inline; }
+
+  /* Niveau-knoppen (Noten Snellezen) altijd 3-op-een-rij op mobiel, met de
+     kortere labels — anders wrapt elke knop naar zijn eigen regel. */
+  #opt-notes-level{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+  #opt-notes-level .opt-btn{ padding:8px 4px; font-size:.7rem; white-space:normal; line-height:1.25; }
 }
 
 .flashcard{
   background:var(--paper-bg); border-radius:var(--radius-lg); width:100%; max-width:1400px; min-height:280px;
   box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center;
-  justify-content:flex-start; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
-  transition:background-color .3s, border-color .3s, color .3s;
-  flex: 0 0 auto;
-  margin: 0 auto auto auto;
+  justify-content:center; justify-content:safe center; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
+  transition:background-color .3s, border-color .3s, color .3s; overflow-x:hidden;
 }
 
-#score-paper{ width:100%; display:flex; justify-content:center; }
+#score-paper{ width:100%; min-width:0; display:flex; justify-content:center; }
 #score-paper svg, #answer-score svg{ width:100%; height:auto; display:block; }
-#circle-chord-preview svg{ height:auto; display:block; }
-#answer-score{ margin-top:8px; }
+#circle-chord-preview svg{ width:100%; height:auto; display:block; }
+#answer-score{ margin-top:8px; width:100%; min-width:0; max-width:460px; display:flex; justify-content:center; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
-/* Robuuste Flexbox Layout voor de Kwintencirkel. */
-.circle-main { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 24px; }
-.circle-left-half { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-#circle-quick-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; order: 1; }
-.circle-center { width: 100%; max-width: 440px; display: flex; justify-content: center; position: relative; order: 2; }
-#circle-chord-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; order: 3; }
-#circle-wheel-wrap { width: 100%; display: flex; justify-content: center;}
-#circle-wheel-wrap svg { width: 100%; max-width: 100%; height: auto; display: block; }
+/* CSS GRID met benoemde gebieden i.p.v. flexbox+order+wrap-trucs — dat
+   bleek herhaaldelijk onvoorspelbaar op écht mobiel/tablet/desktop zonder
+   dat live te kunnen testen. Grid-template-areas beschrijft de layout
+   letterlijk als een ASCII-tekening per breakpoint — geen giswerk.
+   Mobiel (standaard): één kolom — wiel, dan notenbalk+toetsenbord, dan
+   de knoppenrijen. Vanaf 900px: vier kolommen naast elkaar.
+   min-width:0 blijft nodig zodat een brede notenbalk-SVG nooit een kolom
+   kan dwingen breder te worden dan zijn grid-track. */
+.circle-main{
+  width:100%; min-width:0; display:grid; gap:14px;
+  grid-template-columns: 1fr;
+  grid-template-areas: "wheel" "chordjump" "staff";
+}
+.circle-left-half{ display:contents; }
+.circle-center{ grid-area:wheel; min-width:0; width:100%; max-width:480px; justify-self:center; display:flex; justify-content:center; }
+#circle-wheel-wrap{ width:100%; min-width:0; display:flex; justify-content:center; aspect-ratio:1/1; max-width:480px; }
+#circle-wheel-wrap svg{ width:100%; min-width:0; max-width:100%; height:auto; display:block; aspect-ratio:1/1; }
+.circle-right-half{ grid-area:staff; width:100%; max-width:400px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; justify-self:center; }
+/* Op mobiel vervangt het draaien aan het wiel zelf deze knoppenrij (zie
+   CircleWheel drag-to-rotate) — op breed scherm blijft hij staan. */
+#circle-quick-jump{ display:none; }
+#circle-chord-jump{ grid-area:chordjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
+.circle-jump-col{ min-width:0; }
+#circle-chord-preview{ min-width:0; min-height:60px; max-width:280px; overflow:hidden; display:flex; align-items:center; justify-content:center; width:100%; }
+#circle-keyboard-wrap{ display:flex; justify-content:center; justify-content:safe center; min-width:0; min-height:40px; align-items:center; overflow-x:auto; max-width:100%; width:100%; }
 
-.circle-right-half { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 20px; order: 4; }
-#circle-chord-preview { min-height: 80px; display: flex; justify-content: center; width: 100%; overflow: hidden;}
-#circle-keyboard-wrap { display: flex; justify-content: center; width: 100%; min-height: 40px; align-items: center;}
-
-@media (min-width: 900px) {
-  .circle-main { flex-direction: row; align-items: flex-start; justify-content: center; gap: 40px; }
-  .circle-left-half { flex-direction: row; flex: 1; align-items: center; justify-content: center; gap: 20px; }
-  #circle-quick-jump, #circle-chord-jump { flex-direction: column; width: auto; order: unset; }
-  .circle-center { order: unset; }
-  .circle-right-half { width: 380px; flex-shrink: 0; padding-top: 10px; order: unset; }
+@media (min-width:900px){
+  .circle-main{
+    grid-template-columns: auto minmax(300px, 560px) auto minmax(340px, 480px);
+    grid-template-areas: "keyjump wheel chordjump staff";
+    align-items:center; gap:32px; justify-content:center;
+  }
+  .circle-center{ width:100%; max-width:560px; }
+  #circle-quick-jump{
+    grid-area:keyjump; display:flex; flex-direction:column; flex-wrap:wrap;
+    justify-content:center; max-width:none; gap:6px; justify-self:start;
+  }
+  #circle-chord-jump{ flex-direction:column; max-width:none; justify-self:start; }
+  .circle-right-half{ width:auto; max-width:none; padding-top:0; justify-self:stretch; }
 }
 
 html.fullscreen-active #workspace{ padding:28px; }
@@ -254,7 +353,8 @@ html.fullscreen-active .mini-key.black{ width:19px; height:68px; margin-left:-9.
 html.fullscreen-active .mini-key .mk-dot{ width:15px; height:15px; bottom:22px; }
 html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 
-#circle-svg{ cursor:pointer; }
+#circle-svg{ cursor:grab; touch-action:none; }
+#circle-svg:active{ cursor:grabbing; }
 
 .circle-jump-btn{
   width:56px; height:32px; padding:0 6px; border-radius:var(--radius-sm); font-size:.76rem; font-weight:700;
@@ -408,19 +508,16 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   <div id="content-area">
     <header id="content-topbar">
       <h1 id="module-title">Instellingen</h1>
-      <div class="topbar-right">
-        <div id="settings-bar">
-          <button id="settings-toggle" onclick="App.toggleSettings()">
-            ⚙ Instellingen
-            <span class="chev">▾</span>
-          </button>
-          <div id="settings-container"></div>
-        </div>
-      </div>
+      <div id="header-quick-row"></div>
     </header>
 
     <main id="module-view">
       <section id="workspace">
+      <button id="mobile-settings-toggle" onclick="App.toggleMobileSettings()">
+        <span>⚙ Instellingen</span>
+        <span class="chev">▾</span>
+      </button>
+      <div id="quick-controls"></div>
       <div class="flashcard" id="flashcard-ui">
         <div id="score-paper"></div>
         <div id="svg-container">
@@ -438,6 +535,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
             </div>
           </div>
         </div>
+        <div id="interval-extra-controls" style="display:none;"></div>
         <div id="text-quiz" class="text-quiz-display">Vraag komt hier</div>
         <div id="answer-display">Antwoord</div>
         <div id="answer-score" style="display:none; width:100%;"></div>
@@ -489,9 +587,16 @@ const ThemeManager = {
     const data = App.history && App.history[App.historyIndex];
     if (App.currentModule === 'circle' && data?.c_mode === 'visual'){
       CircleWheel.render();
-      CircleWheel.syncPreviewWidths();
+      // CircleWheel.render() tekent alleen het wiel zelf opnieuw; het losse
+      // akkoordvoorbeeld ernaast (met de kleuren van het vorige thema erin
+      // "gebakken" door VexFlow) moet apart ververst worden, anders blijft
+      // het er met de oude, onleesbare thema-kleuren bij staan.
+      if (CircleWheel._previewed){
+        const entry = CircleWheel.cofKeys[CircleWheel.tonicIndex];
+        CircleWheel.showChord(entry.maj, CircleWheel.selectedChordType, { play: false });
+      }
     } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
-      ScoreRenderer.render('score-paper', data.slices, data.useFlats);
+      ScoreRenderer.render('score-paper', data.slices, data.useFlats, App.paperRenderOpts(App.currentModule));
     }
   },
   updateIcons(theme){
@@ -682,22 +787,23 @@ const ScoreRenderer = {
     return note;
   },
 
-  render(containerId, slices, useFlats = false){
+  render(containerId, slices, useFlats = false, opts = {}){
     const VF = Vex.Flow;
     const container = document.getElementById(containerId);
     container.innerHTML = '';
     try {
-      this._draw(VF, container, slices, useFlats);
+      this._draw(VF, container, slices, useFlats, opts);
     } catch(err){
       console.error('Notenbalk kon niet worden getekend:', err);
       container.innerHTML = '<p style="color:#c1594e; font-size:.85rem; padding:20px;">De notenbalk kon niet worden getekend. Probeer de pagina te verversen.</p>';
     }
   },
 
-  _draw(VF, container, slices, useFlats){
+  _draw(VF, container, slices, useFlats, opts = {}){
     {
+    const canvasW = opts.canvasW || this.CANVAS_W;
     const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-    renderer.resize(this.CANVAS_W, this.CANVAS_H);
+    renderer.resize(canvasW, this.CANVAS_H);
     const ctx = renderer.getContext();
     ctx.setFont('Inter, Arial', 10);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
@@ -705,7 +811,7 @@ const ScoreRenderer = {
     if (ctx.setFillStyle) ctx.setFillStyle(ink);
     if (ctx.setStrokeStyle) ctx.setStrokeStyle(ink);
 
-    const staveWidth = this.CANVAS_W - this.MARGIN_X * 2;
+    const staveWidth = canvasW - this.MARGIN_X * 2;
     const trebleStave = new VF.Stave(this.MARGIN_X, this.TREBLE_Y, staveWidth);
     trebleStave.addClef('treble');
 
@@ -736,16 +842,32 @@ const ScoreRenderer = {
     const formatter = new VF.Formatter();
     formatter.joinVoices([trebleVoice]);
     formatter.joinVoices([bassVoice]);
-    formatter.format([trebleVoice, bassVoice], staveWidth - 70);
+    formatter.format([trebleVoice, bassVoice], Math.max(staveWidth - 70, 40));
 
     trebleVoice.draw(ctx, trebleStave);
     bassVoice.draw(ctx, bassStave);
 
     const svg = container.querySelector('svg');
     if (svg){
-      svg.setAttribute('viewBox', `0 0 ${this.CANVAS_W} ${this.CANVAS_H}`);
+      // Altijd verticaal strak bijknippen op de daadwerkelijke inhoud (via
+      // getBBox) — de vaste CANVAS_H liet anders bij elke notenbalk (in elke
+      // module) veel lege ruimte boven/onder de notenbalk staan. Breedte
+      // (canvasW) bepaalt de aanroeper: smal voor "een paar noten aan het
+      // begin", vol (620) voor lange reeksen zoals toonladders.
+      const bbox = svg.getBBox();
+      const pad = 10;
+      const y0 = Math.max(0, bbox.y - pad);
+      const h = Math.min(this.CANVAS_H - y0, bbox.height + pad * 2);
+      svg.setAttribute('viewBox', `0 ${y0} ${canvasW} ${h}`);
       svg.removeAttribute('width');
       svg.removeAttribute('height');
+      // VexFlow's renderer.resize() zet naast de attributen OOK een inline
+      // style="width:...px;height:...px" — die wint altijd van de CSS-regel
+      // (width:100%; height:auto), waardoor de zichtbare doos op de OUDE,
+      // ongecropte hoogte bleef staan ondanks de kleinere viewBox hierboven.
+      // Zonder deze twee regels lijkt de crop dus niets op te leveren.
+      svg.style.removeProperty('width');
+      svg.style.removeProperty('height');
     }
     }
   }
@@ -905,25 +1027,15 @@ const CircleWheel = {
       const preview = document.getElementById('circle-chord-preview');
       preview.style.display = 'flex';
       let useFlats = rootLabel.includes('b') || rootLabel === 'F' || rootLabel === 'Dm' || rootLabel === 'Gm' || rootLabel === 'Cm' || rootLabel === 'Fm' || rootLabel === 'Bbm' || rootLabel === 'Ebm';
-      ScoreRenderer.render('circle-chord-preview', [notes], useFlats);
+      // canvasW smal + crop: toon alleen het sleutel+akkoord-deel groter
+      // i.p.v. de hele, grotendeels lege notenbalk. Breedte-uitlijning met
+      // het toetsenbord eronder komt nu van gedeelde CSS-centrering
+      // (justify-content:safe center), niet meer van JS die de breedtes
+      // geforceerd gelijk maakte — dat verhield zich niet met deze crop.
+      ScoreRenderer.render('circle-chord-preview', [notes], useFlats, { canvasW: 220 });
     } catch(e){ console.warn('Kon akkoordvoorbeeld niet tekenen:', e); }
     try { MiniKeyboard.render('circle-keyboard-wrap', notes, notes[0]); }
     catch(e){ console.warn('Kon toetsenbord niet tekenen:', e); }
-    this.syncPreviewWidths();
-  },
-
-  syncPreviewWidths(){
-    requestAnimationFrame(() => {
-      const kbRow = document.querySelector('#circle-keyboard-wrap > div');
-      const staffBox = document.getElementById('circle-chord-preview');
-      if (!kbRow || !staffBox) return;
-      const w = kbRow.getBoundingClientRect().width;
-      if (w > 0){
-        staffBox.style.width = w + 'px';
-        const svg = staffBox.querySelector('svg');
-        if (svg) svg.style.width = w + 'px';
-      }
-    });
   },
 
   onWedgeClick(entry, ring){
@@ -963,9 +1075,19 @@ const CircleWheel = {
     svg.style.filter = "drop-shadow(0 8px 24px rgba(0,0,0,0.12))";
 
     const cx = 240, cy = 240;
-    const rOuter = 160;
-    const rInner = 100;
-    const rHole = 45;
+    // Op mobiel is er geen ruimte voor de decoratieve mini-notenbalkjes rond
+    // de rand — die duwden de taart terug tot radius 160 van de 240 die de
+    // viewBox biedt, waardoor het wiel grotendeels leeg oogde. Zonder die
+    // notenbalkjes kan de taart zelf tot vlak tegen de rand groeien.
+    const isWide = window.matchMedia('(min-width:900px)').matches;
+    const showStaves = isWide;
+    const rOuter = isWide ? 160 : 222;
+    const rInner = isWide ? 100 : 139;
+    const rHole = isWide ? 45 : 63;
+    const rTextMaj = isWide ? 140 : 194;
+    const rRomanMaj = isWide ? 118 : 164;
+    const rTextMin = isWide ? 82 : 114;
+    const rRomanMin = isWide ? 60 : 83;
     const wheelRotation = -this.tonicIndex * 30;
 
     const style = getComputedStyle(document.body);
@@ -978,19 +1100,26 @@ const CircleWheel = {
         staveInk: style.getPropertyValue('--wheel-stave').trim()
     };
 
+    // De rotor omvat wedges + labels samen: tijdens het slepen (zie
+    // wireInteraction) krijgt DEZE groep een extra live rotate-transform
+    // bovenop de al berekende posities, zodat alles in één beweging meedraait
+    // met de vinger/muis. Bij loslaten wordt alles opnieuw gerenderd (render())
+    // met een bijgewerkte tonicIndex, dus de rotor-transform reset vanzelf.
+    const rotor = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    rotor.setAttribute("id", "circle-rotor");
+    svg.appendChild(rotor);
+
     const wedgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
     wedgeLayer.setAttribute("id", "circle-wedge-layer");
     wedgeLayer.setAttribute("transform", `rotate(${wheelRotation} ${cx} ${cy})`);
-    wedgeLayer.style.transition = 'transform .4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    svg.appendChild(wedgeLayer);
+    rotor.appendChild(wedgeLayer);
 
     const labelLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    svg.appendChild(labelLayer);
+    rotor.appendChild(labelLayer);
 
     for (let i = 0; i < 12; i++){
       const entry = this.cofKeys[i];
       const roman = this.romanFor(i);
-      const isTonic = i === this.tonicIndex;
 
       let a1 = (i*30 - 15) * Math.PI/180, a2 = ((i+1)*30 - 15) * Math.PI/180;
 
@@ -1008,7 +1137,6 @@ const CircleWheel = {
       pMaj.setAttribute("fill", styleVals.majFill);
       pMaj.setAttribute("stroke", styleVals.lineStr);
       pMaj.setAttribute("stroke-width", "2");
-      if (isTonic) pMaj.setAttribute("stroke", "var(--accent)");
       gMaj.appendChild(pMaj); wedgeLayer.appendChild(gMaj);
 
       const gMin = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -1023,7 +1151,7 @@ const CircleWheel = {
       const effAngleDeg = i*30 + wheelRotation;
       const effAngle = effAngleDeg * Math.PI/180;
 
-      if (entry.acc !== 0) {
+      if (showStaves && entry.acc !== 0) {
         const rStave = 202;
         const txStave = cx + rStave*Math.sin(effAngle), tyStave = cy - rStave*Math.cos(effAngle);
         const gStave = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -1033,7 +1161,6 @@ const CircleWheel = {
         labelLayer.appendChild(gStave);
       }
 
-      const rTextMaj = 140;
       const txMaj = cx + rTextMaj*Math.sin(effAngle), tyMaj = cy - rTextMaj*Math.cos(effAngle);
       const tMaj = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMaj.setAttribute("x", txMaj); tMaj.setAttribute("y", tyMaj); tMaj.setAttribute("font-family", "Inter");
@@ -1042,7 +1169,6 @@ const CircleWheel = {
       tMaj.style.pointerEvents = "none";
       tMaj.textContent = entry.maj; labelLayer.appendChild(tMaj);
 
-      const rRomanMaj = 118;
       if (roman.major){
         const txR = cx + rRomanMaj*Math.sin(effAngle), tyR = cy - rRomanMaj*Math.cos(effAngle);
         const tR = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1053,7 +1179,6 @@ const CircleWheel = {
         tR.textContent = roman.major; labelLayer.appendChild(tR);
       }
 
-      const rTextMin = 82;
       const txMin = cx + rTextMin*Math.sin(effAngle), tyMin = cy - rTextMin*Math.cos(effAngle);
       const tMin = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tMin.setAttribute("x", txMin); tMin.setAttribute("y", tyMin); tMin.setAttribute("font-family", "Inter");
@@ -1062,7 +1187,6 @@ const CircleWheel = {
       tMin.style.pointerEvents = "none";
       tMin.textContent = entry.min; labelLayer.appendChild(tMin);
 
-      const rRomanMin = 60;
       if (roman.minor){
         const txR2 = cx + rRomanMin*Math.sin(effAngle), tyR2 = cy - rRomanMin*Math.cos(effAngle);
         const tR2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1074,8 +1198,26 @@ const CircleWheel = {
       }
     }
 
+    // Twee vaste markeerlijntjes die altijd naar boven (12 uur) wijzen en
+    // NIET meedraaien met het wiel — op verzoek een vast "wijzertje" i.p.v.
+    // een markering die met de wedges meedraait. Ze staan daarom BUITEN de
+    // rotor-groep, op vaste hoeken (niet gebaseerd op tonicIndex). Dat werkt
+    // omdat wheelRotation (-tonicIndex*30) de actieve toonsoort na elke
+    // render() sowieso altijd precies hier neerzet.
+    [-15, 15].forEach(deg => {
+      const rad = deg * Math.PI/180;
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", cx + rHole*Math.sin(rad)); line.setAttribute("y1", cy - rHole*Math.cos(rad));
+      line.setAttribute("x2", cx + rOuter*Math.sin(rad)); line.setAttribute("y2", cy - rOuter*Math.cos(rad));
+      line.setAttribute("stroke", "var(--wheel-tonic)");
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("stroke-linecap", "round");
+      line.style.pointerEvents = "none";
+      svg.appendChild(line);
+    });
+
     wrap.appendChild(svg);
-    this.wireInteraction(svg);
+    this.wireInteraction(svg, rotor, cx, cy);
 
     if (!this._previewed){
       this._previewed = true;
@@ -1084,8 +1226,9 @@ const CircleWheel = {
     }
   },
 
-  wireInteraction(svg){
+  wireInteraction(svg, rotor, cx, cy){
     svg.addEventListener('click', (e) => {
+      if (this._suppressClick){ this._suppressClick = false; return; }
       const pressedEl = e.target.closest ? e.target.closest('[data-ring]') : null;
       if (pressedEl){
         const ring = pressedEl.getAttribute('data-ring');
@@ -1093,7 +1236,78 @@ const CircleWheel = {
         this.onWedgeClick(this.cofKeys[idx], ring);
       }
     });
+
+    // Sleep-om-te-draaien: het wiel kan met muis of vinger rondgedraaid
+    // worden i.p.v. alleen via de losse toonsoort-knoppen. De hoek t.o.v.
+    // het middelpunt wordt via getScreenCTM omgerekend naar SVG-coördinaten,
+    // zodat het klopt ongeacht de werkelijke schermgrootte van het wiel.
+    const pointToAngle = (clientX, clientY) => {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX; pt.y = clientY;
+      const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return Math.atan2(loc.x - cx, -(loc.y - cy)) * 180 / Math.PI;
+    };
+
+    let dragging = false, lastAngle = 0, accumulated = 0;
+
+    svg.addEventListener('pointerdown', (e) => {
+      dragging = true; accumulated = 0;
+      lastAngle = pointToAngle(e.clientX, e.clientY);
+      svg.setPointerCapture(e.pointerId);
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const angle = pointToAngle(e.clientX, e.clientY);
+      let step = angle - lastAngle;
+      if (step > 180) step -= 360;
+      if (step < -180) step += 360;
+      accumulated += step;
+      lastAngle = angle;
+      rotor.setAttribute('transform', `rotate(${accumulated} ${cx} ${cy})`);
+    });
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      if (Math.abs(accumulated) > 3){
+        // Echte draai: naar dichtstbijzijnde toonsoort (stappen van 30°)
+        // afronden en het wiel definitief opnieuw tekenen met de nieuwe
+        // tonica — de tijdelijke rotor-transform verdwijnt daarmee vanzelf.
+        this._suppressClick = true;
+        const steps = Math.round(-accumulated / 30);
+        this.tonicIndex = ((this.tonicIndex + steps) % 12 + 12) % 12;
+        this.render();
+      } else {
+        // Nauwelijks beweging (een tik): geen echte draai, gewoon de
+        // rotor terugzetten en de normale click (taartpunt-preview) laten
+        // doorgaan.
+        rotor.removeAttribute('transform');
+      }
+    };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
   }
+};
+
+// Iconen voor de instellingenbalk. fill/stroke="currentColor" zodat ze de
+// tekstkleur van hun ouder-element volgen (var(--text-muted) e.d.) i.p.v.
+// een hardcoded kleur — werkt daardoor vanzelf mee met het licht/donker-thema.
+const UI_ICONS = {
+  autoAdvance: `<svg class="aa-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M4 12a8 8 0 0 1 13.66-5.66L20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M20 4v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 12a8 8 0 0 1-13.66 5.66L4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M4 20v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="12" y="15" font-size="10.5" font-weight="800" text-anchor="middle" fill="currentColor" font-family="Inter, sans-serif">A</text>
+  </svg>`,
+  sound: `<svg class="aa-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor"/>
+    <path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M19 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>`,
+  delay: `<svg class="aa-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`
 };
 
 const App = {
@@ -1122,10 +1336,30 @@ const App = {
 
   toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); },
 
-  toggleSettings(){ document.getElementById('settings-bar').classList.toggle('open'); },
+  toggleMobileSettings(){ document.getElementById('mobile-settings-toggle').classList.toggle('open'); },
+
+  // Instellingen wonen altijd in #quick-controls; op brede schermen
+  // verplaatsen we dat element (met al zijn knoppen/listeners intact) naar
+  // de header, op smalle schermen blijft het op zijn oorspronkelijke plek
+  // boven de kaart, achter de inklap-knop.
+  relocateQuickControls(){
+    const qc = document.getElementById('quick-controls');
+    const headerSlot = document.getElementById('header-quick-row');
+    if (!qc || !headerSlot) return;
+    const isWide = window.matchMedia('(min-width:900px)').matches;
+    if (isWide){
+      if (qc.parentElement !== headerSlot) headerSlot.appendChild(qc);
+    } else {
+      const toggle = document.getElementById('mobile-settings-toggle');
+      if (qc.previousElementSibling !== toggle) toggle.parentElement.insertBefore(qc, toggle.nextSibling);
+    }
+  },
 
   loadModule(moduleId){
+    this.clearAutoTimers();
     this.currentModule = moduleId;
+    const ws = document.getElementById('workspace');
+    if (ws) ws.scrollTop = 0;
 
     document.querySelectorAll('.nav-item, .bnav-item').forEach(el => el.classList.remove('active'));
     const activeNav = document.getElementById('nav-' + moduleId);
@@ -1135,18 +1369,20 @@ const App = {
 
     const flashUI = document.getElementById('flashcard-ui');
     const pianoUI = document.getElementById('piano-module');
-    const settingsBar = document.getElementById('settings-bar');
+    const quickControls = document.getElementById('quick-controls');
+    const mobileToggle = document.getElementById('mobile-settings-toggle');
     const swipeHint = document.getElementById('swipe-hint');
-    settingsBar.classList.remove('open');
+    document.getElementById('interval-extra-controls').style.display = 'none';
 
     if (moduleId === 'piano'){
       flashUI.style.display = 'none'; swipeHint.style.display = 'none';
-      pianoUI.style.display = 'flex'; settingsBar.style.display = 'none';
+      pianoUI.style.display = 'flex'; quickControls.innerHTML = ''; mobileToggle.classList.add('force-hidden');
       document.getElementById('module-title').innerText = 'Virtuele Piano';
       PianoUI.init();
     } else {
       flashUI.style.display = 'flex'; swipeHint.style.display = 'block';
-      pianoUI.style.display = 'none'; settingsBar.style.display = 'block';
+      pianoUI.style.display = 'none'; mobileToggle.classList.remove('force-hidden');
+      mobileToggle.classList.remove('open');
 
       document.getElementById('score-paper').style.display = 'none';
       document.getElementById('svg-container').style.display = 'none';
@@ -1154,136 +1390,242 @@ const App = {
       document.getElementById('answer-display').classList.remove('visible');
 
       this.buildSettings(moduleId);
+      this.relocateQuickControls();
       this.history = []; this.historyIndex = -1;
       this.nextQuestion();
     }
   },
 
-  persistSettings(id){
-    const c = document.getElementById('settings-container');
-    const obj = { _checks: {} };
-    c.querySelectorAll('select').forEach(sel => { obj[sel.id] = sel.value; });
-    c.querySelectorAll('input[type="checkbox"]').forEach(cb => { obj._checks[cb.value] = cb.checked; });
-    localStorage.setItem('pm_settings_' + id, JSON.stringify(obj));
+  // Notenbalk-breedte voor #score-paper per module: smal voor modules waar
+  // maar een handjevol noten aan het begin van de balk staan (leesbaarder,
+  // ziet er niet grotendeels leeg uit); undefined = volle breedte, nodig
+  // voor Toonladders waar een hele reeks noten over de balk verspreid staat.
+  PAPER_CANVAS_W: { notes: 150, chords: 220, progressions: 220, intervals: 260 },
+  paperRenderOpts(id){
+    const w = this.PAPER_CANVAS_W[id];
+    return w ? { canvasW: w } : {};
   },
 
+  // ---- Instellingen: knoppen i.p.v. dropdowns, opgeslagen per module ----
+  getSetting(moduleId, key, fallback){
+    const all = JSON.parse(localStorage.getItem('pm_settings_' + moduleId) || '{}');
+    return all[key] !== undefined ? all[key] : fallback;
+  },
+  setSetting(moduleId, key, value){
+    const all = JSON.parse(localStorage.getItem('pm_settings_' + moduleId) || '{}');
+    all[key] = value;
+    localStorage.setItem('pm_settings_' + moduleId, JSON.stringify(all));
+  },
+
+  // Eén-uit-meerdere-keuze (radiogedrag): precies één knop actief.
+  renderSingleSelect(container, moduleId, key, options, fallback, onChangeExtra){
+    // Sommige opties hebben een kortere `shortLabel` voor smal scherm (bijv.
+    // "Niv 1 (C3-C5)" i.p.v. "Makkelijk (C3-C5)") — op breed scherm blijft
+    // het volledige label staan, CSS wisselt tussen beide per breakpoint.
+    container.innerHTML = options.map(o => o.shortLabel
+      ? `<button type="button" class="opt-btn" data-value="${o.value}"><span class="lbl-full">${o.label}</span><span class="lbl-short">${o.shortLabel}</span></button>`
+      : `<button type="button" class="opt-btn" data-value="${o.value}">${o.label}</button>`
+    ).join('');
+    const saved = this.getSetting(moduleId, key, fallback);
+    container.querySelectorAll('.opt-btn').forEach(btn => {
+      if (btn.dataset.value === saved) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.setSetting(moduleId, key, btn.dataset.value);
+        if (onChangeExtra) onChangeExtra(btn.dataset.value);
+        this.history = []; this.historyIndex = -1; this.nextQuestion();
+      });
+    });
+  },
+
+  // Meerdere-keuzes-mogelijk (checkbox-gedrag als knop): minstens één blijft altijd actief.
+  renderMultiSelect(container, moduleId, key, options, fallbackValues, onChangeExtra){
+    container.innerHTML = options.map(o => `<button type="button" class="opt-btn" data-value="${o.value}">${o.label}</button>`).join('');
+    const saved = this.getSetting(moduleId, key, fallbackValues);
+    const savedSet = new Set(saved);
+    container.querySelectorAll('.opt-btn').forEach(btn => {
+      if (savedSet.has(btn.dataset.value)) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')){
+          if (container.querySelectorAll('.opt-btn.active').length <= 1) return;
+          btn.classList.remove('active');
+        } else {
+          btn.classList.add('active');
+        }
+        const vals = Array.from(container.querySelectorAll('.opt-btn.active')).map(b => b.dataset.value);
+        this.setSetting(moduleId, key, vals);
+        if (onChangeExtra) onChangeExtra(vals);
+        this.history = []; this.historyIndex = -1; this.nextQuestion();
+      });
+    });
+  },
+
+  // Voor groepen met meer dan 4 opties: een knopje met de huidige keuze
+  // erop, dat een paneel met de knoppen/vinkjes opent — i.p.v. steeds
+  // alle opties in de rij te tonen.
+  renderDropdownGroup(parent, labelText, moduleId, key, options, fallback, multi){
+    const wrap = document.createElement('div');
+    wrap.className = 'dropdown-group';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'opt-btn dropdown-trigger';
+    const panel = document.createElement('div');
+    panel.className = 'dropdown-panel';
+    wrap.appendChild(btn); wrap.appendChild(panel);
+    parent.appendChild(wrap);
+
+    const updateLabel = () => {
+      const saved = this.getSetting(moduleId, key, fallback);
+      if (multi){
+        btn.innerHTML = `Geselecteerd (${saved.length}) <span class="chev">▾</span>`;
+      } else {
+        const opt = options.find(o => o.value === saved);
+        btn.innerHTML = `${labelText}: ${opt ? opt.label : saved} <span class="chev">▾</span>`;
+      }
+    };
+    if (multi) this.renderMultiSelect(panel, moduleId, key, options, fallback, updateLabel);
+    else this.renderSingleSelect(panel, moduleId, key, options, fallback, updateLabel);
+    updateLabel();
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !wrap.classList.contains('open');
+      document.querySelectorAll('.dropdown-group.open').forEach(g => g.classList.remove('open'));
+      if (willOpen) wrap.classList.add('open');
+    });
+  },
+
+  // ---- Automatisch doorgaan (Noten/Toonladders/Akkoorden/Progressies) ----
+  autoTimer: null, autoTimer2: null,
+  clearAutoTimers(){
+    if (this.autoTimer){ clearTimeout(this.autoTimer); this.autoTimer = null; }
+    if (this.autoTimer2){ clearTimeout(this.autoTimer2); this.autoTimer2 = null; }
+  },
+  maybeScheduleAuto(){
+    this.clearAutoTimers();
+    const id = this.currentModule;
+    if (!['notes','scales','chords','progressions'].includes(id)) return;
+    if (this.getSetting(id, 'autoAdvance', 'uit') !== 'aan') return;
+    const delay = parseFloat(this.getSetting(id, 'autoDelay', '2')) * 1000;
+    const soundOn = this.getSetting(id, 'autoSound', 'aan') === 'aan';
+    this.autoTimer = setTimeout(() => {
+      this.toggleAnswer();
+      if (soundOn) this.playCurrent();
+      this.autoTimer2 = setTimeout(() => { this.nextQuestion(); }, delay);
+    }, delay);
+  },
+  buildAutoAdvanceControls(moduleId, container){
+    const wrap = document.createElement('div');
+    wrap.className = 'auto-adv-controls';
+    wrap.innerHTML = `
+      <div class="setting-group aa-toggle" data-role="auto">
+        <label title="Automatisch Doorgaan">${UI_ICONS.autoAdvance}<span class="setting-label-text">Auto</span></label>
+        <div class="opt-row" id="opt-auto-onoff"></div>
+      </div>
+      <div class="setting-group aa-delay" data-role="delay">
+        <label title="Bedenktijd">${UI_ICONS.delay}<span class="setting-label-text">Bedenktijd:</span> <span class="aa-delay-val" id="auto-delay-val-${moduleId}">2s</span></label>
+        <input type="range" class="auto-delay-slider" id="auto-delay-slider-${moduleId}" min="0.5" max="5" step="0.5">
+      </div>
+      <div class="setting-group aa-toggle" data-role="sound">
+        <label title="Geluid">${UI_ICONS.sound}<span class="setting-label-text">Geluid</span></label>
+        <div class="opt-row" id="opt-auto-sound"></div>
+      </div>`;
+    container.appendChild(wrap);
+    this.renderSingleSelect(document.getElementById('opt-auto-onoff'), moduleId, 'autoAdvance',
+      [{value:'uit', label:'Uit'}, {value:'aan', label:'Aan'}], 'uit', () => this.maybeScheduleAuto());
+    this.renderSingleSelect(document.getElementById('opt-auto-sound'), moduleId, 'autoSound',
+      [{value:'aan', label:'Aan'}, {value:'uit', label:'Uit'}], 'aan', () => this.maybeScheduleAuto());
+
+    const slider = document.getElementById(`auto-delay-slider-${moduleId}`);
+    const valLabel = document.getElementById(`auto-delay-val-${moduleId}`);
+    const savedDelay = this.getSetting(moduleId, 'autoDelay', '2');
+    slider.value = savedDelay;
+    valLabel.textContent = savedDelay + 's';
+    slider.addEventListener('input', () => { valLabel.textContent = slider.value + 's'; });
+    slider.addEventListener('change', () => {
+      this.setSetting(moduleId, 'autoDelay', slider.value);
+      this.maybeScheduleAuto();
+    });
+  },
+
+
+
   buildSettings(id){
-    const c = document.getElementById('settings-container');
+    const c = document.getElementById('quick-controls');
     const t = document.getElementById('module-title');
-    c.innerHTML = '';
+    const extra = document.getElementById('interval-extra-controls');
+    c.innerHTML = ''; extra.innerHTML = ''; extra.style.display = 'none';
 
     if (id === 'notes'){
       t.innerText = 'Noten Snellezen';
       c.innerHTML = `
         <div class="setting-group">
-          <label>Niveau</label>
-          <select id="set-level">
-            <option value="easy">Makkelijk (C3-C5)</option>
-            <option value="med">Gemiddeld (C2-C6)</option>
-            <option value="hard">Moeilijk (C1-C7)</option>
-          </select>
+          <label class="mobile-hide-label">Niveau</label>
+          <div class="opt-row" id="opt-notes-level"></div>
         </div>`;
+      this.renderSingleSelect(document.getElementById('opt-notes-level'), 'notes', 'level',
+        [
+          {value:'easy', label:'Makkelijk (C3-C5)', shortLabel:'Niv 1 (C3-C5)'},
+          {value:'med', label:'Gemiddeld (C2-C6)', shortLabel:'Niv 2 (C2-C6)'},
+          {value:'hard', label:'Moeilijk (C1-C7)', shortLabel:'Niv 3 (C1-C7)'}
+        ], 'easy');
+      this.buildAutoAdvanceControls('notes', c);
+
     } else if (id === 'scales'){
       t.innerText = 'Toonladders';
-      let opts = Object.keys(MusicTheory.scales).map(k => `<option value="${k}">${k}</option>`).join('');
-      c.innerHTML = `
-        <div class="setting-group">
-          <label>Type</label>
-          <select id="set-scale-type">
-            ${opts}
-            <option value="ALL">Willekeurig</option>
-          </select>
-        </div>`;
+      const keys = Object.keys(MusicTheory.scales);
+      c.innerHTML = `<div class="setting-group"><label>Type</label><div class="opt-row" id="opt-scale-types"></div></div>`;
+      this.renderDropdownGroup(document.getElementById('opt-scale-types'), 'Type', 'scales', 'types',
+        keys.map(k => ({value:k, label:k})), keys, true);
+      this.buildAutoAdvanceControls('scales', c);
+
     } else if (id === 'chords'){
       t.innerText = 'Akkoorden';
-      let opts = Object.keys(MusicTheory.chords).map(k => `<option value="${k}">${k}</option>`).join('');
+      const keys = Object.keys(MusicTheory.chords);
       c.innerHTML = `
-        <div class="setting-group">
-          <label>Type</label>
-          <select id="set-chord-type">
-            ${opts}
-            <option value="ALL">Willekeurig</option>
-          </select>
-        </div>
-        <div class="setting-group">
-          <label>Omkeringen</label>
-          <select id="set-inversion">
-            <option value="0" selected>Grondligging</option>
-            <option value="1">1e Omkering</option>
-            <option value="2">2e Omkering</option>
-            <option value="3">3e Omkering</option>
-            <option value="ALL">Alle Omkeringen</option>
-          </select>
-        </div>`;
+        <div class="setting-group"><label>Type</label><div class="opt-row" id="opt-chord-types"></div></div>
+        <div class="setting-group"><label>Omkeringen</label><div class="opt-row" id="opt-chord-inv"></div></div>`;
+      this.renderDropdownGroup(document.getElementById('opt-chord-types'), 'Type', 'chords', 'types',
+        keys.map(k => ({value:k, label:k})), keys, true);
+      this.renderDropdownGroup(document.getElementById('opt-chord-inv'), 'Omkering', 'chords', 'inversion',
+        [{value:'0', label:'Grondligging'}, {value:'1', label:'1e Omkering'}, {value:'2', label:'2e Omkering'}, {value:'3', label:'3e Omkering'}, {value:'ALL', label:'Alle Omkeringen'}], '0', false);
+      this.buildAutoAdvanceControls('chords', c);
+
     } else if (id === 'circle'){
       t.innerText = 'Kwintencirkel';
       c.innerHTML = `
         <div class="setting-group">
           <label>Modus</label>
-          <select id="set-circle-mode">
-            <option value="visual">Visueel (Interactief)</option>
-            <option value="quiz-rel">Relatieve Mineur of Majeur</option>
-            <option value="quiz-acc">Kruizen en Mollen</option>
-          </select>
+          <div class="opt-row" id="opt-circle-mode"></div>
         </div>`;
+      this.renderSingleSelect(document.getElementById('opt-circle-mode'), 'circle', 'mode',
+        [{value:'visual', label:'Visueel'}, {value:'quiz-rel', label:'Rel. Mineur/Majeur'}, {value:'quiz-acc', label:'Kruizen/Mollen'}], 'visual');
+
     } else if (id === 'intervals'){
       t.innerText = 'Intervallen';
-      let intervalChecks = Object.keys(MusicTheory.intervals).map(name => {
-        const abbr = INTERVAL_ABBR[name] || '';
-        const isDefault = name === 'Octaaf';
-        return `<label class="interval-check"><input type="checkbox" value="${name}"${isDefault ? ' checked' : ''}> ${abbr}</label>`;
-      }).join('');
+      const names = Object.keys(MusicTheory.intervals);
       c.innerHTML = `
-        <div class="setting-group">
-          <label>Weergave</label>
-          <select id="set-int-display">
-            <option value="visual">Notenbalk</option>
-            <option value="blind">Blind (Audio)</option>
-          </select>
-        </div>
-        <div class="setting-group">
-          <label>Afspeelmodus</label>
-          <select id="set-int-play">
-            <option value="melodic">Melodisch</option>
-            <option value="harmonic">Harmonisch</option>
-          </select>
-        </div>
-        <div class="setting-group" style="flex-basis:100%;">
-          <label>Moeilijkheidsgraad — te testen intervallen</label>
-          <div class="interval-check-grid" id="set-int-choice">${intervalChecks}</div>
-        </div>`;
+        <div class="setting-group"><label>Weergave</label><div class="opt-row" id="opt-int-display"></div></div>
+        <div class="setting-group"><label>Afspeelmodus</label><div class="opt-row" id="opt-int-play"></div></div>
+        <div class="setting-group"><label>Interval</label><div class="opt-row" id="opt-int-choice"></div></div>`;
+      this.renderSingleSelect(document.getElementById('opt-int-display'), 'intervals', 'display',
+        [{value:'visual', label:'Notenbalk'}, {value:'blind', label:'Blind (Audio)'}], 'visual');
+      this.renderSingleSelect(document.getElementById('opt-int-play'), 'intervals', 'play',
+        [{value:'melodic', label:'Melodisch'}, {value:'harmonic', label:'Harmonisch'}], 'melodic');
+      this.renderDropdownGroup(document.getElementById('opt-int-choice'), 'Interval', 'intervals', 'choice',
+        names.map(n => ({value:n, label: INTERVAL_ABBR[n] || n})), ['Octaaf'], true);
+
     } else if (id === 'progressions'){
       t.innerText = 'Akkoordprogressies';
       c.innerHTML = `
         <div class="setting-group">
-          <label>Toonsoort Type</label>
-          <select id="set-prog-key">
-            <option value="maj">Majeur</option>
-            <option value="min">Mineur</option>
-            <option value="both">Beide</option>
-          </select>
+          <label>Toonsoort</label>
+          <div class="opt-row" id="opt-prog-key"></div>
         </div>`;
+      this.renderSingleSelect(document.getElementById('opt-prog-key'), 'progressions', 'key',
+        [{value:'maj', label:'Majeur'}, {value:'min', label:'Mineur'}, {value:'both', label:'Beide'}], 'maj');
+      this.buildAutoAdvanceControls('progressions', c);
     }
-
-    const saved = JSON.parse(localStorage.getItem('pm_settings_' + id) || '{}');
-    c.querySelectorAll('select').forEach(sel => {
-      if (saved[sel.id] !== undefined) sel.value = saved[sel.id];
-      sel.addEventListener('change', () => {
-        this.persistSettings(id);
-        this.history = []; this.historyIndex = -1;
-        this.nextQuestion();
-      });
-    });
-    c.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      if (saved._checks && saved._checks[cb.value] !== undefined) cb.checked = saved._checks[cb.value];
-      cb.addEventListener('change', () => {
-        const group = cb.closest('.interval-check-grid');
-        if (group && !group.querySelector('input[type="checkbox"]:checked')) { cb.checked = true; return; }
-        this.persistSettings(id);
-        this.history = []; this.historyIndex = -1;
-        this.nextQuestion();
-      });
-    });
   },
 
   prevQuestion(){
@@ -1308,7 +1650,7 @@ const App = {
     let data = { type: 'none', slices: [] };
 
     if (id === 'notes'){
-      let lvl = document.getElementById('set-level').value;
+      let lvl = this.getSetting('notes', 'level', 'easy');
       let min = lvl === 'easy' ? 48 : (lvl === 'med' ? 36 : 24);
       let max = lvl === 'easy' ? 72 : (lvl === 'med' ? 84 : 96);
       let m = randomInt(min, max);
@@ -1318,8 +1660,8 @@ const App = {
       data.ans = midiToName(m, useFlats); 
     }
     else if (id === 'scales'){
-      let typeOpt = document.getElementById('set-scale-type').value;
-      let types = typeOpt === 'ALL' ? Object.keys(MusicTheory.scales) : [typeOpt];
+      let types = this.getSetting('scales', 'types', Object.keys(MusicTheory.scales));
+      if (!types.length) types = Object.keys(MusicTheory.scales);
       let type = types[randomInt(0, types.length - 1)];
       let root = randomInt(48, 60);
       let formula = MusicTheory.scales[type];
@@ -1331,9 +1673,9 @@ const App = {
       data.ans = `${midiToName(root, useFlats)} ${type}`;
     }
     else if (id === 'chords'){
-      let typeOpt = document.getElementById('set-chord-type').value;
-      let invSel = document.getElementById('set-inversion').value;
-      let types = typeOpt === 'ALL' ? Object.keys(MusicTheory.chords) : [typeOpt];
+      let types = this.getSetting('chords', 'types', Object.keys(MusicTheory.chords));
+      if (!types.length) types = Object.keys(MusicTheory.chords);
+      let invSel = this.getSetting('chords', 'inversion', '0');
       let type = types[randomInt(0, types.length - 1)];
       let root = randomInt(48, 60);
       let formula = [...MusicTheory.chords[type]];
@@ -1348,7 +1690,7 @@ const App = {
       data.ans = `${midiToName(root, useFlats)} ${type} (${invText})`;
     }
     else if (id === 'circle'){
-      let mode = document.getElementById('set-circle-mode').value;
+      let mode = this.getSetting('circle', 'mode', 'visual');
       data.c_mode = mode;
       if (mode !== 'visual'){
         let idx = randomInt(0, 11);
@@ -1382,10 +1724,10 @@ const App = {
       }
     }
     else if (id === 'intervals'){
-      let mode = document.getElementById('set-int-display').value;
-      let playMode = document.getElementById('set-int-play').value;
-      let checked = Array.from(document.querySelectorAll('#set-int-choice input[type="checkbox"]:checked')).map(cb => cb.value);
-      let names = checked.length > 0 ? checked : Object.keys(MusicTheory.intervals);
+      let mode = this.getSetting('intervals', 'display', 'visual');
+      let playMode = this.getSetting('intervals', 'play', 'melodic');
+      let names = this.getSetting('intervals', 'choice', ['Octaaf']);
+      if (!names.length) names = Object.keys(MusicTheory.intervals);
       let name = names[randomInt(0, names.length - 1)];
       let root = randomInt(48, 64), top = root + MusicTheory.intervals[name];
       let useFlats = Math.random() > 0.5;
@@ -1395,7 +1737,7 @@ const App = {
       data.ans = `${name} (${midiToName(root, useFlats)} → ${midiToName(top, useFlats)})`;
     }
     else if (id === 'progressions'){
-      let kType = document.getElementById('set-prog-key').value;
+      let kType = this.getSetting('progressions', 'key', 'maj');
       let isMaj = kType === 'maj' ? true : (kType === 'min' ? false : Math.random() > 0.5);
       let rootKeyIdx = randomInt(0, 11);
       
@@ -1458,11 +1800,12 @@ const App = {
     else {
       paper.style.display = 'flex';
       if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = data.q; }
-      ScoreRenderer.render('score-paper', data.slices, data.useFlats);
+      ScoreRenderer.render('score-paper', data.slices, data.useFlats, this.paperRenderOpts(id));
       ansDisp.innerText = data.ans;
     }
 
     document.getElementById('btn-prev').disabled = this.historyIndex <= 0;
+    this.maybeScheduleAuto();
   },
 
   playCurrent(){
@@ -1483,8 +1826,15 @@ const App = {
     const data = this.history[this.historyIndex];
     if (data && this.currentModule === 'intervals' && data.i_mode === 'blind'){
       const box = document.getElementById('answer-score');
-      box.style.display = 'block';
-      ScoreRenderer.render('answer-score', data.slices, data.useFlats);
+      // Moet 'flex' zijn (niet 'block'): #answer-score is met CSS
+      // display:flex + justify-content:center gecentreerd, maar een
+      // inline style wint altijd van CSS — met 'block' werd die centrering
+      // dus genegeerd en stond de notenbalk scheef naar links.
+      box.style.display = 'flex';
+      // Kleinere canvasW zodat de 1-2 noten dicht bij elkaar staan i.p.v.
+      // over de volle breedte uitgesmeerd — dat maakt het verschil tussen
+      // bijv. P4 en P8 beter zichtbaar.
+      ScoreRenderer.render('answer-score', data.slices, data.useFlats, { canvasW: 260 });
     }
   }
 };
@@ -1507,13 +1857,27 @@ const App = {
 })();
 
 ThemeManager.init();
+(function wireResponsiveSettings(){
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      App.relocateQuickControls();
+      if (App.currentModule === 'circle' && typeof CircleWheel !== 'undefined') CircleWheel.render();
+    }, 120);
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dropdown-group')){
+      document.querySelectorAll('.dropdown-group.open').forEach(g => g.classList.remove('open'));
+    }
+  });
+})();
 (function syncFullscreenIcon(){
   const update = () => {
     const btn = document.getElementById('fullscreen-btn-header');
     const btnBnav = document.getElementById('fullscreen-btn-bnav');
     const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.documentElement.classList.toggle('fullscreen-active', isFs);
-    if (typeof CircleWheel !== 'undefined') setTimeout(() => CircleWheel.syncPreviewWidths(), 60);
     if (btn){ btn.innerHTML = isFs ? '⤡' : '⛶'; btn.title = isFs ? 'Volledig scherm afsluiten' : 'Volledig scherm'; }
     if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isFs ? '⤡' : '⛶'; }
   };
