@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
-<title>Piano Masterclass</title>
+<title>Root Note</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
 <style>
@@ -188,18 +188,84 @@ select:focus{ border-color:var(--accent); }
   justify-content:center; align-items:center; z-index:9999; text-align:center; padding:20px;
   overflow-y:auto; transition:background-color .3s;
 }
-.theme-toggle-container{ position:absolute; top:20px; right:20px; }
-#init-overlay h1{ font-family:'Fraunces',serif; color:var(--accent); font-size:2.9rem; margin-bottom:6px; font-weight:600; }
-#init-overlay p.subtitle{ margin-bottom:28px; color:var(--text-muted); font-size:1rem; letter-spacing:.3px; }
+.theme-toggle-container{ position:absolute; top:20px; right:20px; z-index:20; }
+#init-overlay .start-theme-btn{
+  background:var(--bg-panel-glass); border:1px solid var(--border-color); width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:1.2rem; backdrop-filter:blur(10px);
+  color:var(--text-main); cursor:pointer;
+}
+
+/* Ambient kleurwolken, zelfde idee als body{background-image:...}
+   elders in de app — hier lokaal herhaald omdat #init-overlay
+   (z-index:9999) boven die achtergrond ligt. */
+#init-overlay .welcome-bg-decor{ position:absolute; inset:0; overflow:hidden; z-index:1; pointer-events:none; }
+#init-overlay .blob{ position:absolute; border-radius:50%; filter:blur(80px); opacity:.2; animation:blob-float 20s infinite alternate ease-in-out; }
+#init-overlay .blob.one{ width:60vh; height:60vh; background:var(--accent); top:-10vh; left:-10vh; }
+#init-overlay .blob.two{ width:50vh; height:50vh; background:var(--accent-2); bottom:-15vh; right:-10vh; animation-delay:-5s; }
+@keyframes blob-float{
+  0%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(5vh,10vh) scale(1.1); }
+  100%{ transform:translate(-5vh,5vh) scale(1); }
+}
+
+#init-overlay .welcome-content{ position:relative; z-index:10; display:flex; flex-direction:column; align-items:center; gap:40px; max-width:600px; width:100%; }
+
+/* De hele merk-/titelkaart IS de start-knop — duidelijk kader +
+   hover/press-gedrag zodat hij oogt/voelt als iets om in te drukken. */
+#init-overlay .brand-launch-btn{
+  display:flex; flex-direction:column; align-items:center; gap:22px;
+  background:var(--bg-panel-glass); border:1px solid var(--border-color); border-radius:var(--radius-lg);
+  padding:48px 56px; cursor:pointer; position:relative; overflow:hidden;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  box-shadow:var(--shadow-lg);
+  transition:transform .25s ease, border-color .25s ease;
+}
+#init-overlay .brand-launch-btn::before{
+  content:''; position:absolute; inset:0; background:linear-gradient(135deg, transparent, rgba(255,255,255,.12), transparent);
+  transform:translateX(-120%); transition:transform .5s ease; pointer-events:none;
+}
+#init-overlay .brand-launch-btn:hover{ transform:translateY(-4px); border-color:var(--accent); }
+#init-overlay .brand-launch-btn:hover::before{ transform:translateX(120%); }
+#init-overlay .brand-launch-btn:active{ transform:translateY(-1px) scale(.98); }
 
 .brand-mark-lg{
   width:78px; height:78px; border-radius:24px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
-  display:flex; align-items:center; justify-content:center; font-size:2.3rem; margin-bottom:16px;
+  display:flex; align-items:center; justify-content:center; font-size:2.3rem;
   box-shadow:0 16px 34px rgba(99,102,241,.4);
 }
 .brand-mark-lg svg{ width:42px; height:42px; }
 
-.creator-credit{ margin-top:34px; font-size:.85rem; color:var(--text-muted); font-weight:500; letter-spacing:.5px; }
+.glitter{ position:relative; overflow:hidden; }
+.glitter::after{
+  content:''; position:absolute; inset:-50%;
+  background:linear-gradient(135deg, transparent, rgba(255,255,255,.4), transparent);
+  transform:rotate(45deg); animation:glitter-sweep 4s infinite;
+}
+@keyframes glitter-sweep{
+  0%{ transform:translate(-100%,-100%) rotate(45deg); }
+  20%,100%{ transform:translate(100%,100%) rotate(45deg); }
+}
+
+#init-overlay .main-title{
+  font-family:'Fraunces',serif; font-size:clamp(2.8rem, 8vw, 4rem); font-weight:700;
+  color:var(--text-main); line-height:1.1; margin:0;
+  background:linear-gradient(135deg, var(--text-main) 60%, var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 4px rgba(0,0,0,.1));
+}
+#init-overlay .sub-title-premium{ font-size:clamp(1rem, 3vw, 1.2rem); color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; font-weight:600; margin-top:5px; }
+
+#init-overlay .start-meta{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+#init-overlay .version-tag{ font-size:.75rem; color:var(--text-muted); font-family:'JetBrains Mono',monospace; opacity:.7; }
+.creator-credit{ color:var(--text-muted); font-size:.9rem; font-weight:500; letter-spacing:.5px; }
+
+@media (min-width:900px){
+  #init-overlay .main-title{ font-size:4.5rem; }
+  #init-overlay .brand-launch-btn{ padding:56px 80px; }
+}
+@media (max-width:480px){
+  #init-overlay .brand-launch-btn{ padding:34px 28px; gap:18px; }
+  #init-overlay .welcome-content{ gap:28px; }
+}
 
 #module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
@@ -432,28 +498,41 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 </head>
 <body>
 
-<!-- Init / Start Page -->
+<!-- Init / Start Page — "Root Note" cover-page-concept (definitief
+     doorgevoerd na evaluatie via Frontpage_Desktop.html/Frontpage_Mobiel.html,
+     zie Root_Note_Context.md). De hele merk-/titelkaart is de start-knop
+     (onclick="App.init()" direct erop, geen los knopje meer). -->
 <div id="init-overlay">
   <div class="theme-toggle-container">
-    <button onclick="ThemeManager.toggle()" id="theme-btn-start" class="header-icon-btn">☀️ Light Mode</button>
+    <button onclick="ThemeManager.toggle()" id="theme-btn-start" class="start-theme-btn"><span class="theme-icon">☀️</span></button>
   </div>
-
-  <div class="brand-mark-lg">
-    <svg viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="10" height="30" rx="2" fill="#fff"/>
-      <rect x="12" y="1" width="10" height="30" rx="2" fill="#fff"/>
-      <rect x="23" y="1" width="10" height="30" rx="2" fill="#fff"/>
-      <rect x="34" y="1" width="10" height="30" rx="2" fill="#fff"/>
-      <rect x="7" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-      <rect x="18" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-      <rect x="29" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-    </svg>
+  <div class="welcome-bg-decor">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
   </div>
-
-  <h1>Piano Masterclass</h1>
-  <p class="subtitle">Premium Editie</p>
-
-  <button class="primary" style="font-size:1.2rem; padding:15px 40px;" onclick="App.init()">Start Applicatie</button>
+  <div class="welcome-content">
+    <button type="button" class="brand-launch-btn" onclick="App.init()" title="Start Applicatie">
+      <div class="brand-mark-lg glitter">
+        <svg viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="12" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="23" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="34" y="1" width="10" height="30" rx="2" fill="#fff"/>
+          <rect x="7" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+          <rect x="18" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+          <rect x="29" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
+        </svg>
+      </div>
+      <div class="title-group">
+        <h1 class="main-title">Root Note</h1>
+        <p class="sub-title-premium">The Piano Trainer</p>
+      </div>
+    </button>
+    <div class="start-meta">
+      <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
+      <p class="version-tag">v0.1.0 | Bèta Editie</p>
+    </div>
+  </div>
 
   <!-- Eigen pianogeluid (WAV-samples) laden is een optionele, geavanceerde
        functie voor een klein aantal gebruikers — bereikbaar via het
@@ -462,8 +541,6 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
        die je aan iemand anders kunt meesturen. Deze input moet WEL blijven
        bestaan (verborgen): het menu-icoon triggert 'm via zijn id. -->
   <input type="file" id="global-sample-upload" multiple webkitdirectory directory accept="audio/wav,audio/mpeg,audio/x-wav,.wav" style="display:none;" onchange="App.handleFileUpload(event)">
-
-  <div class="creator-credit">Created by Martijn van Willigen</div>
 </div>
 
 <!-- App-schil -->
@@ -481,7 +558,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
           <rect x="29" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
         </svg>
       </span>
-      <span class="brand-text">Masterclass</span>
+      <span class="brand-text">Root Note</span>
     </div>
     <nav class="sidebar-nav">
       <button class="nav-item" id="nav-notes" onclick="App.loadModule('notes')" title="Noten Lezen"><span class="nav-icon">🎯</span><span class="nav-label">Noten Lezen</span></button>
@@ -625,7 +702,7 @@ const ThemeManager = {
     const btnHeader = document.getElementById('theme-btn-header');
     const btnBnav = document.getElementById('theme-btn-bnav');
     const isDark = theme === 'dark';
-    if (btnStart) btnStart.innerHTML = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    if (btnStart) btnStart.innerHTML = isDark ? '☀️' : '🌙';
     if (btnHeader) btnHeader.innerHTML = isDark ? '☀️' : '🌙';
     if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isDark ? '☀️' : '🌙'; }
   }
