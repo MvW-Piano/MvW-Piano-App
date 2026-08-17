@@ -554,7 +554,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.3.0 | Bèta Editie</p>
+      <p class="version-tag">v0.3.1 | Bèta Editie</p>
     </div>
   </div>
 
@@ -884,9 +884,21 @@ const ThemeManager = {
       if (CircleWheel._previewed){
         CircleWheel.showChord(CircleWheel.lastShown.root, CircleWheel.lastShown.quality, { play: false });
       }
-    } else if (data && data.slices && document.getElementById('score-paper')?.style.display !== 'none'){
-      App.applyPaperMaxWidth(App.currentModule);
-      ScoreRenderer.render('score-paper', data.slices, data.useFlats, App.paperRenderOpts(App.currentModule));
+    } else if (data && data.slices){
+      if (document.getElementById('score-paper')?.style.display !== 'none'){
+        App.applyPaperMaxWidth(App.currentModule);
+        ScoreRenderer.render('score-paper', data.slices, data.useFlats, App.paperRenderOpts(App.currentModule));
+      }
+      // Intervallen > Blind (Audio): het onthulde antwoord staat als eigen
+      // notenbalk in #answer-score (zie App.revealAnswer()), los van
+      // #score-paper — had dezelfde "VexFlow bakt kleuren"-valkuil (zie
+      // hierboven bij CircleWheel) maar werd hier nog gemist. Alleen
+      // opnieuw tekenen als 'ie daadwerkelijk zichtbaar is (na Toon
+      // Antwoord) — anders bestaat er nog niets om te herkleuren.
+      const answerScore = document.getElementById('answer-score');
+      if (answerScore && answerScore.style.display !== 'none'){
+        ScoreRenderer.render('answer-score', data.slices, data.useFlats, { canvasW: 260 });
+      }
     }
   },
   updateIcons(theme){
@@ -1047,7 +1059,7 @@ const ScoreRenderer = {
     return { lines: 0, dir: null };
   },
 
-  buildNote(midis, clef, useFlats){
+  buildNote(midis, clef, useFlats, ink){
     const VF = Vex.Flow;
     if (!midis || midis.length === 0) return new VF.GhostNote('q');
     const sorted = [...midis].sort((a,b) => a - b);
@@ -1067,6 +1079,18 @@ const ScoreRenderer = {
     const display = shift ? sorted.map(m => m + shift) : sorted;
     const parsed = display.map(m => this.midiToKey(m, useFlats));
     const note = new VF.StaveNote({ keys: parsed.map(p => p.key), duration: 'q', auto_stem: true, clef });
+    // Expliciet de notitie-stijl zetten i.p.v. alleen op de algemene
+    // canvas-contextkleur te vertrouwen (ctx.setFillStyle/setStrokeStyle in
+    // _draw()) — hulplijntjes (bijv. bij middenC, dat precies op de rand
+    // tussen de twee notenbalken valt) blijken die ambient contextkleur
+    // niet altijd te volgen en gebruikten anders VexFlow's eigen zwarte
+    // default, nauwelijks zichtbaar in het donkere thema. Hulplijntjes
+    // hebben in VexFlow bovendien een EIGEN stijl-property (ledgerLineStyle,
+    // default '#444') los van setStyle() — moet apart gezet worden.
+    if (ink){
+      note.setStyle({ fillStyle: ink, strokeStyle: ink });
+      note.setLedgerLineStyle({ fillStyle: ink, strokeStyle: ink });
+    }
     parsed.forEach((p, i) => {
       if (!p.acc) return;
       const accidental = new VF.Accidental(p.acc);
@@ -1134,8 +1158,8 @@ const ScoreRenderer = {
     (slices.length ? slices : [[]]).forEach(slice => {
       const treble = slice.filter(m => m >= 60);
       const bass = slice.filter(m => m < 60);
-      trebleNotes.push(this.buildNote(treble, 'treble', useFlats));
-      bassNotes.push(this.buildNote(bass, 'bass', useFlats));
+      trebleNotes.push(this.buildNote(treble, 'treble', useFlats, ink));
+      bassNotes.push(this.buildNote(bass, 'bass', useFlats, ink));
     });
 
     const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
