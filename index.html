@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f172a">
-<title>Root Note</title>
+<title>Root Note - Piano Trainer</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
 <style>
@@ -119,6 +119,28 @@ body{
 }
 .sidebar-icon-btn:hover{ background:var(--bg-card); color:var(--text-main); }
 
+/* Eigen-pianogeluid-trigger: bewust onopvallend, zie HTML-comment bij het
+   element zelf. position:fixed t.o.v. het venster (niet de zijbalk), dus
+   overal in de app op dezelfde plek bereikbaar. */
+#samples-hidden-trigger{
+  /* left:84px = net naast de 76px-brede icon-rail-zijbalk (i.p.v. erover
+     heen: de zijbalk heeft zelf een ondoorzichtige achtergrond + hogere
+     z-index, dus een positie er bovenop zou het knopje onbereikbaar maken).
+     Bewust GEEN zichtbaar icoontje (het 📁-symbool zelf is met kleur, dus
+     ook op lage opacity nog goed te zien) — alleen een heel klein, vaag
+     kadertje. Werkt vanzelf mee met beide thema's via var(--border-color). */
+  position:fixed; left:84px; bottom:8px; z-index:15; width:14px; height:14px;
+  background:transparent; border:1px solid var(--border-color); border-radius:4px;
+  padding:0; cursor:pointer; opacity:.3; transition:opacity .2s ease, background-color .2s ease;
+  font-size:0; line-height:0; color:transparent;
+}
+#samples-hidden-trigger:hover{ opacity:.9; background:var(--bg-card); }
+@media (max-width:640px){
+  /* Geen zijbalk meer op mobiel (onderbalk i.p.v.) — terug naar de linker
+     rand, en boven de onderbalk uit. */
+  #samples-hidden-trigger{ left:8px; bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
 #content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #content-topbar{
   background-color:transparent; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
@@ -188,7 +210,8 @@ select:focus{ border-color:var(--accent); }
   justify-content:center; align-items:center; z-index:9999; text-align:center; padding:20px;
   overflow-y:auto; transition:background-color .3s;
 }
-.theme-toggle-container{ position:absolute; top:20px; right:20px; z-index:20; }
+.theme-toggle-container{ position:absolute; top:20px; right:20px; z-index:20; display:flex; gap:8px; }
+#lang-btn-start{ font-family:'Inter',sans-serif; font-weight:700; font-size:.8rem; padding:0; }
 #init-overlay .start-theme-btn{
   background:var(--bg-panel-glass); border:1px solid var(--border-color); width:44px; height:44px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:1.2rem; backdrop-filter:blur(10px);
@@ -504,6 +527,7 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
      (onclick="App.init()" direct erop, geen los knopje meer). -->
 <div id="init-overlay">
   <div class="theme-toggle-container">
+    <button onclick="Lang.toggle()" id="lang-btn-start" class="start-theme-btn" title="Switch language">NL</button>
     <button onclick="ThemeManager.toggle()" id="theme-btn-start" class="start-theme-btn"><span class="theme-icon">☀️</span></button>
   </div>
   <div class="welcome-bg-decor">
@@ -525,12 +549,12 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
       </div>
       <div class="title-group">
         <h1 class="main-title">Root Note</h1>
-        <p class="sub-title-premium">The Piano Trainer</p>
+        <p class="sub-title-premium" data-i18n="homeSubtitle">De Piano Trainer</p>
       </div>
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.1.0 | Bèta Editie</p>
+      <p class="version-tag">v0.3.0 | Bèta Editie</p>
     </div>
   </div>
 
@@ -561,20 +585,20 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
       <span class="brand-text">Root Note</span>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item" id="nav-notes" onclick="App.loadModule('notes')" title="Noten Lezen"><span class="nav-icon">🎯</span><span class="nav-label">Noten Lezen</span></button>
-      <button class="nav-item" id="nav-scales" onclick="App.loadModule('scales')" title="Toonladders"><span class="nav-icon">🎵</span><span class="nav-label">Toonladders</span></button>
-      <button class="nav-item" id="nav-chords" onclick="App.loadModule('chords')" title="Akkoorden"><span class="nav-icon">🎹</span><span class="nav-label">Akkoorden</span></button>
-      <button class="nav-item" id="nav-circle" onclick="App.loadModule('circle')" title="Kwintencirkel"><span class="nav-icon">🎼</span><span class="nav-label">Kwintencirkel</span></button>
-      <button class="nav-item" id="nav-intervals" onclick="App.loadModule('intervals')" title="Intervallen"><span class="nav-icon">👂</span><span class="nav-label">Intervallen</span></button>
-      <button class="nav-item" id="nav-progressions" onclick="App.loadModule('progressions')" title="Akkoordprogressies"><span class="nav-icon">📈</span><span class="nav-label">Progressies</span></button>
-      <button class="nav-item" id="nav-piano" onclick="App.loadModule('piano')" title="Virtuele Piano"><span class="nav-icon">🎹</span><span class="nav-label">Vrij Spelen</span></button>
+      <button class="nav-item" id="nav-notes" onclick="App.loadModule('notes')" data-i18n-title="nav_notes" title="Noten Lezen"><span class="nav-icon">🎯</span><span class="nav-label" data-i18n="nav_notes">Noten Lezen</span></button>
+      <button class="nav-item" id="nav-scales" onclick="App.loadModule('scales')" data-i18n-title="nav_scales" title="Toonladders"><span class="nav-icon">🎵</span><span class="nav-label" data-i18n="nav_scales">Toonladders</span></button>
+      <button class="nav-item" id="nav-chords" onclick="App.loadModule('chords')" data-i18n-title="nav_chords" title="Akkoorden"><span class="nav-icon">🎹</span><span class="nav-label" data-i18n="nav_chords">Akkoorden</span></button>
+      <button class="nav-item" id="nav-circle" onclick="App.loadModule('circle')" data-i18n-title="nav_circle" title="Kwintencirkel"><span class="nav-icon">🎼</span><span class="nav-label" data-i18n="nav_circle">Kwintencirkel</span></button>
+      <button class="nav-item" id="nav-intervals" onclick="App.loadModule('intervals')" data-i18n-title="nav_intervals" title="Intervallen"><span class="nav-icon">👂</span><span class="nav-label" data-i18n="nav_intervals">Intervallen</span></button>
+      <button class="nav-item" id="nav-progressions" onclick="App.loadModule('progressions')" data-i18n-title="nav_progressions" title="Akkoordprogressies"><span class="nav-icon">📈</span><span class="nav-label" data-i18n="navLabel_progressions">Progressies</span></button>
+      <button class="nav-item" id="nav-piano" onclick="App.loadModule('piano')" data-i18n-title="nav_piano" title="Virtuele Piano"><span class="nav-icon">🎹</span><span class="nav-label" data-i18n="navLabel_piano">Vrij Spelen</span></button>
     </nav>
     <div class="sidebar-footer">
       <button class="sidebar-icon-btn" onclick="SoundUI.toggle()" id="sound-btn-header" title="Geluid uitzetten">🔊</button>
-      <button class="sidebar-icon-btn" onclick="ThemeManager.toggle()" id="theme-btn-header" title="Wissel thema">☀️</button>
-      <button class="sidebar-icon-btn" onclick="App.toggleFullscreen()" id="fullscreen-btn-header" title="Volledig scherm">⛶</button>
-      <button class="sidebar-icon-btn" onclick="App.resetAllSettings()" title="Instellingen resetten naar standaard">↺</button>
-      <button class="sidebar-icon-btn" onclick="App.pickSamplesFolder()" title="Eigen pianogeluid laden">📁</button>
+      <button class="sidebar-icon-btn" onclick="ThemeManager.toggle()" id="theme-btn-header" data-i18n-title="tooltip_theme" title="Wissel thema">☀️</button>
+      <button class="sidebar-icon-btn" onclick="App.toggleFullscreen()" id="fullscreen-btn-header" data-i18n-title="tooltip_fullscreen" title="Volledig scherm">⛶</button>
+      <button class="sidebar-icon-btn" onclick="App.resetAllSettings()" data-i18n-title="tooltip_reset" title="Instellingen resetten naar standaard">↺</button>
+      <button class="sidebar-icon-btn" onclick="Lang.toggle()" id="lang-btn-header" title="Switch language / Wissel taal">NL</button>
     </div>
   </aside>
 
@@ -586,31 +610,31 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   <div id="settings-drawer-backdrop" onclick="SettingsUI.toggleDrawer(false)"></div>
   <aside id="settings-drawer">
     <div class="settings-drawer-head">
-      <span>Instellingen</span>
-      <button type="button" id="settings-drawer-close" onclick="SettingsUI.toggleDrawer(false)" aria-label="Sluiten">✕</button>
+      <span data-i18n="settings_title">Instellingen</span>
+      <button type="button" id="settings-drawer-close" onclick="SettingsUI.toggleDrawer(false)" data-i18n-aria="settings_close" aria-label="Sluiten">✕</button>
     </div>
     <div class="settings-drawer-body" id="settings-drawer-body"></div>
   </aside>
 
   <nav id="bottom-nav">
-    <button class="bnav-item" id="bnav-notes" onclick="App.loadModule('notes')"><span class="bnav-icon">🎯</span><span>Noten</span></button>
-    <button class="bnav-item" id="bnav-scales" onclick="App.loadModule('scales')"><span class="bnav-icon">🎵</span><span>Ladders</span></button>
-    <button class="bnav-item" id="bnav-chords" onclick="App.loadModule('chords')"><span class="bnav-icon">🎹</span><span>Akk.</span></button>
-    <button class="bnav-item" id="bnav-circle" onclick="App.loadModule('circle')"><span class="bnav-icon">🎼</span><span>Cirkel</span></button>
-    <button class="bnav-item" id="bnav-intervals" onclick="App.loadModule('intervals')"><span class="bnav-icon">👂</span><span>Interv.</span></button>
-    <button class="bnav-item" id="bnav-progressions" onclick="App.loadModule('progressions')"><span class="bnav-icon">📈</span><span>Progr.</span></button>
-    <button class="bnav-item" id="bnav-piano" onclick="App.loadModule('piano')"><span class="bnav-icon">🎹</span><span>Piano</span></button>
-    <button class="bnav-item" onclick="SoundUI.toggle()" id="sound-btn-bnav"><span class="bnav-icon">🔊</span><span>Geluid</span></button>
-    <button class="bnav-item" onclick="ThemeManager.toggle()" id="theme-btn-bnav"><span class="bnav-icon">☀️</span><span>Thema</span></button>
-    <button class="bnav-item" onclick="App.toggleFullscreen()" id="fullscreen-btn-bnav"><span class="bnav-icon">⛶</span><span>Scherm</span></button>
-    <button class="bnav-item" onclick="App.resetAllSettings()"><span class="bnav-icon">↺</span><span>Reset</span></button>
-    <button class="bnav-item" onclick="App.pickSamplesFolder()"><span class="bnav-icon">📁</span><span>Samples</span></button>
+    <button class="bnav-item" id="bnav-notes" onclick="App.loadModule('notes')"><span class="bnav-icon">🎯</span><span data-i18n="bnav_notes">Noten</span></button>
+    <button class="bnav-item" id="bnav-scales" onclick="App.loadModule('scales')"><span class="bnav-icon">🎵</span><span data-i18n="bnav_scales">Ladders</span></button>
+    <button class="bnav-item" id="bnav-chords" onclick="App.loadModule('chords')"><span class="bnav-icon">🎹</span><span data-i18n="bnav_chords">Akk.</span></button>
+    <button class="bnav-item" id="bnav-circle" onclick="App.loadModule('circle')"><span class="bnav-icon">🎼</span><span data-i18n="bnav_circle">Cirkel</span></button>
+    <button class="bnav-item" id="bnav-intervals" onclick="App.loadModule('intervals')"><span class="bnav-icon">👂</span><span data-i18n="bnav_intervals">Interv.</span></button>
+    <button class="bnav-item" id="bnav-progressions" onclick="App.loadModule('progressions')"><span class="bnav-icon">📈</span><span data-i18n="bnav_progressions">Progr.</span></button>
+    <button class="bnav-item" id="bnav-piano" onclick="App.loadModule('piano')"><span class="bnav-icon">🎹</span><span data-i18n="bnav_piano">Piano</span></button>
+    <button class="bnav-item" onclick="SoundUI.toggle()" id="sound-btn-bnav"><span class="bnav-icon">🔊</span><span data-i18n="bnav_sound">Geluid</span></button>
+    <button class="bnav-item" onclick="ThemeManager.toggle()" id="theme-btn-bnav"><span class="bnav-icon">☀️</span><span data-i18n="bnav_theme">Thema</span></button>
+    <button class="bnav-item" onclick="App.toggleFullscreen()" id="fullscreen-btn-bnav"><span class="bnav-icon">⛶</span><span data-i18n="bnav_fullscreen">Scherm</span></button>
+    <button class="bnav-item" onclick="App.resetAllSettings()"><span class="bnav-icon">↺</span><span data-i18n="bnav_reset">Reset</span></button>
+    <button class="bnav-item" onclick="Lang.toggle()" id="lang-btn-bnav"><span class="bnav-icon" id="lang-btn-bnav-icon">NL</span><span data-i18n="bnav_lang">Taal</span></button>
   </nav>
 
   <div id="content-area">
     <header id="content-topbar">
-      <h1 id="module-title">Instellingen</h1>
-      <button type="button" id="settings-btn" onclick="SettingsUI.toggleDrawer()" title="Instellingen">⚙</button>
+      <h1 id="module-title" data-i18n="settings_title">Instellingen</h1>
+      <button type="button" id="settings-btn" onclick="SettingsUI.toggleDrawer()" data-i18n-title="settings_title" title="Instellingen">⚙</button>
     </header>
 
     <main id="module-view">
@@ -640,22 +664,22 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 
         <div class="flashcard-actions" id="flashcard-actions">
           <div class="action-row-top">
-            <button onclick="App.playCurrent()">🎵 Speel Af</button>
-            <button onclick="App.toggleAnswer()">👁 Toon Antwoord</button>
+            <button onclick="App.playCurrent()">🎵 <span data-i18n="btn_play">Speel Af</span></button>
+            <button onclick="App.toggleAnswer()">👁 <span data-i18n="btn_showAnswer">Toon Antwoord</span></button>
           </div>
           <div class="action-row-bottom">
-            <button id="btn-prev" onclick="App.prevQuestion()">⬅ Vorige</button>
-            <button id="btn-next" class="primary" onclick="App.nextQuestion()">Volgende ➔</button>
+            <button id="btn-prev" onclick="App.prevQuestion()">⬅ <span data-i18n="btn_prev">Vorige</span></button>
+            <button id="btn-next" class="primary" onclick="App.nextQuestion()"><span data-i18n="btn_next">Volgende</span> ➔</button>
           </div>
         </div>
       </div>
-      <p class="swipe-hint" id="swipe-hint">Swipe ⬅➔ op de kaart om te wisselen</p>
+      <p class="swipe-hint" id="swipe-hint" data-i18n="swipeHint">Swipe ⬅➔ op de kaart om te wisselen</p>
 
       <div id="piano-module">
         <div class="piano-ui-controls">
-          <button class="piano-btn" onclick="PianoUI.scroll(-200)">⬅ Links</button>
-          <button class="piano-btn primary" onclick="PianoUI.centerC4()">Midden (C4)</button>
-          <button class="piano-btn" onclick="PianoUI.scroll(200)">Rechts ➔</button>
+          <button class="piano-btn" onclick="PianoUI.scroll(-200)">⬅ <span data-i18n="piano_left">Links</span></button>
+          <button class="piano-btn primary" onclick="PianoUI.centerC4()"><span data-i18n="piano_center">Midden (C4)</span></button>
+          <button class="piano-btn" onclick="PianoUI.scroll(200)"><span data-i18n="piano_right">Rechts</span> ➔</button>
         </div>
         <div class="piano-wrapper" id="piano-wrapper">
           <div class="piano-keyboard" id="piano-keys"></div>
@@ -666,10 +690,178 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
   </div>
 </div>
 
+<!-- Eigen pianogeluid laden: bewust NIET in de zichtbare zijbalk/onderbalk-
+     iconenrij (riep bij de meeste gebruikers alleen maar vragen op voor
+     een functie die verder bijna niemand gebruikt) — een heel klein,
+     laag-contrast knopje linksonder in beeld, altijd bereikbaar, maar valt
+     niet op tenzij je er specifiek naar zoekt. Zie ook
+     README_Eigen_Pianogeluid.md. -->
+<button type="button" id="samples-hidden-trigger" onclick="App.pickSamplesFolder()" data-i18n-title="tooltip_samples" title="Eigen pianogeluid laden">📁</button>
+
 <script>
 /* ============================================================
    THEME MANAGER
 ============================================================ */
+/* ============================================================
+   TAAL / I18N — Nederlands (standaard) + Engels.
+   Belangrijk architectuurprincipe: de interne data-modellen
+   (MusicTheory.chords/scales/intervals-KEYS, opgeslagen instellingen in
+   localStorage, CircleWheel-logica) blijven ALTIJD Nederlands-gesleuteld
+   ("Majeur","Mineur Natuurlijk", enz.) — dat zijn interne identifiers, geen
+   weergavetekst. Alleen wat je daadwerkelijk op het scherm ZIET wordt
+   vertaald, via de losstaande *Names-opzoektabellen hieronder + Lang.t().
+   Dit voorkomt dat een taalwissel oude opgeslagen instellingen (of de
+   muziektheorie-logica zelf, die op deze Nederlandse strings matcht) breekt.
+============================================================ */
+const I18N = {
+  nl: {
+    nav_notes:'Noten Lezen', nav_scales:'Toonladders', nav_chords:'Akkoorden',
+    nav_circle:'Kwintencirkel', nav_intervals:'Intervallen', nav_progressions:'Akkoordprogressies',
+    nav_piano:'Virtuele Piano',
+    navLabel_progressions:'Progressies', navLabel_piano:'Vrij Spelen',
+    bnav_notes:'Noten', bnav_scales:'Ladders', bnav_chords:'Akk.', bnav_circle:'Cirkel',
+    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_piano:'Piano',
+    bnav_sound:'Geluid', bnav_theme:'Thema', bnav_fullscreen:'Scherm', bnav_reset:'Reset', bnav_lang:'Taal',
+    tooltip_theme:'Wissel thema', tooltip_fullscreen:'Volledig scherm',
+    tooltip_reset:'Instellingen resetten naar standaard', tooltip_samples:'Eigen pianogeluid laden',
+    tooltip_sound_on:'Geluid uitzetten', tooltip_sound_off:'Geluid aanzetten',
+    settings_title:'Instellingen', settings_close:'Sluiten',
+    level_label:'Niveau', level_easy:'Makkelijk (C3-C5)', level_easy_short:'Niv 1 (C3-C5)',
+    level_med:'Gemiddeld (C2-C6)', level_med_short:'Niv 2 (C2-C6)',
+    level_hard:'Moeilijk (C1-C7)', level_hard_short:'Niv 3 (C1-C7)',
+    auto_label:'Auto', auto_on:'Aan', auto_off:'Uit', thinktime_label:'Bedenktijd:',
+    type_label:'Type', inversions_label:'Omkeringen', mode_label:'Modus',
+    display_label:'Weergave', playmode_label:'Afspeelmodus', interval_label:'Interval', key_label:'Toonsoort',
+    inv_root:'Grondligging', inv_1:'1e Omkering', inv_2:'2e Omkering', inv_3:'3e Omkering', inv_all:'Alle Omkeringen',
+    circle_mode_visual:'Kwintencirkel Interactief', circle_mode_rel:'Relatieve Toonsoort', circle_mode_acc:'Voortekens',
+    int_display_visual:'Notenbalk', int_display_blind:'Blind (Audio)',
+    int_play_melodic:'Melodisch', int_play_harmonic:'Harmonisch',
+    prog_key_maj:'Majeur', prog_key_min:'Mineur', prog_key_both:'Beide',
+    btn_play:'Speel Af', btn_showAnswer:'Toon Antwoord', btn_prev:'Vorige', btn_next:'Volgende',
+    swipeHint:'Swipe ⬅➔ op de kaart om te wisselen',
+    circleTapHint:'Tik op een toonsoort om het akkoord te horen.', listenBlind:'Luister goed... (Blind)',
+    qRelMinorOf:"Wat is de relatieve mineur van {key} Majeur?",
+    qRelMajorOf:"Wat is de relatieve majeur van {key} mineur?",
+    qWhichMajorHas:"Welke majeur toonsoort heeft {acc}?",
+    qHowManyAccidentals:"Hoeveel voortekens heeft {key} Majeur?",
+    qDegreeIn:"Wat is trap '{deg}' in {key} {kw}?",
+    major:'Majeur', minorLower:'mineur',
+    zeroAccidentals:'0 voortekens', nSharps:'{n} kruisen (#)', nFlats:'{n} mollen (b)',
+    resetConfirm:'Alle instellingen terugzetten naar standaard? Dit geldt voor alle modules en kan niet ongedaan gemaakt worden.',
+    piano_left:'Links', piano_center:'Midden (C4)', piano_right:'Rechts',
+    homeSubtitle:'De Piano Trainer'
+  },
+  en: {
+    nav_notes:'Note Reading', nav_scales:'Scales', nav_chords:'Chords',
+    nav_circle:'Circle of Fifths', nav_intervals:'Intervals', nav_progressions:'Chord Progressions',
+    nav_piano:'Virtual Piano',
+    navLabel_progressions:'Progressions', navLabel_piano:'Free Play',
+    bnav_notes:'Notes', bnav_scales:'Scales', bnav_chords:'Chords', bnav_circle:'Circle',
+    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_piano:'Piano',
+    bnav_sound:'Sound', bnav_theme:'Theme', bnav_fullscreen:'Screen', bnav_reset:'Reset', bnav_lang:'Language',
+    tooltip_theme:'Switch theme', tooltip_fullscreen:'Fullscreen',
+    tooltip_reset:'Reset settings to default', tooltip_samples:'Load your own piano sound',
+    tooltip_sound_on:'Turn sound off', tooltip_sound_off:'Turn sound on',
+    settings_title:'Settings', settings_close:'Close',
+    level_label:'Level', level_easy:'Easy (C3-C5)', level_easy_short:'Lvl 1 (C3-C5)',
+    level_med:'Intermediate (C2-C6)', level_med_short:'Lvl 2 (C2-C6)',
+    level_hard:'Hard (C1-C7)', level_hard_short:'Lvl 3 (C1-C7)',
+    auto_label:'Auto', auto_on:'On', auto_off:'Off', thinktime_label:'Think time:',
+    type_label:'Type', inversions_label:'Inversions', mode_label:'Mode',
+    display_label:'Display', playmode_label:'Playback mode', interval_label:'Interval', key_label:'Key',
+    inv_root:'Root Position', inv_1:'1st Inversion', inv_2:'2nd Inversion', inv_3:'3rd Inversion', inv_all:'All Inversions',
+    circle_mode_visual:'Interactive Circle of Fifths', circle_mode_rel:'Relative Key', circle_mode_acc:'Key Signatures',
+    int_display_visual:'Staff Notation', int_display_blind:'Blind (Audio)',
+    int_play_melodic:'Melodic', int_play_harmonic:'Harmonic',
+    prog_key_maj:'Major', prog_key_min:'Minor', prog_key_both:'Both',
+    btn_play:'Play', btn_showAnswer:'Show Answer', btn_prev:'Previous', btn_next:'Next',
+    swipeHint:'Swipe ⬅➔ on the card to switch',
+    circleTapHint:'Tap a key to hear the chord.', listenBlind:'Listen carefully... (Blind)',
+    qRelMinorOf:"What is the relative minor of {key} Major?",
+    qRelMajorOf:"What is the relative major of {key} minor?",
+    qWhichMajorHas:"Which major key has {acc}?",
+    qHowManyAccidentals:"How many accidentals does {key} Major have?",
+    qDegreeIn:"What is degree '{deg}' in {key} {kw}?",
+    major:'Major', minorLower:'minor',
+    zeroAccidentals:'0 accidentals', nSharps:'{n} sharps (#)', nFlats:'{n} flats (b)',
+    resetConfirm:'Reset all settings to default? This applies to all modules and cannot be undone.',
+    piano_left:'Left', piano_center:'Center (C4)', piano_right:'Right',
+    homeSubtitle:'The Piano Trainer',
+    // Weergavenamen voor de Nederlands-gesleutelde muziektheorie-data
+    // (zie architectuur-opmerking hierboven) — alleen nodig in het Engels,
+    // want in het Nederlands IS de interne key al de juiste weergavetekst.
+    scaleNames:{
+      'Majeur':'Major', 'Mineur Natuurlijk':'Natural Minor', 'Mineur Harmonisch':'Harmonic Minor',
+      'Mineur Melodisch':'Melodic Minor', 'Pentatonisch Majeur':'Major Pentatonic',
+      'Pentatonisch Mineur':'Minor Pentatonic', 'Blues':'Blues'
+    },
+    chordNames:{
+      'Majeur':'Major', 'Mineur':'Minor', 'Diminished':'Diminished', 'Sus2':'Sus2', 'Sus4':'Sus4',
+      'Maj7':'Maj7', 'Min7':'Min7', 'Dom7':'Dom7', 'm7b5':'m7♭5', 'Maj9':'Maj9', 'Min9':'Min9'
+    },
+    intervalNames:{
+      'Kleine Secunde':'Minor Second', 'Grote Secunde':'Major Second', 'Kleine Terts':'Minor Third',
+      'Grote Terts':'Major Third', 'Reine Kwart':'Perfect Fourth', 'Tritonus':'Tritone',
+      'Reine Kwint':'Perfect Fifth', 'Kleine Sext':'Minor Sixth', 'Grote Sext':'Major Sixth',
+      'Klein Septiem':'Minor Seventh', 'Groot Septiem':'Major Seventh', 'Octaaf':'Octave'
+    }
+  }
+};
+
+const Lang = {
+  KEY: 'pm_lang',
+  current(){ return localStorage.getItem(this.KEY) || 'nl'; },
+  t(key, params){
+    let str = (I18N[this.current()] && I18N[this.current()][key]) || I18N.nl[key] || key;
+    if (params) for (const k in params) str = str.split('{' + k + '}').join(params[k]);
+    return str;
+  },
+  // Vertaalde weergavenaam voor een Nederlands-gesleutelde muziektheorie-
+  // term — in het Nederlands is de key zelf al de juiste tekst.
+  scaleName(key){ return this.current() === 'nl' ? key : (I18N.en.scaleNames[key] || key); },
+  chordName(key){ return this.current() === 'nl' ? key : (I18N.en.chordNames[key] || key); },
+  intervalName(key){ return this.current() === 'nl' ? key : (I18N.en.intervalNames[key] || key); },
+  toggle(){
+    localStorage.setItem(this.KEY, this.current() === 'nl' ? 'en' : 'nl');
+    this.apply();
+  },
+  updateStaticText(){
+    document.documentElement.lang = this.current();
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = this.t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = this.t(el.dataset.i18nTitle); });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', this.t(el.dataset.i18nAria)); });
+    // Taalknop(pen) tonen altijd de HUIDIG actieve taal (niet de taal
+    // waarnaartoe je zou schakelen) — op verzoek van de gebruiker, zelfde
+    // "NL"/"EN"-tekst op alle drie plekken (home page, zijbalk, onderbalk).
+    const langLabel = this.current() === 'nl' ? 'NL' : 'EN';
+    const langTitle = 'Switch language / Wissel taal';
+    const langStart = document.getElementById('lang-btn-start');
+    if (langStart) langStart.textContent = langLabel;
+    const langHeader = document.getElementById('lang-btn-header');
+    if (langHeader){ langHeader.textContent = langLabel; langHeader.title = langTitle; }
+    const langBnavIcon = document.getElementById('lang-btn-bnav-icon');
+    if (langBnavIcon) langBnavIcon.textContent = langLabel;
+    if (typeof SoundUI !== 'undefined') SoundUI.updateIcons();
+  },
+  // Ná de eerste keer wordt dit ook aangeroepen als de taal wisselt terwijl
+  // de app al gestart is: instellingenpaneel + de huidige vraag/antwoord
+  // moeten dan meteen in de nieuwe taal herrenderen (zonder een NIEUWE
+  // willekeurige vraag te trekken — renderData() leest alleen de al
+  // opgeslagen, taal-neutrale ruwe gegevens opnieuw uit, zie App.qa()).
+  apply(){
+    this.updateStaticText();
+    if (typeof App === 'undefined' || !App.currentModule) return;
+    if (App.currentModule === 'piano'){
+      const mt = document.getElementById('module-title');
+      if (mt) mt.innerText = this.t('nav_piano');
+    } else {
+      App.buildSettings(App.currentModule);
+      if (App.history && App.history[App.historyIndex]) App.renderData(App.history[App.historyIndex]);
+    }
+  },
+  init(){ this.updateStaticText(); }
+};
+
 const ThemeManager = {
   init(){
     const saved = localStorage.getItem('pm_theme') || 'dark';
@@ -1146,7 +1338,7 @@ const CircleWheel = {
       btn.type = 'button';
       btn.className = 'circle-jump-btn chord' + (k === this.selectedChordType ? ' active' : '');
       btn.textContent = this.chordAbbr[k] || k.slice(0,5);
-      btn.title = k;
+      btn.title = Lang.chordName(k);
       btn.addEventListener('click', () => {
         this.selectedChordType = k;
         this.renderChordJump();
@@ -1643,7 +1835,7 @@ const App = {
   // zin, en opnieuw moeten kiezen zou de hele reden voor die functie
   // tenietdoen.
   resetAllSettings(){
-    if (!confirm('Alle instellingen terugzetten naar standaard? Dit geldt voor alle modules en kan niet ongedaan gemaakt worden.')) return;
+    if (!confirm(Lang.t('resetConfirm'))) return;
     Object.keys(localStorage).filter(k => k.startsWith('pm_')).forEach(k => localStorage.removeItem(k));
     location.reload();
   },
@@ -1702,7 +1894,7 @@ const App = {
     if (moduleId === 'piano'){
       flashUI.style.display = 'none'; swipeHint.style.display = 'none';
       pianoUI.style.display = 'flex'; quickControls.innerHTML = ''; settingsBtn.style.display = 'none';
-      document.getElementById('module-title').innerText = 'Virtuele Piano';
+      document.getElementById('module-title').innerText = Lang.t('nav_piano');
       PianoUI.init();
     } else {
       flashUI.style.display = 'flex'; swipeHint.style.display = 'block';
@@ -1829,16 +2021,16 @@ const App = {
     wrap.className = 'auto-adv-controls';
     wrap.innerHTML = `
       <div class="setting-group aa-toggle" data-role="auto">
-        <label title="Automatisch Doorgaan">${UI_ICONS.autoAdvance}<span class="setting-label-text">Auto</span></label>
+        <label title="${Lang.t('auto_label')}">${UI_ICONS.autoAdvance}<span class="setting-label-text">${Lang.t('auto_label')}</span></label>
         <div class="opt-row" id="opt-auto-onoff"></div>
       </div>
       <div class="setting-group aa-delay" data-role="delay">
-        <label title="Bedenktijd">${UI_ICONS.delay}<span class="setting-label-text">Bedenktijd:</span> <span class="aa-delay-val" id="auto-delay-val-${moduleId}">2s</span></label>
+        <label title="${Lang.t('thinktime_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('thinktime_label')}</span> <span class="aa-delay-val" id="auto-delay-val-${moduleId}">2s</span></label>
         <input type="range" class="auto-delay-slider" id="auto-delay-slider-${moduleId}" min="0.5" max="5" step="0.5">
       </div>`;
     container.appendChild(wrap);
     this.renderSingleSelect(document.getElementById('opt-auto-onoff'), moduleId, 'autoAdvance',
-      [{value:'uit', label:'Uit'}, {value:'aan', label:'Aan'}], 'uit', () => this.maybeScheduleAuto());
+      [{value:'uit', label:Lang.t('auto_off')}, {value:'aan', label:Lang.t('auto_on')}], 'uit', () => this.maybeScheduleAuto());
 
     const slider = document.getElementById(`auto-delay-slider-${moduleId}`);
     const valLabel = document.getElementById(`auto-delay-val-${moduleId}`);
@@ -1854,6 +2046,11 @@ const App = {
 
 
 
+  // Instellingen-labels/opties komen uit Lang.t()/Lang.*Name() — de
+  // onderliggende `value`s (dus wat in localStorage/MusicTheory-lookups
+  // terechtkomt) blijven ALTIJD de Nederlandse canonieke sleutel, alleen
+  // het zichtbare `label` verandert mee met de taal. Zie de architectuur-
+  // opmerking bij I18N hierboven.
   buildSettings(id){
     const c = document.getElementById('quick-controls');
     const t = document.getElementById('module-title');
@@ -1861,78 +2058,78 @@ const App = {
     c.innerHTML = ''; extra.innerHTML = ''; extra.style.display = 'none';
 
     if (id === 'notes'){
-      t.innerText = 'Noten Lezen';
+      t.innerText = Lang.t('nav_notes');
       c.innerHTML = `
         <div class="setting-group">
-          <label>Niveau</label>
+          <label>${Lang.t('level_label')}</label>
           <div class="opt-row" id="opt-notes-level"></div>
         </div>`;
       this.renderSingleSelect(document.getElementById('opt-notes-level'), 'notes', 'level',
         [
-          {value:'easy', label:'Makkelijk (C3-C5)', shortLabel:'Niv 1 (C3-C5)'},
-          {value:'med', label:'Gemiddeld (C2-C6)', shortLabel:'Niv 2 (C2-C6)'},
-          {value:'hard', label:'Moeilijk (C1-C7)', shortLabel:'Niv 3 (C1-C7)'}
+          {value:'easy', label:Lang.t('level_easy'), shortLabel:Lang.t('level_easy_short')},
+          {value:'med', label:Lang.t('level_med'), shortLabel:Lang.t('level_med_short')},
+          {value:'hard', label:Lang.t('level_hard'), shortLabel:Lang.t('level_hard_short')}
         ], 'easy');
       this.buildAutoAdvanceControls('notes', c);
 
     } else if (id === 'scales'){
-      t.innerText = 'Toonladders';
+      t.innerText = Lang.t('nav_scales');
       const keys = Object.keys(MusicTheory.scales);
-      c.innerHTML = `<div class="setting-group"><label>Type</label><div class="opt-row" id="opt-scale-types"></div></div>`;
+      c.innerHTML = `<div class="setting-group"><label>${Lang.t('type_label')}</label><div class="opt-row" id="opt-scale-types"></div></div>`;
       // Standaard alleen "Majeur" geselecteerd (was voorheen alle types) —
       // zelfde reden/patroon als de Akkoorden-default hierboven.
       this.renderMultiSelect(document.getElementById('opt-scale-types'), 'scales', 'types',
-        keys.map(k => ({value:k, label:k})), ['Majeur']);
+        keys.map(k => ({value:k, label:Lang.scaleName(k)})), ['Majeur']);
       this.buildAutoAdvanceControls('scales', c);
 
     } else if (id === 'chords'){
-      t.innerText = 'Akkoorden';
+      t.innerText = Lang.t('nav_chords');
       const keys = Object.keys(MusicTheory.chords);
       c.innerHTML = `
-        <div class="setting-group"><label>Type</label><div class="opt-row" id="opt-chord-types"></div></div>
-        <div class="setting-group"><label>Omkeringen</label><div class="opt-row" id="opt-chord-inv"></div></div>`;
+        <div class="setting-group"><label>${Lang.t('type_label')}</label><div class="opt-row" id="opt-chord-types"></div></div>
+        <div class="setting-group"><label>${Lang.t('inversions_label')}</label><div class="opt-row" id="opt-chord-inv"></div></div>`;
       // Standaard alleen "Majeur" geselecteerd (was voorheen alle types) —
       // op verzoek van de gebruiker, zodat een nieuwe/gewiste sessie niet
       // meteen met alle 11 types tegelijk start.
       this.renderMultiSelect(document.getElementById('opt-chord-types'), 'chords', 'types',
-        keys.map(k => ({value:k, label:k})), ['Majeur']);
+        keys.map(k => ({value:k, label:Lang.chordName(k)})), ['Majeur']);
       this.renderSingleSelect(document.getElementById('opt-chord-inv'), 'chords', 'inversion',
-        [{value:'0', label:'Grondligging'}, {value:'1', label:'1e Omkering'}, {value:'2', label:'2e Omkering'}, {value:'3', label:'3e Omkering'}, {value:'ALL', label:'Alle Omkeringen'}], '0');
+        [{value:'0', label:Lang.t('inv_root')}, {value:'1', label:Lang.t('inv_1')}, {value:'2', label:Lang.t('inv_2')}, {value:'3', label:Lang.t('inv_3')}, {value:'ALL', label:Lang.t('inv_all')}], '0');
       this.buildAutoAdvanceControls('chords', c);
 
     } else if (id === 'circle'){
-      t.innerText = 'Kwintencirkel';
+      t.innerText = Lang.t('nav_circle');
       c.innerHTML = `
         <div class="setting-group">
-          <label>Modus</label>
+          <label>${Lang.t('mode_label')}</label>
           <div class="opt-row" id="opt-circle-mode"></div>
         </div>`;
       this.renderSingleSelect(document.getElementById('opt-circle-mode'), 'circle', 'mode',
-        [{value:'visual', label:'Kwintencirkel Interactief'}, {value:'quiz-rel', label:'Relatieve Toonsoort'}, {value:'quiz-acc', label:'Voortekens'}], 'visual');
+        [{value:'visual', label:Lang.t('circle_mode_visual')}, {value:'quiz-rel', label:Lang.t('circle_mode_rel')}, {value:'quiz-acc', label:Lang.t('circle_mode_acc')}], 'visual');
 
     } else if (id === 'intervals'){
-      t.innerText = 'Intervallen';
+      t.innerText = Lang.t('nav_intervals');
       const names = Object.keys(MusicTheory.intervals);
       c.innerHTML = `
-        <div class="setting-group"><label>Weergave</label><div class="opt-row" id="opt-int-display"></div></div>
-        <div class="setting-group"><label>Afspeelmodus</label><div class="opt-row" id="opt-int-play"></div></div>
-        <div class="setting-group"><label>Interval</label><div class="opt-row" id="opt-int-choice"></div></div>`;
+        <div class="setting-group"><label>${Lang.t('display_label')}</label><div class="opt-row" id="opt-int-display"></div></div>
+        <div class="setting-group"><label>${Lang.t('playmode_label')}</label><div class="opt-row" id="opt-int-play"></div></div>
+        <div class="setting-group"><label>${Lang.t('interval_label')}</label><div class="opt-row" id="opt-int-choice"></div></div>`;
       this.renderSingleSelect(document.getElementById('opt-int-display'), 'intervals', 'display',
-        [{value:'visual', label:'Notenbalk'}, {value:'blind', label:'Blind (Audio)'}], 'visual');
+        [{value:'visual', label:Lang.t('int_display_visual')}, {value:'blind', label:Lang.t('int_display_blind')}], 'visual');
       this.renderSingleSelect(document.getElementById('opt-int-play'), 'intervals', 'play',
-        [{value:'melodic', label:'Melodisch'}, {value:'harmonic', label:'Harmonisch'}], 'melodic');
+        [{value:'melodic', label:Lang.t('int_play_melodic')}, {value:'harmonic', label:Lang.t('int_play_harmonic')}], 'melodic');
       this.renderMultiSelect(document.getElementById('opt-int-choice'), 'intervals', 'choice',
         names.map(n => ({value:n, label: INTERVAL_ABBR[n] || n})), ['Octaaf']);
 
     } else if (id === 'progressions'){
-      t.innerText = 'Akkoordprogressies';
+      t.innerText = Lang.t('nav_progressions');
       c.innerHTML = `
         <div class="setting-group">
-          <label>Toonsoort</label>
+          <label>${Lang.t('key_label')}</label>
           <div class="opt-row" id="opt-prog-key"></div>
         </div>`;
       this.renderSingleSelect(document.getElementById('opt-prog-key'), 'progressions', 'key',
-        [{value:'maj', label:'Majeur'}, {value:'min', label:'Mineur'}, {value:'both', label:'Beide'}], 'maj');
+        [{value:'maj', label:Lang.t('prog_key_maj')}, {value:'min', label:Lang.t('prog_key_min')}, {value:'both', label:Lang.t('prog_key_both')}], 'maj');
       this.buildAutoAdvanceControls('progressions', c);
     }
   },
@@ -1954,7 +2151,63 @@ const App = {
     }
   },
 
+  // Onthoudt, per module, de identiteits-sleutels van de laatst getoonde
+  // vragen (zie _questionKey) — generateNewData() loot net zo lang opnieuw
+  // tot een vraag NIET in dit recente venster zit. Voorkomt dat dezelfde
+  // opgave kort na elkaar terugkomt, zonder dat je per module eerst ALLE
+  // mogelijke combinaties (bij bijv. Akkoorden kunnen dat er 500+ zijn)
+  // hoeft te hebben gezien voor er iets mag herhalen.
+  recentQuestions: {},
+  // 8 i.p.v. bijv. 12: bij een minimale instelling (1 akkoord-/toonladder-
+  // type geselecteerd × 13 mogelijke grondtonen = 13 combinaties) moet het
+  // venster ruim onder die 13 blijven, anders faalt de hieronder-staande
+  // retry-poging vaak en glipt er alsnog een herhaling door (gemeten: bij
+  // venster 12 op ruimte 13 zo'n 9% herhalingen — bij 8 nul).
+  RECENT_WINDOW: 8,
+  RECENT_MAX_TRIES: 30,
+
   generateNewData(){
+    const id = this.currentModule;
+    if (!this.recentQuestions[id]) this.recentQuestions[id] = [];
+    const hist = this.recentQuestions[id];
+    let data, key;
+    for (let attempt = 0; attempt < this.RECENT_MAX_TRIES; attempt++){
+      data = this._generateOneQuestion();
+      key = this._questionKey(data);
+      // Geen sleutel (bijv. Kwintencirkel in visuele modus, geen quiz) =
+      // niets om op te herhalen te controleren — meteen accepteren.
+      if (key === null || !hist.includes(key)) break;
+    }
+    if (key !== null){
+      hist.push(key);
+      if (hist.length > this.RECENT_WINDOW) hist.shift();
+    }
+    return data;
+  },
+
+  // Identiteits-sleutel van een vraag, voor de anti-herhaling hierboven —
+  // gebaseerd op dezelfde taal-neutrale ruwe velden die qa() ook gebruikt
+  // om te formatteren, dus nooit taal-afhankelijk.
+  _questionKey(data){
+    if (!data || !data.kind) return null;
+    switch (data.kind){
+      case 'note': return `note:${data.noteMidi}:${data.useFlats}`;
+      case 'scale': return `scale:${data.scaleType}:${data.scaleRoot}`;
+      case 'chord': return `chord:${data.chordType}:${data.chordRoot}:${data.chordInv}`;
+      case 'circleRel': return `circleRel:${data.crIdx}:${data.crVariant}`;
+      case 'circleAcc': return `circleAcc:${data.caIdx}:${data.caVariant}`;
+      case 'interval': return `interval:${data.ivName}:${data.ivRoot}`;
+      case 'progression': return `progression:${data.pgIsMaj}:${data.pgRootName}:${data.pgDegName}`;
+      default: return null;
+    }
+  },
+
+  // Slaat bewust ALLEEN taal-neutrale ruwe gegevens op (noten, Nederlands-
+  // gesleutelde types, indexen) — GEEN kant-en-klare vraag-/antwoordtekst.
+  // Die wordt apart, on-demand, geformatteerd door qa() hieronder — zowel
+  // hier bij het genereren als bij een taalwissel (zie Lang.apply()), zodat
+  // dezelfde vraag zonder opnieuw te loten in beide talen te tonen is.
+  _generateOneQuestion(){
     let id = this.currentModule;
     let data = { type: 'none', slices: [] };
 
@@ -1964,13 +2217,19 @@ const App = {
       let max = lvl === 'easy' ? 72 : (lvl === 'med' ? 84 : 96);
       let m = randomInt(min, max);
       let useFlats = Math.random() > 0.5;
-      data.type = 'note'; data.slices = [[m]]; data.m = m; 
+      data.type = 'note'; data.slices = [[m]]; data.m = m;
       data.useFlats = useFlats;
-      data.ans = midiToName(m, useFlats); 
+      data.kind = 'note'; data.noteMidi = m;
     }
     else if (id === 'scales'){
-      let types = this.getSetting('scales', 'types', Object.keys(MusicTheory.scales));
-      if (!types.length) types = Object.keys(MusicTheory.scales);
+      // Fallback MOET gelijk zijn aan de default die buildSettings() aan de
+      // knoppenrij meegeeft (['Majeur']) — anders genereert de app in een
+      // verse/gewiste sessie stiekem vragen over ALLE types, terwijl de UI
+      // maar één knop gemarkeerd toont (bug, gemeld door gebruiker: pas na
+      // een eerste handmatige klik werd de opgeslagen instelling — en dus
+      // ook generateNewData()'s keuze — pas echt gelijk aan wat je zag).
+      let types = this.getSetting('scales', 'types', ['Majeur']);
+      if (!types.length) types = ['Majeur'];
       let type = types[randomInt(0, types.length - 1)];
       let root = randomInt(48, 60);
       let formula = MusicTheory.scales[type];
@@ -1979,11 +2238,13 @@ const App = {
       data.type = 'sequence';
       data.useFlats = useFlats;
       data.slices = notes.map(n => [n]);
-      data.ans = `${midiToName(root, useFlats)} ${type}`;
+      data.kind = 'scale'; data.scaleRoot = root; data.scaleType = type;
     }
     else if (id === 'chords'){
-      let types = this.getSetting('chords', 'types', Object.keys(MusicTheory.chords));
-      if (!types.length) types = Object.keys(MusicTheory.chords);
+      // Zelfde fix als bij Toonladders hierboven: fallback moet ['Majeur']
+      // zijn, gelijk aan buildSettings()'s default voor de knoppenrij.
+      let types = this.getSetting('chords', 'types', ['Majeur']);
+      if (!types.length) types = ['Majeur'];
       let invSel = this.getSetting('chords', 'inversion', '0');
       let type = types[randomInt(0, types.length - 1)];
       let root = randomInt(48, 60);
@@ -1992,11 +2253,10 @@ const App = {
       for (let i = 0; i < inv; i++) formula[i] += 12;
       formula.sort((a,b) => a - b);
       let useFlats = [53, 58, 51, 56, 49, 65, 70, 63, 68, 61].includes(root);
-      data.type = 'chord'; 
+      data.type = 'chord';
       data.useFlats = useFlats;
       data.slices = [formula.map(iv => root + iv)];
-      let invText = inv === 0 ? "Grondligging" : `${inv}e Omkering`;
-      data.ans = `${midiToName(root, useFlats)} ${type} (${invText})`;
+      data.kind = 'chord'; data.chordRoot = root; data.chordType = type; data.chordInv = inv;
     }
     else if (id === 'circle'){
       let mode = this.getSetting('circle', 'mode', 'visual');
@@ -2006,25 +2266,16 @@ const App = {
         let keys = MusicTheory.circle.keys, minors = MusicTheory.circle.minors, accs = MusicTheory.circle.accidentals;
         let rootNote = "", chordType = "";
         data.useFlats = accs[idx] < 0;
-        
+        let variant = Math.random() > 0.5 ? 'a' : 'b';
+
         if (mode === 'quiz-rel'){
           let minorClean = minors[idx].replace(/m$/, '');
-          if (Math.random() > 0.5){
-            data.q = `Wat is de relatieve mineur van ${keys[idx]} Majeur?`; data.ans = `${minorClean} mineur`;
-            rootNote = minors[idx]; chordType = "Mineur";
-          } else {
-            data.q = `Wat is de relatieve majeur van ${minorClean} mineur?`; data.ans = `${keys[idx]} Majeur`;
-            rootNote = keys[idx]; chordType = "Majeur";
-          }
+          data.kind = 'circleRel'; data.crIdx = idx; data.crVariant = variant; data.crMinorClean = minorClean;
+          if (variant === 'a'){ rootNote = minors[idx]; chordType = "Mineur"; }
+          else { rootNote = keys[idx]; chordType = "Majeur"; }
         } else {
-          let accText = accs[idx] === 0 ? "0 voortekens" : (accs[idx] > 0 ? `${accs[idx]} kruisen (#)` : `${Math.abs(accs[idx])} mollen (b)`);
-          if (Math.random() > 0.5){
-            data.q = `Welke majeur toonsoort heeft ${accText}?`; data.ans = `${keys[idx]} Majeur`;
-            rootNote = keys[idx]; chordType = "Majeur";
-          } else {
-            data.q = `Hoeveel voortekens heeft ${keys[idx]} Majeur?`; data.ans = accText;
-            rootNote = keys[idx]; chordType = "Majeur";
-          }
+          data.kind = 'circleAcc'; data.caIdx = idx; data.caVariant = variant;
+          rootNote = keys[idx]; chordType = "Majeur";
         }
         const rootToMidi = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,"Am":69,"Em":64,"Bm":71,"F#m":66,"C#m":61,"G#m":68,"D#m":63,"Bbm":70,"Fm":65,"Cm":60,"Gm":67,"Dm":62};
         let rootMidi = rootToMidi[rootNote];
@@ -2043,36 +2294,82 @@ const App = {
       data.i_mode = mode; data.type = playMode === 'melodic' ? 'sequence' : 'chord';
       data.useFlats = useFlats;
       data.slices = playMode === 'melodic' ? [[root],[top]] : [[root, top]];
-      data.ans = `${name} (${midiToName(root, useFlats)} → ${midiToName(top, useFlats)})`;
+      data.kind = 'interval'; data.ivName = name; data.ivRoot = root; data.ivTop = top;
     }
     else if (id === 'progressions'){
       let kType = this.getSetting('progressions', 'key', 'maj');
       let isMaj = kType === 'maj' ? true : (kType === 'min' ? false : Math.random() > 0.5);
       let rootKeyIdx = randomInt(0, 11);
-      
+
       let rootName = isMaj ? MusicTheory.circle.keys[rootKeyIdx] : MusicTheory.circle.minors[rootKeyIdx].replace(/m$/, '');
-      
+
       let accidentals = MusicTheory.circle.accidentals[rootKeyIdx];
-      data.useFlats = accidentals < 0; 
-      
-      const rootToMidiMap = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65, 
+      data.useFlats = accidentals < 0;
+
+      const rootToMidiMap = {"C":60,"G":67,"D":62,"A":69,"E":64,"B":71,"F#":66,"Db":61,"Ab":68,"Eb":63,"Bb":70,"F":65,
                              "A":57,"E":64,"B":71,"C#":61,"G#":68,"D#":63};
       let rootMidi = rootToMidiMap[rootName];
-      if(rootMidi > 64) rootMidi -= 12; 
+      if(rootMidi > 64) rootMidi -= 12;
 
       const degs = isMaj ?
         [{n:'I', iv:0, q:'Majeur'}, {n:'ii', iv:2, q:'Mineur'}, {n:'IV', iv:5, q:'Majeur'}, {n:'V', iv:7, q:'Majeur'}, {n:'vi', iv:9, q:'Mineur'}] :
         [{n:'i', iv:0, q:'Mineur'}, {n:'III', iv:3, q:'Majeur'}, {n:'iv', iv:5, q:'Mineur'}, {n:'V', iv:7, q:'Majeur'}, {n:'VI', iv:8, q:'Majeur'}];
-        
+
       let targetDeg = degs[randomInt(0, degs.length - 1)];
       let chordRoot = rootMidi + targetDeg.iv;
-      
+
       data.type = 'chord'; data.slices = [MusicTheory.chords[targetDeg.q].map(iv => chordRoot + iv)];
-      data.q = `Wat is trap '${targetDeg.n}' in ${rootName} ${isMaj ? 'Majeur' : 'mineur'}?`;
-      data.ans = `${midiToName(chordRoot, data.useFlats)} ${targetDeg.q}`;
+      data.kind = 'progression'; data.pgRootName = rootName; data.pgIsMaj = isMaj;
+      data.pgDegName = targetDeg.n; data.pgChordRoot = chordRoot; data.pgChordType = targetDeg.q;
     }
 
     return data;
+  },
+
+  // Formatteert de vraag ({q}) en het antwoord ({ans}) in de HUIDIGE taal
+  // vanuit de taal-neutrale ruwe velden die generateNewData() opsloeg.
+  // Aparte functie (i.p.v. inline in generateNewData) zodat een taalwissel
+  // dezelfde vraag opnieuw kan formatteren zonder een nieuwe te loten.
+  qa(data){
+    if (!data) return { q:'', ans:'' };
+    const t = (k, p) => Lang.t(k, p);
+    switch (data.kind){
+      case 'note':
+        return { q:'', ans: midiToName(data.noteMidi, data.useFlats) };
+      case 'scale':
+        return { q:'', ans: `${midiToName(data.scaleRoot, data.useFlats)} ${Lang.scaleName(data.scaleType)}` };
+      case 'chord': {
+        const invText = data.chordInv === 0 ? t('inv_root') : t('inv_' + data.chordInv);
+        return { q:'', ans: `${midiToName(data.chordRoot, data.useFlats)} ${Lang.chordName(data.chordType)} (${invText})` };
+      }
+      case 'circleRel': {
+        const keys = MusicTheory.circle.keys;
+        if (data.crVariant === 'a'){
+          return { q: t('qRelMinorOf', {key:keys[data.crIdx]}), ans: `${data.crMinorClean} ${t('minorLower')}` };
+        }
+        return { q: t('qRelMajorOf', {key:data.crMinorClean}), ans: `${keys[data.crIdx]} ${t('major')}` };
+      }
+      case 'circleAcc': {
+        const keys = MusicTheory.circle.keys, accs = MusicTheory.circle.accidentals;
+        const n = accs[data.caIdx];
+        const accText = n === 0 ? t('zeroAccidentals') : (n > 0 ? t('nSharps', {n}) : t('nFlats', {n:Math.abs(n)}));
+        if (data.caVariant === 'a'){
+          return { q: t('qWhichMajorHas', {acc:accText}), ans: `${keys[data.caIdx]} ${t('major')}` };
+        }
+        return { q: t('qHowManyAccidentals', {key:keys[data.caIdx]}), ans: accText };
+      }
+      case 'interval':
+        return { q:'', ans: `${Lang.intervalName(data.ivName)} (${midiToName(data.ivRoot, data.useFlats)} → ${midiToName(data.ivTop, data.useFlats)})` };
+      case 'progression': {
+        const kw = data.pgIsMaj ? t('major') : t('minorLower');
+        return {
+          q: t('qDegreeIn', {deg:data.pgDegName, key:data.pgRootName, kw}),
+          ans: `${midiToName(data.pgChordRoot, data.useFlats)} ${Lang.chordName(data.pgChordType)}`
+        };
+      }
+      default:
+        return { q:'', ans:'' };
+    }
   },
 
   renderData(data){
@@ -2091,6 +2388,7 @@ const App = {
 
     let id = this.currentModule;
     const isCircleVisual = (id === 'circle' && data.c_mode === 'visual');
+    const { q, ans } = this.qa(data);
 
     document.getElementById('flashcard-actions').style.display = isCircleVisual ? 'none' : 'flex';
     document.getElementById('swipe-hint').style.display = isCircleVisual ? 'none' : 'block';
@@ -2098,20 +2396,20 @@ const App = {
     if (isCircleVisual){
       svgBox.style.display = 'flex';
       CircleWheel.render();
-      ansDisp.innerText = "Tik op een toonsoort om het akkoord te horen.";
+      ansDisp.innerText = Lang.t('circleTapHint');
     }
     else if (id === 'circle' || (id === 'intervals' && data.i_mode === 'blind')){
       textQuiz.style.display = 'block';
-      textQuiz.innerText = id === 'circle' ? data.q : `Luister goed... (Blind)`;
+      textQuiz.innerText = id === 'circle' ? q : Lang.t('listenBlind');
       if (id === 'intervals') setTimeout(() => this.playCurrent(), 400);
-      ansDisp.innerText = data.ans;
+      ansDisp.innerText = ans;
     }
     else {
       paper.style.display = 'flex';
-      if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = data.q; }
+      if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = q; }
       this.applyPaperMaxWidth(id);
       ScoreRenderer.render('score-paper', data.slices, data.useFlats, this.paperRenderOpts(id));
-      ansDisp.innerText = data.ans;
+      ansDisp.innerText = ans;
     }
 
     document.getElementById('btn-prev').disabled = this.historyIndex <= 0;
@@ -2191,7 +2489,7 @@ const SoundUI = {
   updateIcons(){
     const on = this.isOn();
     const icon = on ? '🔊' : '🔇';
-    const title = on ? 'Geluid uitzetten' : 'Geluid aanzetten';
+    const title = Lang.t(on ? 'tooltip_sound_on' : 'tooltip_sound_off');
     const btnHeader = document.getElementById('sound-btn-header');
     if (btnHeader){ btnHeader.innerHTML = icon; btnHeader.title = title; }
     const btnBnav = document.getElementById('sound-btn-bnav');
@@ -2219,6 +2517,7 @@ const SoundUI = {
 
 ThemeManager.init();
 SoundUI.init();
+Lang.init();
 (function wireResponsiveSettings(){
   let resizeTimer = null;
   window.addEventListener('resize', () => {
