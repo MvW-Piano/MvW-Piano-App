@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.4.0 | Bèta Editie</p>
+      <p class="version-tag">v0.5.0 | Bèta Editie</p>
     </div>
   </div>
 
@@ -191,11 +191,18 @@
      README_Eigen_Pianogeluid.md. -->
 <button type="button" id="samples-hidden-trigger" onclick="App.pickSamplesFolder()" data-i18n-title="tooltip_samples" title="Eigen pianogeluid laden">📁</button>
 
+<!-- MIDI-statusindicator (Fase 1.1): puur een klein bolletje, geen knop —
+     er is (nog) geen apparaat-kiezer om naartoe te klikken, zie
+     Root_Note_Context.md. Zelfde bewust-onopvallende stijl als
+     #samples-hidden-trigger hierboven, ernaast geplaatst. -->
+<div id="midi-status-indicator" title="Geen MIDI-apparaat gevonden"></div>
+
 
 <script src="js/lang.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/music-theory.js"></script>
 <script src="js/audio-engine.js"></script>
+<script src="js/midi-engine.js"></script>
 <script src="js/score-renderer.js"></script>
 <script src="js/piano-ui.js"></script>
 <script src="js/circle-wheel.js"></script>

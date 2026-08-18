@@ -128,6 +128,22 @@ body{
   #samples-hidden-trigger{ left:8px; bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
 }
 
+/* MIDI-statusbolletje (Fase 1.1): net zo bewust onopvallend als
+   #samples-hidden-trigger hierboven, ernaast geplaatst — grijs/gedimd zolang
+   er niets verbonden is (of de browser geen Web MIDI ondersteunt), groen
+   zodra een apparaat actief is. Geen klik-actie (nog geen apparaat-kiezer),
+   dus geen cursor:pointer/hover-stijl nodig — de title-tooltip blijft wel
+   werken zonder pointer-events uit te zetten. */
+#midi-status-indicator{
+  position:fixed; left:104px; bottom:11px; z-index:15; width:8px; height:8px;
+  border-radius:50%; background:var(--text-muted); opacity:.35;
+  transition:background-color .2s ease, opacity .2s ease;
+}
+#midi-status-indicator.connected{ background:#22c55e; opacity:.9; }
+@media (max-width:640px){
+  #midi-status-indicator{ left:28px; bottom:calc(67px + env(safe-area-inset-bottom, 0px)); }
+}
+
 #content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #content-topbar{
   background-color:transparent; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);

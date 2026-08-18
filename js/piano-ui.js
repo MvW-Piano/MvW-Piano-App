@@ -16,8 +16,15 @@ const PianoUI = {
           e.preventDefault();
           if (e.type === 'touchstart' && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') AudioEngine.ctx.resume();
           AudioEngine.playTone(m, 2.0, 0.8); key.classList.add('active');
+          // Voedt dezelfde note-event-stream als een fysiek MIDI-apparaat
+          // (zie MidiEngine) — zo werkt alle MIDI-logica die hierop bouwt
+          // automatisch ook zonder fysiek keyboard erbij.
+          if (typeof MidiEngine !== 'undefined') MidiEngine.simulateNoteOn(m, 100);
         };
-        const release = (e) => { e.preventDefault(); key.classList.remove('active'); };
+        const release = (e) => {
+          e.preventDefault(); key.classList.remove('active');
+          if (typeof MidiEngine !== 'undefined') MidiEngine.simulateNoteOff(m);
+        };
         key.addEventListener('mousedown', press);
         key.addEventListener('touchstart', press, {passive:false});
         key.addEventListener('mouseup', release);

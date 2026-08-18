@@ -21,6 +21,8 @@ const I18N = {
     tooltip_theme:'Wissel thema', tooltip_fullscreen:'Volledig scherm',
     tooltip_reset:'Instellingen resetten naar standaard', tooltip_samples:'Eigen pianogeluid laden',
     tooltip_sound_on:'Geluid uitzetten', tooltip_sound_off:'Geluid aanzetten',
+    tooltip_midi_connected:'MIDI verbonden: {device}', tooltip_midi_none:'Geen MIDI-apparaat gevonden',
+    tooltip_midi_unsupported:'MIDI wordt niet ondersteund in deze browser',
     settings_title:'Instellingen', settings_close:'Sluiten',
     level_label:'Niveau', level_easy:'Makkelijk (C3-C5)', level_easy_short:'Niv 1 (C3-C5)',
     level_med:'Gemiddeld (C2-C6)', level_med_short:'Niv 2 (C2-C6)',
@@ -58,6 +60,8 @@ const I18N = {
     tooltip_theme:'Switch theme', tooltip_fullscreen:'Fullscreen',
     tooltip_reset:'Reset settings to default', tooltip_samples:'Load your own piano sound',
     tooltip_sound_on:'Turn sound off', tooltip_sound_off:'Turn sound on',
+    tooltip_midi_connected:'MIDI connected: {device}', tooltip_midi_none:'No MIDI device found',
+    tooltip_midi_unsupported:'MIDI is not supported in this browser',
     settings_title:'Settings', settings_close:'Close',
     level_label:'Level', level_easy:'Easy (C3-C5)', level_easy_short:'Lvl 1 (C3-C5)',
     level_med:'Intermediate (C2-C6)', level_med_short:'Lvl 2 (C2-C6)',
@@ -138,6 +142,7 @@ const Lang = {
     const langBnavIcon = document.getElementById('lang-btn-bnav-icon');
     if (langBnavIcon) langBnavIcon.textContent = langLabel;
     if (typeof SoundUI !== 'undefined') SoundUI.updateIcons();
+    if (typeof MidiEngine !== 'undefined') MidiEngine.updateStatusIndicator();
   },
   // Ná de eerste keer wordt dit ook aangeroepen als de taal wisselt terwijl
   // de app al gestart is: instellingenpaneel + de huidige vraag/antwoord

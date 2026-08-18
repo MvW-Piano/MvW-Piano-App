@@ -79,6 +79,7 @@ const App = {
   init(){
     document.getElementById('init-overlay').style.display = 'none';
     AudioEngine.init();
+    MidiEngine.init();
     this.tryAutoLoadSamples();
     this.loadModule('notes');
   },
