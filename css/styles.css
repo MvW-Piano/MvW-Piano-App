@@ -584,10 +584,38 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 }
 .key span{ position:absolute; bottom:15px; width:100%; text-align:center; font-size:14px; font-weight:700; color:#a9987a; pointer-events:none; }
 
+/* Muziektheorie-naslagwerk (Fase 3.2, sinds v0.15.0) — doorbladerbare
+   cheat-sheet, geen flashcard/quizstructuur. Zelfde "los top-level scherm,
+   display:none tot getoond via App.loadModule()"-opzet als #piano-module
+   hierboven. TheoryUI.render() (theory-ui.js) bouwt #theory-content. */
+#theory-view{
+  display:none; flex-direction:column; width:100%; height:100%; overflow-y:auto;
+  background:var(--bg-dark); transition:background-color .3s;
+}
+#theory-content{ width:100%; max-width:1100px; margin:0 auto; padding:28px 22px 90px; }
+.theory-category{ margin-bottom:36px; }
+.theory-category:last-child{ margin-bottom:0; }
+.theory-category h2{
+  font-family:'Fraunces',serif; font-weight:600; font-size:1.3rem; margin:0 0 16px;
+  color:var(--text-main); padding-bottom:8px; border-bottom:1px solid var(--border-color);
+}
+.theory-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; }
+.theory-card{
+  background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);
+  padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+  box-shadow:var(--shadow-sm);
+}
+.theory-card-visual{ width:100%; min-height:70px; display:flex; align-items:center; justify-content:center; }
+.theory-card-visual svg{ width:100%; height:auto; max-width:200px; display:block; }
+.theory-card h3{ font-size:.95rem; font-weight:700; color:var(--text-main); margin:4px 0 0; }
+.theory-card p{ font-size:.8rem; color:var(--text-muted); margin:0; line-height:1.4; }
+
 @media (max-width:768px){
   #workspace{ padding:12px; }
   .flashcard{ min-height:240px; padding:14px; transition:background-color .3s, border-color .3s, color .3s, min-height .3s ease; }
   .piano-keyboard{ height:200px; }
   .key.white{ width:44px; }
   .key.black{ width:28px; margin-left:-14px; margin-right:-14px; }
+  #theory-content{ padding:18px 14px 90px; }
+  .theory-grid{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px; }
 }

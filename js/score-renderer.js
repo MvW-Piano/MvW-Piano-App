@@ -195,5 +195,94 @@ const ScoreRenderer = {
       svg.style.removeProperty('height');
     }
     }
+  },
+
+  // ---- Muziektheorie-naslagwerk: kleine illustratieve voorbeelden (Fase
+  // 3.2, sinds v0.15.0) ----
+  // Eén korte fase op één notenbalk, met optionele articulatie/annotatie/
+  // slur/tie per noot — voor de cheat-sheet-view (TheoryUI, zie
+  // theory-ui.js/theory-data.js). Bewust een EIGEN, eenvoudiger
+  // notenbouw-pad dan buildNote() hierboven (dat is toegespitst op
+  // akkoorden/octaafcorrectie/voortekens voor de quizmodules) — hier gaat
+  // het om een klein, vast voorbeeld zonder die complicaties, maar wel met
+  // dezelfde thema-kleurdetectie/crop-naar-inhoud-aanpak als render()
+  // hierboven, vandaar dat dit toch als ScoreRenderer-methode leeft i.p.v.
+  // een losse renderer op te tuigen.
+  // spec: `{ notes:[{keys, duration, articulation?, annotation?:{text,pos}}],
+  // slur?:bool, tie?:bool }`. `pos` is `'above'`/`'below'`.
+  renderSymbol(containerId, spec, opts = {}){
+    const VF = Vex.Flow;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    try {
+      const canvasW = opts.canvasW || 220;
+      const canvasH = 120;
+      const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+      renderer.resize(canvasW, canvasH);
+      const ctx = renderer.getContext();
+      ctx.setFont('Inter, Arial', 10);
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      const ink = isDark ? '#f2f4f9' : '#111827';
+      if (ctx.setFillStyle) ctx.setFillStyle(ink);
+      if (ctx.setStrokeStyle) ctx.setStrokeStyle(ink);
+
+      const stave = new VF.Stave(4, 20, canvasW - 8);
+      stave.setContext(ctx).draw();
+
+      const notes = spec.notes.map(n => {
+        const note = new VF.StaveNote({ keys:n.keys, duration:n.duration, auto_stem:true });
+        note.setStyle({ fillStyle:ink, strokeStyle:ink });
+        note.setLedgerLineStyle({ fillStyle:ink, strokeStyle:ink });
+        if (n.articulation){
+          const art = new VF.Articulation(n.articulation);
+          try { note.addModifier(art, 0); }
+          catch(e1){ try { note.addModifier(0, art); } catch(e2){ console.warn('Kon articulatie niet toevoegen:', e2); } }
+        }
+        if (n.annotation){
+          const ann = new VF.Annotation(n.annotation.text);
+          if (ann.setFont) ann.setFont('Inter', 12, 'italic');
+          if (ann.setVerticalJustification && VF.Annotation.VerticalJustify){
+            ann.setVerticalJustification(n.annotation.pos === 'above' ? VF.Annotation.VerticalJustify.TOP : VF.Annotation.VerticalJustify.BOTTOM);
+          }
+          try { note.addModifier(ann, 0); }
+          catch(e1){ try { note.addModifier(0, ann); } catch(e2){ console.warn('Kon annotatie niet toevoegen:', e2); } }
+        }
+        return note;
+      });
+
+      const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 }).setStrict(false).addTickables(notes);
+      const formatter = new VF.Formatter();
+      formatter.joinVoices([voice]);
+      formatter.format([voice], canvasW - 50);
+      voice.draw(ctx, stave);
+
+      if (spec.slur && notes.length >= 2) new VF.Curve(notes[0], notes[notes.length - 1], {}).setContext(ctx).draw();
+      if (spec.tie && notes.length >= 2) new VF.StaveTie({ first_note: notes[0], last_note: notes[1] }).setContext(ctx).draw();
+
+      const svg = container.querySelector('svg');
+      if (svg){
+        const bbox = svg.getBBox();
+        const pad = 8;
+        const y0 = Math.max(0, bbox.y - pad);
+        // GEEN Math.min(canvasH - y0, ...)-clamp zoals render() hierboven
+        // gebruikt — daar is CANVAS_H (320) altijd ruim genoeg voor de
+        // quizinhoud, maar hier duwt bijv. een dynamiek-annotatie ONDER een
+        // al-lage noot (met hulplijntje) de werkelijke inhoud verder naar
+        // beneden dan de vaste canvasH (120) toelaat. De crop is puur een
+        // viewBox-wijziging (geen echte clip-grens), dus een grotere `h` dan
+        // canvasH is hier gewoon veilig — bevestigd bug (dynamiek-tekst werd
+        // afgesneden) tijdens het testen van Fase 3.2.
+        const h = bbox.height + pad * 2;
+        svg.setAttribute('viewBox', `0 ${y0} ${canvasW} ${h}`);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.removeProperty('width');
+        svg.style.removeProperty('height');
+      }
+    } catch(err){
+      console.error('Muziektheorie-voorbeeld kon niet worden getekend:', err);
+      container.innerHTML = '<p style="color:#c1594e; font-size:.75rem; padding:8px;">Kon niet getekend worden.</p>';
+    }
   }
 };

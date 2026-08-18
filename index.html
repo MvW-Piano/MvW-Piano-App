@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.14.0 | Bèta Editie</p>
+      <p class="version-tag">v0.15.0 | Bèta Editie</p>
     </div>
   </div>
 
@@ -84,6 +84,7 @@
       <button class="nav-item" id="nav-circle" onclick="App.loadModule('circle')" data-i18n-title="nav_circle" title="Kwintencirkel"><span class="nav-icon">🎼</span><span class="nav-label" data-i18n="nav_circle">Kwintencirkel</span></button>
       <button class="nav-item" id="nav-intervals" onclick="App.loadModule('intervals')" data-i18n-title="nav_intervals" title="Intervallen"><span class="nav-icon">👂</span><span class="nav-label" data-i18n="nav_intervals">Intervallen</span></button>
       <button class="nav-item" id="nav-progressions" onclick="App.loadModule('progressions')" data-i18n-title="nav_progressions" title="Akkoordprogressies"><span class="nav-icon">📈</span><span class="nav-label" data-i18n="navLabel_progressions">Progressies</span></button>
+      <button class="nav-item" id="nav-theory" onclick="App.loadModule('theory')" data-i18n-title="nav_theory" title="Muziektheorie"><span class="nav-icon">📖</span><span class="nav-label" data-i18n="navLabel_theory">Theorie</span></button>
       <button class="nav-item" id="nav-piano" onclick="App.loadModule('piano')" data-i18n-title="nav_piano" title="Virtuele Piano"><span class="nav-icon">🎹</span><span class="nav-label" data-i18n="navLabel_piano">Vrij Spelen</span></button>
     </nav>
     <div class="sidebar-footer">
@@ -116,6 +117,7 @@
     <button class="bnav-item" id="bnav-circle" onclick="App.loadModule('circle')"><span class="bnav-icon">🎼</span><span data-i18n="bnav_circle">Cirkel</span></button>
     <button class="bnav-item" id="bnav-intervals" onclick="App.loadModule('intervals')"><span class="bnav-icon">👂</span><span data-i18n="bnav_intervals">Interv.</span></button>
     <button class="bnav-item" id="bnav-progressions" onclick="App.loadModule('progressions')"><span class="bnav-icon">📈</span><span data-i18n="bnav_progressions">Progr.</span></button>
+    <button class="bnav-item" id="bnav-theory" onclick="App.loadModule('theory')"><span class="bnav-icon">📖</span><span data-i18n="bnav_theory">Theorie</span></button>
     <button class="bnav-item" id="bnav-piano" onclick="App.loadModule('piano')"><span class="bnav-icon">🎹</span><span data-i18n="bnav_piano">Piano</span></button>
     <button class="bnav-item" onclick="SoundUI.toggle()" id="sound-btn-bnav"><span class="bnav-icon">🔊</span><span data-i18n="bnav_sound">Geluid</span></button>
     <button class="bnav-item" onclick="ThemeManager.toggle()" id="theme-btn-bnav"><span class="bnav-icon">☀️</span><span data-i18n="bnav_theme">Thema</span></button>
@@ -182,6 +184,14 @@
       </div>
       <p class="swipe-hint" id="swipe-hint" data-i18n="swipeHint">Swipe ⬅➔ op de kaart om te wisselen</p>
 
+      <!-- Muziektheorie-naslagwerk (Fase 3.2, sinds v0.15.0) — GEEN
+           flashcard/quiz-structuur zoals de rest, zie TheoryUI.render()
+           (js/theory-ui.js). Zelfde "los top-level scherm, getoond/verborgen
+           via loadModule()"-opzet als #piano-module hierboven. -->
+      <div id="theory-view">
+        <div id="theory-content"></div>
+      </div>
+
       <div id="piano-module">
         <div class="piano-ui-controls">
           <button class="piano-btn" onclick="PianoUI.scroll(-200)">⬅ <span data-i18n="piano_left">Links</span></button>
@@ -219,6 +229,8 @@
 <script src="js/midi-engine.js"></script>
 <script src="js/scroll-engine.js"></script>
 <script src="js/score-renderer.js"></script>
+<script src="js/theory-data.js"></script>
+<script src="js/theory-ui.js"></script>
 <script src="js/piano-ui.js"></script>
 <script src="js/circle-wheel.js"></script>
 <script src="js/file-access.js"></script>

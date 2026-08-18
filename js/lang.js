@@ -13,10 +13,10 @@ const I18N = {
   nl: {
     nav_notes:'Noten Lezen', nav_scales:'Toonladders', nav_chords:'Akkoorden',
     nav_circle:'Kwintencirkel', nav_intervals:'Intervallen', nav_progressions:'Akkoordprogressies',
-    nav_piano:'Virtuele Piano',
-    navLabel_progressions:'Progressies', navLabel_piano:'Vrij Spelen',
+    nav_theory:'Muziektheorie', nav_piano:'Virtuele Piano',
+    navLabel_progressions:'Progressies', navLabel_theory:'Theorie', navLabel_piano:'Vrij Spelen',
     bnav_notes:'Noten', bnav_scales:'Ladders', bnav_chords:'Akk.', bnav_circle:'Cirkel',
-    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_piano:'Piano',
+    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_theory:'Theorie', bnav_piano:'Piano',
     bnav_sound:'Geluid', bnav_theme:'Thema', bnav_fullscreen:'Scherm', bnav_reset:'Reset', bnav_lang:'Taal',
     tooltip_theme:'Wissel thema', tooltip_fullscreen:'Volledig scherm',
     tooltip_reset:'Instellingen resetten naar standaard', tooltip_samples:'Eigen pianogeluid laden',
@@ -58,15 +58,40 @@ const I18N = {
     zeroAccidentals:'0 voortekens', nSharps:'{n} kruisen (#)', nFlats:'{n} mollen (b)',
     resetConfirm:'Alle instellingen terugzetten naar standaard? Dit geldt voor alle modules en kan niet ongedaan gemaakt worden.',
     piano_left:'Links', piano_center:'Midden (C4)', piano_right:'Rechts',
-    homeSubtitle:'De Piano Trainer'
+    homeSubtitle:'De Piano Trainer',
+    // Muziektheorie-naslagwerk (Fase 3.2, sinds v0.15.0) — zie theory-data.js
+    // voor de datastructuur en theory-ui.js voor hoe deze keys opgebouwd
+    // worden (`theory_cat_<catKey>` / `theory_<itemKey>_title` /
+    // `theory_<itemKey>_desc`).
+    theory_cat_restsDuration:'Rusten & Notenduur', theory_cat_legatoSlur:'Legato & Binding',
+    theory_cat_articulation:'Articulatie', theory_cat_dynamics:'Dynamiek', theory_cat_tempo:'Tempo-aanduidingen',
+    theory_restWhole_title:'Hele noot & hele rust', theory_restWhole_desc:'Duurt 4 tellen in een maatsoort van 4/4 — de langste gangbare notenwaarde.',
+    theory_restHalf_title:'Halve noot & halve rust', theory_restHalf_desc:'Duurt 2 tellen.',
+    theory_restQuarter_title:'Kwartnoot & kwartrust', theory_restQuarter_desc:'Duurt 1 tel — de meest voorkomende notenwaarde.',
+    theory_restEighth_title:'Achtste noot & achtste rust', theory_restEighth_desc:'Duurt een halve tel.',
+    theory_slur_title:'Legato boog (slur)', theory_slur_desc:'Een boog over noten van VERSCHILLENDE toonhoogte: speel ze vloeiend verbonden, zonder hoorbare onderbreking ertussen.',
+    theory_tie_title:'Overbinding (tie)', theory_tie_desc:'Een boog tussen twee noten van DEZELFDE toonhoogte: telt op tot één langere klank, geen nieuwe aanslag bij de tweede noot.',
+    theory_staccato_title:'Staccato', theory_staccato_desc:'Een puntje boven of onder de notenkop: speel de noot kort en los, korter dan de genoteerde duur.',
+    theory_accent_title:'Accent', theory_accent_desc:"Een '>'-teken boven of onder de notenkop: speel deze noot merkbaar luider/nadrukkelijker dan de omliggende noten.",
+    theory_tenuto_title:'Tenuto', theory_tenuto_desc:'Een streepje boven of onder de notenkop: speel de noot de volle genoteerde duur, licht nadrukkelijk aangehouden.',
+    theory_dyn_pp_title:'Pianissimo (pp)', theory_dyn_pp_desc:'Heel zacht.',
+    theory_dyn_p_title:'Piano (p)', theory_dyn_p_desc:'Zacht.',
+    theory_dyn_mp_title:'Mezzopiano (mp)', theory_dyn_mp_desc:'Matig zacht.',
+    theory_dyn_mf_title:'Mezzoforte (mf)', theory_dyn_mf_desc:'Matig luid.',
+    theory_dyn_f_title:'Forte (f)', theory_dyn_f_desc:'Luid.',
+    theory_dyn_ff_title:'Fortissimo (ff)', theory_dyn_ff_desc:'Heel luid.',
+    theory_rit_title:'Ritardando (rit.)', theory_rit_desc:'Geleidelijk langzamer spelen.',
+    theory_accel_title:'Accelerando (accel.)', theory_accel_desc:'Geleidelijk sneller spelen.',
+    theory_aTempo_title:'A tempo', theory_aTempo_desc:'Terug naar het oorspronkelijke tempo, na een rit./accel. of andere tempowisseling.',
+    theory_fermate_title:'Fermate', theory_fermate_desc:'Houd deze noot langer aan dan de genoteerde duur, naar eigen inzicht van de speler/dirigent.'
   },
   en: {
     nav_notes:'Note Reading', nav_scales:'Scales', nav_chords:'Chords',
     nav_circle:'Circle of Fifths', nav_intervals:'Intervals', nav_progressions:'Chord Progressions',
-    nav_piano:'Virtual Piano',
-    navLabel_progressions:'Progressions', navLabel_piano:'Free Play',
+    nav_theory:'Music Theory', nav_piano:'Virtual Piano',
+    navLabel_progressions:'Progressions', navLabel_theory:'Theory', navLabel_piano:'Free Play',
     bnav_notes:'Notes', bnav_scales:'Scales', bnav_chords:'Chords', bnav_circle:'Circle',
-    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_piano:'Piano',
+    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_theory:'Theory', bnav_piano:'Piano',
     bnav_sound:'Sound', bnav_theme:'Theme', bnav_fullscreen:'Screen', bnav_reset:'Reset', bnav_lang:'Language',
     tooltip_theme:'Switch theme', tooltip_fullscreen:'Fullscreen',
     tooltip_reset:'Reset settings to default', tooltip_samples:'Load your own piano sound',
@@ -109,6 +134,27 @@ const I18N = {
     resetConfirm:'Reset all settings to default? This applies to all modules and cannot be undone.',
     piano_left:'Left', piano_center:'Center (C4)', piano_right:'Right',
     homeSubtitle:'The Piano Trainer',
+    theory_cat_restsDuration:'Rests & Note Values', theory_cat_legatoSlur:'Legato & Slurs',
+    theory_cat_articulation:'Articulation', theory_cat_dynamics:'Dynamics', theory_cat_tempo:'Tempo Markings',
+    theory_restWhole_title:'Whole note & whole rest', theory_restWhole_desc:'Lasts 4 beats in 4/4 time — the longest common note value.',
+    theory_restHalf_title:'Half note & half rest', theory_restHalf_desc:'Lasts 2 beats.',
+    theory_restQuarter_title:'Quarter note & quarter rest', theory_restQuarter_desc:'Lasts 1 beat — the most common note value.',
+    theory_restEighth_title:'Eighth note & eighth rest', theory_restEighth_desc:'Lasts half a beat.',
+    theory_slur_title:'Slur', theory_slur_desc:'A curve over notes of DIFFERENT pitches: play them smoothly connected, with no audible break between them.',
+    theory_tie_title:'Tie', theory_tie_desc:'A curve between two notes of the SAME pitch: adds their durations together into one longer sound, no new attack on the second note.',
+    theory_staccato_title:'Staccato', theory_staccato_desc:'A dot above or below the notehead: play the note short and detached, shorter than its written duration.',
+    theory_accent_title:'Accent', theory_accent_desc:"A '>' mark above or below the notehead: play this note noticeably louder/more forceful than the surrounding notes.",
+    theory_tenuto_title:'Tenuto', theory_tenuto_desc:'A short line above or below the notehead: play the note for its full written duration, slightly emphasized.',
+    theory_dyn_pp_title:'Pianissimo (pp)', theory_dyn_pp_desc:'Very soft.',
+    theory_dyn_p_title:'Piano (p)', theory_dyn_p_desc:'Soft.',
+    theory_dyn_mp_title:'Mezzo-piano (mp)', theory_dyn_mp_desc:'Moderately soft.',
+    theory_dyn_mf_title:'Mezzo-forte (mf)', theory_dyn_mf_desc:'Moderately loud.',
+    theory_dyn_f_title:'Forte (f)', theory_dyn_f_desc:'Loud.',
+    theory_dyn_ff_title:'Fortissimo (ff)', theory_dyn_ff_desc:'Very loud.',
+    theory_rit_title:'Ritardando (rit.)', theory_rit_desc:'Gradually slow down.',
+    theory_accel_title:'Accelerando (accel.)', theory_accel_desc:'Gradually speed up.',
+    theory_aTempo_title:'A tempo', theory_aTempo_desc:'Return to the original tempo, after a rit./accel. or other tempo change.',
+    theory_fermate_title:'Fermata', theory_fermate_desc:"Hold this note longer than its written duration, at the performer's/conductor's discretion.",
     // Weergavenamen voor de Nederlands-gesleutelde muziektheorie-data
     // (zie architectuur-opmerking hierboven) — alleen nodig in het Engels,
     // want in het Nederlands IS de interne key al de juiste weergavetekst.
@@ -183,6 +229,10 @@ const Lang = {
     if (App.currentModule === 'piano'){
       const mt = document.getElementById('module-title');
       if (mt) mt.innerText = this.t('nav_piano');
+    } else if (App.currentModule === 'theory'){
+      const mt = document.getElementById('module-title');
+      if (mt) mt.innerText = this.t('nav_theory');
+      if (typeof TheoryUI !== 'undefined') TheoryUI.render();
     } else {
       App.buildSettings(App.currentModule);
       if (App.history && App.history[App.historyIndex]) App.renderData(App.history[App.historyIndex]);

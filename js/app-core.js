@@ -129,6 +129,7 @@ const App = {
 
     const flashUI = document.getElementById('flashcard-ui');
     const pianoUI = document.getElementById('piano-module');
+    const theoryUI = document.getElementById('theory-view');
     const quickControls = document.getElementById('quick-controls');
     const swipeHint = document.getElementById('swipe-hint');
     const settingsBtn = document.getElementById('settings-btn');
@@ -136,13 +137,24 @@ const App = {
     SettingsUI.toggleDrawer(false);
 
     if (moduleId === 'piano'){
-      flashUI.style.display = 'none'; swipeHint.style.display = 'none';
+      flashUI.style.display = 'none'; swipeHint.style.display = 'none'; theoryUI.style.display = 'none';
       pianoUI.style.display = 'flex'; quickControls.innerHTML = ''; settingsBtn.style.display = 'none';
       document.getElementById('module-title').innerText = Lang.t('nav_piano');
       PianoUI.init();
+    } else if (moduleId === 'theory'){
+      // Muziektheorie-naslagwerk (Fase 3.2): zelfde "los top-level scherm"-
+      // opzet als Vrij Spelen hierboven — geen flashcard/instellingen, want
+      // dit is geen quiz. TheoryUI.render() bouwt de hele cheat-sheet in één
+      // keer op (idempotent, dus ook veilig bij een taal-/themawissel, zie
+      // Lang.apply()/ThemeManager.toggle()).
+      flashUI.style.display = 'none'; swipeHint.style.display = 'none'; pianoUI.style.display = 'none';
+      quickControls.innerHTML = ''; settingsBtn.style.display = 'none';
+      theoryUI.style.display = 'flex';
+      document.getElementById('module-title').innerText = Lang.t('nav_theory');
+      TheoryUI.render();
     } else {
       flashUI.style.display = 'flex'; swipeHint.style.display = 'block';
-      pianoUI.style.display = 'none'; settingsBtn.style.display = 'inline-flex';
+      pianoUI.style.display = 'none'; theoryUI.style.display = 'none'; settingsBtn.style.display = 'inline-flex';
 
       document.getElementById('score-paper').style.display = 'none';
       document.getElementById('svg-container').style.display = 'none';

@@ -30,6 +30,12 @@ const ThemeManager = {
       if (document.getElementById('scroll-view')?.style.display !== 'none'){
         App._renderNotesBand(data, ScrollEngine.currentIndex());
       }
+    } else if (App.currentModule === 'theory'){
+      // Muziektheorie-naslagwerk (Fase 3.2): TheoryUI.render() tekent per
+      // item een eigen kleine VexFlow-svg (zelfde "VexFlow bakt kleuren"-
+      // valkuil als hierboven) — simpelweg alles opnieuw opbouwen, geen
+      // voortgang om te behouden (geen quiz/sessie-state hier).
+      TheoryUI.render();
     } else if (App.currentModule === 'progressions' && data?.pg_mode === 'band'){
       // Lopende Band voor Akkoordprogressies (Fase 2.6): zelfde behoud-van-
       // voortgang-aanpak als Noten Lezen hierboven.
