@@ -393,6 +393,49 @@ select:focus{ border-color:var(--accent); }
 #answer-score{ margin-top:8px; width:100%; min-width:0; max-width:460px; display:flex; justify-content:center; }
 #svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
 
+/* Lopende-band-modus (Fase 1.2, Noten Lezen) — child van #svg-container,
+   net als .circle-main; welke van de twee zichtbaar is bepaalt
+   App.renderData(). left:140px van de hit-lijn-marker MOET gelijk blijven
+   aan ScrollEngine.HIT_LINE_X in scroll-engine.js (CSS kan geen JS-
+   constante lezen, dus twee losse plekken die bij wijziging allebei
+   bijgewerkt moeten worden). Zelfde voor height:380px, MOET gelijk blijven
+   aan ScrollEngine.CANVAS_H × ScrollEngine.RENDER_SCALE (270×1.4=378,
+   naar boven afgerond) — anders wordt de notenbalk weer afgesneden (zie
+   de toelichting bij CANVAS_H/RENDER_SCALE in scroll-engine.js).
+   max-width verwijderd (was 560px) — op verzoek "maximaliseren op de
+   flashcard" i.p.v. een smal apart venstertje: vult nu gewoon de volledige
+   breedte die .flashcard toelaat (zelf al begrensd op max-width:1400px). */
+#scroll-view{ display:none; flex-direction:column; align-items:center; gap:14px; width:100%; }
+/* Sessie-teller (sinds v0.11.0): de hele lopende-band-sessie is nu één
+   doorlopende reeks (100 noten) i.p.v. steeds terugspringende reeksjes van
+   8 — deze teller toont de voortgang daarin. */
+#scroll-counter{
+  font-size:1.1rem; font-weight:800; color:var(--accent); font-family:'JetBrains Mono',monospace;
+}
+#scroll-strip-host{
+  position:relative; width:100%; height:380px; overflow:hidden;
+  border-radius:var(--radius-md); background:var(--paper-bg); border:1px solid var(--paper-border);
+}
+#scroll-strip-host::after{
+  content:''; position:absolute; left:140px; top:0; bottom:0; width:2px;
+  background:var(--accent); opacity:.55; pointer-events:none;
+}
+/* Vaste sleutel-"gutter" (sinds v0.11.0, op verzoek: vioolsleutel/
+   bassleutel blijven een herkenningspunt i.p.v. mee te scrollen) — width
+   MOET gelijk blijven aan ScrollEngine.GUTTER_W. Ondoorzichtige achtergrond
+   (zelfde als het paneel) verbergt wat er in de scrollende laag erachter
+   voorbijkomt; z-index boven de scrollende strip, maar ruim vóór
+   HIT_LINE_X (140px) zodat de noot bij de hit-lijn nooit overlapt wordt. */
+.scroll-gutter{
+  position:absolute; left:0; top:0; bottom:0; width:124px; overflow:hidden;
+  background:var(--paper-bg); z-index:2; pointer-events:none;
+}
+#scroll-status{
+  font-size:.95rem; font-weight:700; text-align:center; color:var(--text-muted); transition:color .15s ease;
+}
+#scroll-status.correct{ color:#22c55e; }
+#scroll-status.wrong{ color:#ef4444; }
+
 /* CSS GRID met benoemde gebieden i.p.v. flexbox+order+wrap-trucs — dat
    bleek herhaaldelijk onvoorspelbaar op écht mobiel/tablet/desktop zonder
    dat live te kunnen testen. Grid-template-areas beschrijft de layout
@@ -492,6 +535,23 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 }
 #midi-answer-status.correct{ color:#22c55e; }
 #midi-answer-status.wrong{ color:#ef4444; }
+
+/* MIDI-toonladder-speel-na (Fase 2.3): één "pil" per noot van de reeks —
+   grijs = nog niet bereikt, accentkleur+rand = huidig verwachte noot, groen
+   = correct gespeeld (voltooid), rood = korte foutmelding op de HUIDIGE pil
+   (schuift pas door bij een juiste noot, zie App._evaluateMidiScaleStep). */
+#midi-scale-progress{
+  margin-top:-6px; margin-bottom:10px; display:flex; flex-wrap:wrap; justify-content:center; gap:5px;
+}
+.midi-scale-note{
+  min-width:28px; height:24px; padding:0 6px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  font-size:.72rem; font-weight:700; font-family:'JetBrains Mono',monospace;
+  background:var(--paper-btn-bg); color:var(--paper-muted); border:1px solid var(--paper-border);
+  transition:background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.midi-scale-note.current{ border-color:var(--accent); color:var(--paper-ink); }
+.midi-scale-note.done{ background:#22c55e; color:#fff; border-color:transparent; }
+.midi-scale-note.wrong{ background:#ef4444; color:#fff; border-color:transparent; }
 
 .flashcard-actions{ width:100%; max-width:400px; margin-top:15px; display:flex; flex-direction:column; gap:15px; }
 .action-row-top{ display:flex; gap:10px; justify-content:center; }

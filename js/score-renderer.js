@@ -119,40 +119,58 @@ const ScoreRenderer = {
     if (ctx.setStrokeStyle) ctx.setStrokeStyle(ink);
 
     const staveWidth = canvasW - this.MARGIN_X * 2;
-    const trebleStave = new VF.Stave(this.MARGIN_X, this.TREBLE_Y, staveWidth);
-    trebleStave.addClef('treble');
-
-    const bassY = this.TREBLE_Y + this.STAVE_GAP;
-    const bassStave = new VF.Stave(this.MARGIN_X, bassY, staveWidth);
-    bassStave.addClef('bass');
-
-    trebleStave.setContext(ctx).draw();
-    bassStave.setContext(ctx).draw();
-
-    new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
-    new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
-    new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_RIGHT).setContext(ctx).draw();
-
     const n = Math.max(slices.length, 1);
-    const trebleNotes = [], bassNotes = [];
+    // Notenbereik-instelling (Fase 2.1a, sinds v0.12.0): opts.clef ('treble'
+    // of 'bass') tekent maar ÉÉN notenbalk i.p.v. de gewone grand staff —
+    // alleen gebruikt door Noten Lezen wanneer de gebruiker een sleutel
+    // kiest, alle andere aanroepers laten opts.clef weg en krijgen het
+    // ongewijzigde grand-staff-gedrag hieronder (else-tak).
+    if (opts.clef === 'treble' || opts.clef === 'bass'){
+      const stave = new VF.Stave(this.MARGIN_X, this.TREBLE_Y, staveWidth);
+      stave.addClef(opts.clef);
+      stave.setContext(ctx).draw();
 
-    (slices.length ? slices : [[]]).forEach(slice => {
-      const treble = slice.filter(m => m >= 60);
-      const bass = slice.filter(m => m < 60);
-      trebleNotes.push(this.buildNote(treble, 'treble', useFlats, ink));
-      bassNotes.push(this.buildNote(bass, 'bass', useFlats, ink));
-    });
+      const notes = (slices.length ? slices : [[]]).map(slice => this.buildNote(slice, opts.clef, useFlats, ink));
+      const voice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(notes);
+      const formatter = new VF.Formatter();
+      formatter.joinVoices([voice]);
+      formatter.format([voice], Math.max(staveWidth - 70, 40));
+      voice.draw(ctx, stave);
+    } else {
+      const trebleStave = new VF.Stave(this.MARGIN_X, this.TREBLE_Y, staveWidth);
+      trebleStave.addClef('treble');
 
-    const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
-    const bassVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(bassNotes);
+      const bassY = this.TREBLE_Y + this.STAVE_GAP;
+      const bassStave = new VF.Stave(this.MARGIN_X, bassY, staveWidth);
+      bassStave.addClef('bass');
 
-    const formatter = new VF.Formatter();
-    formatter.joinVoices([trebleVoice]);
-    formatter.joinVoices([bassVoice]);
-    formatter.format([trebleVoice, bassVoice], Math.max(staveWidth - 70, 40));
+      trebleStave.setContext(ctx).draw();
+      bassStave.setContext(ctx).draw();
 
-    trebleVoice.draw(ctx, trebleStave);
-    bassVoice.draw(ctx, bassStave);
+      new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
+      new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
+      new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_RIGHT).setContext(ctx).draw();
+
+      const trebleNotes = [], bassNotes = [];
+
+      (slices.length ? slices : [[]]).forEach(slice => {
+        const treble = slice.filter(m => m >= 60);
+        const bass = slice.filter(m => m < 60);
+        trebleNotes.push(this.buildNote(treble, 'treble', useFlats, ink));
+        bassNotes.push(this.buildNote(bass, 'bass', useFlats, ink));
+      });
+
+      const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
+      const bassVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(bassNotes);
+
+      const formatter = new VF.Formatter();
+      formatter.joinVoices([trebleVoice]);
+      formatter.joinVoices([bassVoice]);
+      formatter.format([trebleVoice, bassVoice], Math.max(staveWidth - 70, 40));
+
+      trebleVoice.draw(ctx, trebleStave);
+      bassVoice.draw(ctx, bassStave);
+    }
 
     const svg = container.querySelector('svg');
     if (svg){

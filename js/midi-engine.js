@@ -32,6 +32,18 @@ const MidiEngine = {
       this.access = access;
       this._wireInputs();
       access.onstatechange = () => this._wireInputs();
+      // Sommige Windows/stuurprogramma-combinaties geven de browser de
+      // MIDI-poort pas daadwerkelijk door zodra het tabblad/venster weer
+      // focus krijgt — `onstatechange` alleen bleek dan niet genoeg (moest
+      // handmatig naar een andere app en terug om het keyboard te laten
+      // reageren). Een her-scan bij het terugkrijgen van focus/zichtbaarheid
+      // maakt die handmatige stap overbodig. Roept GEEN nieuwe
+      // requestMIDIAccess() aan (geen hernieuwde toestemmings-prompt), leest
+      // alleen de al toegekende `access.inputs` opnieuw uit.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this._wireInputs();
+      });
+      window.addEventListener('focus', () => this._wireInputs());
     }).catch(err => {
       console.warn('🎹 MIDI-toegang mislukt of geweigerd:', err);
       this.updateStatusIndicator();

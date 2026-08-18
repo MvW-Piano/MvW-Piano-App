@@ -29,6 +29,15 @@ const I18N = {
     level_hard:'Moeilijk (C1-C7)', level_hard_short:'Niv 3 (C1-C7)',
     auto_label:'Auto', auto_on:'Aan', auto_off:'Uit', thinktime_label:'Bedenktijd:',
     type_label:'Type', inversions_label:'Omkeringen', mode_label:'Modus',
+    octaves_label:'Octaven', oct_1:'1 Octaaf', oct_2:'2 Octaven',
+    hint_label:'Hint', octave_label:'Octaaf', octave_exact:'Exact', octave_free:'Vrij',
+    mode_cards:'Kaarten', mode_band:'Lopende Band', mode_sequence:'Reeks',
+    clef_label:'Notenbereik', clef_treble:'Vioolsleutel', clef_bass:'Basleutel', clef_both:'Beide',
+    scrollNeedsMidi:'Sluit een MIDI-apparaat aan om deze modus te gebruiken.',
+    midiNoteListening:'🎹 Speel de naderende noot...',
+    midiNoteListeningStatic:'🎹 Speel de getoonde noot...',
+    scrollCounter:'{n} / {total} goed', scrollSessionComplete:'🎉 Sessie voltooid — {total}/{total} goed!',
+    midiScaleWrong:'Probeer opnieuw', midiScaleComplete:'✓ Toonladder compleet!',
     display_label:'Weergave', playmode_label:'Afspeelmodus', interval_label:'Interval', key_label:'Toonsoort',
     inv_root:'Grondligging', inv_1:'1e Omkering', inv_2:'2e Omkering', inv_3:'3e Omkering', inv_all:'Alle Omkeringen',
     circle_mode_visual:'Kwintencirkel Interactief', circle_mode_rel:'Relatieve Toonsoort', circle_mode_acc:'Voortekens',
@@ -39,6 +48,7 @@ const I18N = {
     swipeHint:'Swipe ⬅➔ op de kaart om te wisselen',
     circleTapHint:'Tik op een toonsoort om het akkoord te horen.', listenBlind:'Luister goed... (Blind)',
     midiChordListening:'🎹 Speel het akkoord...', midiChordCorrect:'✓ Goed!', midiChordWrong:'Probeer opnieuw',
+    midiIntervalListening:'🎹 Speel het interval...',
     qRelMinorOf:"Wat is de relatieve mineur van {key} Majeur?",
     qRelMajorOf:"Wat is de relatieve majeur van {key} mineur?",
     qWhichMajorHas:"Welke majeur toonsoort heeft {acc}?",
@@ -69,6 +79,15 @@ const I18N = {
     level_hard:'Hard (C1-C7)', level_hard_short:'Lvl 3 (C1-C7)',
     auto_label:'Auto', auto_on:'On', auto_off:'Off', thinktime_label:'Think time:',
     type_label:'Type', inversions_label:'Inversions', mode_label:'Mode',
+    octaves_label:'Octaves', oct_1:'1 Octave', oct_2:'2 Octaves',
+    hint_label:'Hint', octave_label:'Octave', octave_exact:'Exact', octave_free:'Free',
+    mode_cards:'Cards', mode_band:'Scrolling Band', mode_sequence:'Sequence',
+    clef_label:'Note Range', clef_treble:'Treble Clef', clef_bass:'Bass Clef', clef_both:'Both',
+    scrollNeedsMidi:'Connect a MIDI device to use this mode.',
+    midiNoteListening:'🎹 Play the approaching note...',
+    midiNoteListeningStatic:'🎹 Play the shown note...',
+    scrollCounter:'{n} / {total} correct', scrollSessionComplete:'🎉 Session complete — {total}/{total} correct!',
+    midiScaleWrong:'Try again', midiScaleComplete:'✓ Scale complete!',
     display_label:'Display', playmode_label:'Playback mode', interval_label:'Interval', key_label:'Key',
     inv_root:'Root Position', inv_1:'1st Inversion', inv_2:'2nd Inversion', inv_3:'3rd Inversion', inv_all:'All Inversions',
     circle_mode_visual:'Interactive Circle of Fifths', circle_mode_rel:'Relative Key', circle_mode_acc:'Key Signatures',
@@ -79,6 +98,7 @@ const I18N = {
     swipeHint:'Swipe ⬅➔ on the card to switch',
     circleTapHint:'Tap a key to hear the chord.', listenBlind:'Listen carefully... (Blind)',
     midiChordListening:'🎹 Play the chord...', midiChordCorrect:'✓ Correct!', midiChordWrong:'Try again',
+    midiIntervalListening:'🎹 Play the interval...',
     qRelMinorOf:"What is the relative minor of {key} Major?",
     qRelMajorOf:"What is the relative major of {key} minor?",
     qWhichMajorHas:"Which major key has {acc}?",
@@ -106,6 +126,11 @@ const I18N = {
       'Grote Terts':'Major Third', 'Reine Kwart':'Perfect Fourth', 'Tritonus':'Tritone',
       'Reine Kwint':'Perfect Fifth', 'Kleine Sext':'Minor Sixth', 'Grote Sext':'Major Sixth',
       'Klein Septiem':'Minor Seventh', 'Groot Septiem':'Major Seventh', 'Octaaf':'Octave'
+    },
+    progressionNames:{
+      'Pop (I-V-vi-IV)':'Pop (I-V-vi-IV)',
+      'Jazz-cadens (ii-V-I)':'Jazz Cadence (ii-V-I)',
+      "'50s-progressie (I-vi-IV-V)":"'50s Progression (I-vi-IV-V)"
     }
   }
 };
@@ -123,6 +148,7 @@ const Lang = {
   scaleName(key){ return this.current() === 'nl' ? key : (I18N.en.scaleNames[key] || key); },
   chordName(key){ return this.current() === 'nl' ? key : (I18N.en.chordNames[key] || key); },
   intervalName(key){ return this.current() === 'nl' ? key : (I18N.en.intervalNames[key] || key); },
+  progressionName(key){ return this.current() === 'nl' ? key : (I18N.en.progressionNames[key] || key); },
   toggle(){
     localStorage.setItem(this.KEY, this.current() === 'nl' ? 'en' : 'nl');
     this.apply();

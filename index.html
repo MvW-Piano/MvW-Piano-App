@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.6.0 | Bèta Editie</p>
+      <p class="version-tag">v0.14.0 | Bèta Editie</p>
     </div>
   </div>
 
@@ -149,6 +149,14 @@
               <div id="circle-keyboard-wrap"></div>
             </div>
           </div>
+          <!-- Lopende-band-modus (Fase 1.2, Noten Lezen) — zelfde "los van
+               de gewone kaart-flow" opzet als .circle-main hierboven; welke
+               van de twee zichtbaar is wordt door App/renderData() bepaald. -->
+          <div id="scroll-view">
+            <div id="scroll-counter"></div>
+            <div id="scroll-strip-host"></div>
+            <div id="scroll-status"></div>
+          </div>
         </div>
         <div id="interval-extra-controls" style="display:none;"></div>
         <div id="text-quiz" class="text-quiz-display">Vraag komt hier</div>
@@ -157,6 +165,9 @@
         <!-- MIDI-akkoordcontrole (Fase 2.2): alleen zichtbaar zolang App.wireMidiChordCheck
              'm toont (module=Akkoorden + MidiEngine.connected) — zie app-core.js. -->
         <div id="midi-answer-status" style="display:none;"></div>
+        <!-- MIDI-toonladder-speel-na (Fase 2.3): idem, module=Toonladders. Eén
+             "pil" per noot in de reeks, zie App._buildMidiScaleProgress(). -->
+        <div id="midi-scale-progress" style="display:none;"></div>
 
         <div class="flashcard-actions" id="flashcard-actions">
           <div class="action-row-top">
@@ -206,6 +217,7 @@
 <script src="js/music-theory.js"></script>
 <script src="js/audio-engine.js"></script>
 <script src="js/midi-engine.js"></script>
+<script src="js/scroll-engine.js"></script>
 <script src="js/score-renderer.js"></script>
 <script src="js/piano-ui.js"></script>
 <script src="js/circle-wheel.js"></script>
