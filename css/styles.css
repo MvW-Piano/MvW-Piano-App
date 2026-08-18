@@ -1,0 +1,506 @@
+:root{
+  /* Aurora Glass — kleurconcept gekozen door de gebruiker (zie
+     Piano_Masterclass_MODERN_CONCEPT.html, ronde "kleurverkenning"). De
+     kwintencirkel-wedge-kleuren (--wheel-maj/--wheel-min) zijn BEWUST
+     ongewijzigd t.o.v. het origineel gelaten — alleen de rest van de app
+     (panelen/accent/radius/schaduw) is naar Aurora Glass gebracht. */
+  --bg-dark:#05060c; --bg-panel:#0d1020; --bg-card:#161a30; --bg-panel-glass:rgba(13,16,32,.6);
+  --text-main:#f5f7fb; --text-muted:#8b93a9; --border-color:rgba(255,255,255,.08);
+  --accent:#818cf8; --accent-hover:#6366f1; --accent-2:#22d3ee;
+  --paper-bg:#12142a; --paper-ink:#f2f4f9; --paper-border:rgba(255,255,255,.09); --paper-muted:#8b93a9;
+  --piano-white:#fdfbf3; --piano-black:#14110f; --overlay-bg:#05060c;
+  --paper-btn-bg:#1c2140; --paper-btn-hover:#262c50;
+  --radius-sm:12px; --radius-md:20px; --radius-lg:28px;
+  --shadow-sm:0 2px 10px rgba(0,0,0,.35);
+  --shadow-md:0 14px 32px rgba(0,0,0,.4);
+  --shadow-lg:0 30px 70px rgba(99,102,241,.28);
+
+  /* Kwintencirkel — originele blauwtinten (Dark Mode), niet aangepast */
+  --wheel-maj: #3b82f6;
+  --wheel-min: #60a5fa;
+  --wheel-bg: var(--bg-panel);
+  --wheel-line: var(--bg-dark);
+  --wheel-ink: #ffffff;
+  --wheel-ink-min: #ffffff;
+  --wheel-ink-dim: #ffffff;
+  --wheel-stave: #f2f4f9;
+  /* Tonica-wijzertjes: volgen nu de Aurora-accentkleur (+ zachte gloed via
+     .wheel-tonic-marker in CSS) i.p.v. een los wit/zwart contrastlijntje —
+     sluit daardoor aan bij de rest van het glasachtige uiterlijk. */
+  --wheel-tonic: var(--accent);
+}
+[data-theme="light"]{
+  --bg-dark:#eef1fb; --bg-panel:#ffffff; --bg-card:#ffffff; --bg-panel-glass:rgba(255,255,255,.62);
+  --text-main:#111827; --text-muted:#6b7280; --border-color:rgba(99,102,241,.14);
+  --accent:#6366f1; --accent-hover:#4f46e5; --accent-2:#0ea5e9;
+  --paper-bg:#ffffff; --paper-ink:#111827; --paper-border:rgba(99,102,241,.12); --paper-muted:#6b7280;
+  --overlay-bg:#eef1fb;
+  --paper-btn-bg:#f3f4fb; --paper-btn-hover:#e7e9f7;
+  --shadow-sm:0 2px 10px rgba(16,24,40,.06);
+  --shadow-md:0 14px 32px rgba(16,24,40,.08);
+  --shadow-lg:0 30px 70px rgba(99,102,241,.14);
+
+  /* Kwintencirkel — originele blauwtinten (Light Mode), niet aangepast */
+  --wheel-maj: #60a5fa;
+  --wheel-min: #93c5fd;
+  --wheel-bg: #f9fafb;
+  --wheel-line: #ffffff;
+  --wheel-ink: #ffffff;
+  --wheel-ink-min: #1e3a8a;
+  --wheel-ink-dim: #6b7280;
+  --wheel-stave: #111827;
+  --wheel-tonic: var(--accent);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; font-family:'Inter',sans-serif; user-select:none; -webkit-tap-highlight-color:transparent; }
+body{
+  background-color:var(--bg-dark); color:var(--text-main); display:flex; flex-direction:row;
+  height:100dvh; min-height:100vh; overflow:hidden; transition:background-color .3s,color .3s;
+  /* Aurora Glass: zachte ambient kleurwolken op de achtergrond. */
+  background-image:
+    radial-gradient(38% 32% at 10% 6%, rgba(129,140,248,.20), transparent 70%),
+    radial-gradient(32% 30% at 92% 16%, rgba(34,211,238,.14), transparent 70%);
+  background-attachment:fixed;
+}
+[data-theme="light"] body{
+  background-image:
+    radial-gradient(38% 32% at 10% 6%, rgba(99,102,241,.12), transparent 70%),
+    radial-gradient(32% 30% at 92% 16%, rgba(14,165,233,.10), transparent 70%);
+}
+
+#app-shell{ display:flex; flex-direction:row; width:100%; height:100%; }
+/* Compacte icon-only rail (Aurora Glass-ronde): geen tekstlabels/inklap-
+   knop meer nodig, sluit visueel aan bij het instellingen-paneel (drawer)
+   hiernaast — samen voelen ze als één samenhangend geheel. */
+#sidebar{
+  width:76px; flex-shrink:0; background:var(--bg-panel-glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border-right:1px solid var(--border-color);
+  display:flex; flex-direction:column; transition:background-color .3s; overflow:hidden; z-index:20;
+  height:100vh; height:100dvh;
+}
+
+.sidebar-brand{ display:flex; align-items:center; justify-content:center; padding:20px 0; flex-shrink:0; }
+.brand-badge{
+  width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2));
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 6px 16px rgba(99,102,241,.35);
+}
+.brand-badge svg{ width:19px; height:14px; }
+.brand-text{ display:none; }
+
+.sidebar-nav{ display:flex; flex-direction:column; gap:6px; padding:6px 10px; overflow-y:auto; flex:1 1 auto; min-height:0; }
+.nav-item{
+  background:transparent; border:none; color:var(--text-muted); justify-content:center; gap:0;
+  padding:12px 0; border-radius:16px; font-size:.92rem; font-weight:600; text-align:center;
+  white-space:nowrap; overflow:hidden;
+}
+.nav-item:hover{ background:var(--bg-card); color:var(--text-main); }
+.nav-item.active{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; box-shadow:0 6px 16px rgba(99,102,241,.3); }
+.nav-item.active .nav-icon{ filter:none; }
+.nav-icon{ font-size:1.3rem; flex-shrink:0; width:auto; text-align:center; }
+.nav-label{ display:none; }
+
+.sidebar-footer{ display:flex; flex-direction:column; gap:8px; padding:12px 8px; border-top:1px solid var(--border-color); flex-shrink:0; margin-top:auto; }
+.sidebar-icon-btn{
+  background:transparent; border:1px solid var(--border-color); color:var(--text-muted); width:100%;
+  padding:9px 6px; font-size:1rem; transition:transform .2s ease, background-color .15s; border-radius: 8px; cursor:pointer;
+}
+.sidebar-icon-btn:hover{ background:var(--bg-card); color:var(--text-main); }
+
+/* Eigen-pianogeluid-trigger: bewust onopvallend, zie HTML-comment bij het
+   element zelf. position:fixed t.o.v. het venster (niet de zijbalk), dus
+   overal in de app op dezelfde plek bereikbaar. */
+#samples-hidden-trigger{
+  /* left:84px = net naast de 76px-brede icon-rail-zijbalk (i.p.v. erover
+     heen: de zijbalk heeft zelf een ondoorzichtige achtergrond + hogere
+     z-index, dus een positie er bovenop zou het knopje onbereikbaar maken).
+     Bewust GEEN zichtbaar icoontje (het 📁-symbool zelf is met kleur, dus
+     ook op lage opacity nog goed te zien) — alleen een heel klein, vaag
+     kadertje. Werkt vanzelf mee met beide thema's via var(--border-color). */
+  position:fixed; left:84px; bottom:8px; z-index:15; width:14px; height:14px;
+  background:transparent; border:1px solid var(--border-color); border-radius:4px;
+  padding:0; cursor:pointer; opacity:.3; transition:opacity .2s ease, background-color .2s ease;
+  font-size:0; line-height:0; color:transparent;
+}
+#samples-hidden-trigger:hover{ opacity:.9; background:var(--bg-card); }
+@media (max-width:640px){
+  /* Geen zijbalk meer op mobiel (onderbalk i.p.v.) — terug naar de linker
+     rand, en boven de onderbalk uit. */
+  #samples-hidden-trigger{ left:8px; bottom:calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
+#content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+#content-topbar{
+  background-color:transparent; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  padding:14px 22px; display:flex; justify-content:space-between;
+  align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); position:relative;
+  z-index:30; transition:background-color .3s; flex-shrink:0;
+}
+#content-topbar h1{ font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); flex-shrink:0; }
+.topbar-right{ display:flex; gap:8px; align-items:center; }
+
+/* Instellingen-knop (opent #settings-drawer) — vervangt de oude header-
+   instellingenrij + het inklapbare mobiele paneel door één zelfde
+   mechanisme op elke schermbreedte. */
+#settings-btn{
+  width:40px; height:40px; padding:0; border-radius:50%; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center; font-size:1.05rem;
+}
+
+#bottom-nav{ display:none; }
+
+@media (max-width:640px){
+  #sidebar{ display:none; }
+  #bottom-nav{
+    display:flex; overflow-x:auto; position:fixed; left:8px; right:8px; bottom:8px; z-index:100;
+    background:var(--bg-panel-glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border-color); border-radius:20px; box-shadow:var(--shadow-md);
+    padding:4px 2px calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+  .bnav-item{
+    flex:0 0 auto; min-width:60px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; background:transparent; border:none; border-radius:8px; color:var(--text-muted);
+    font-size:.62rem; font-weight:700; padding:6px 4px;
+  }
+  .bnav-icon{ font-size:1.15rem; }
+  .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
+  #app-shell{ flex-direction:column; }
+  /* Genoeg ruimte zodat Vorige/Volgende nooit door de onderbalk worden
+     afgesneden, maar niet zo veel dat elke korte oefening al hoeft te
+     scrollen. */
+  #workspace{ padding-bottom:90px !important; }
+  #content-topbar{ padding:12px 14px; }
+  #content-topbar h1{ font-size:1.1rem; }
+}
+
+button{
+  background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color);
+  padding:10px 16px; border-radius:var(--radius-sm); cursor:pointer; transition:all .18s ease; font-weight:600;
+  font-size:.95rem; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+button:hover{ background:var(--border-color); }
+button:active{ transform:scale(.97); }
+button.primary{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border:none; box-shadow:0 6px 18px rgba(99,102,241,.35); }
+button.primary:hover{ filter:brightness(1.08); }
+button.primary:active{ filter:brightness(.96); }
+button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
+
+select, input[type="number"]{
+  background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-color);
+  padding:12px; border-radius:var(--radius-sm); outline:none; font-size:.9rem; font-weight:500;
+  transition:background-color .3s, color .3s, border-color .2s;
+}
+select:focus{ border-color:var(--accent); }
+
+#main-container{ flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+#init-overlay{
+  position:fixed; inset:0; background:var(--overlay-bg); display:flex; flex-direction:column;
+  justify-content:center; align-items:center; z-index:9999; text-align:center; padding:20px;
+  overflow-y:auto; transition:background-color .3s;
+}
+.theme-toggle-container{ position:absolute; top:20px; right:20px; z-index:20; display:flex; gap:8px; }
+#lang-btn-start{ font-family:'Inter',sans-serif; font-weight:700; font-size:.8rem; padding:0; }
+#init-overlay .start-theme-btn{
+  background:var(--bg-panel-glass); border:1px solid var(--border-color); width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:1.2rem; backdrop-filter:blur(10px);
+  color:var(--text-main); cursor:pointer;
+}
+
+/* Ambient kleurwolken, zelfde idee als body{background-image:...}
+   elders in de app — hier lokaal herhaald omdat #init-overlay
+   (z-index:9999) boven die achtergrond ligt. */
+#init-overlay .welcome-bg-decor{ position:absolute; inset:0; overflow:hidden; z-index:1; pointer-events:none; }
+#init-overlay .blob{ position:absolute; border-radius:50%; filter:blur(80px); opacity:.2; animation:blob-float 20s infinite alternate ease-in-out; }
+#init-overlay .blob.one{ width:60vh; height:60vh; background:var(--accent); top:-10vh; left:-10vh; }
+#init-overlay .blob.two{ width:50vh; height:50vh; background:var(--accent-2); bottom:-15vh; right:-10vh; animation-delay:-5s; }
+@keyframes blob-float{
+  0%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(5vh,10vh) scale(1.1); }
+  100%{ transform:translate(-5vh,5vh) scale(1); }
+}
+
+#init-overlay .welcome-content{ position:relative; z-index:10; display:flex; flex-direction:column; align-items:center; gap:40px; max-width:600px; width:100%; }
+
+/* De hele merk-/titelkaart IS de start-knop — duidelijk kader +
+   hover/press-gedrag zodat hij oogt/voelt als iets om in te drukken. */
+#init-overlay .brand-launch-btn{
+  display:flex; flex-direction:column; align-items:center; gap:22px;
+  background:var(--bg-panel-glass); border:1px solid var(--border-color); border-radius:var(--radius-lg);
+  padding:48px 56px; cursor:pointer; position:relative; overflow:hidden;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  box-shadow:var(--shadow-lg);
+  transition:transform .25s ease, border-color .25s ease;
+}
+#init-overlay .brand-launch-btn::before{
+  content:''; position:absolute; inset:0; background:linear-gradient(135deg, transparent, rgba(255,255,255,.12), transparent);
+  transform:translateX(-120%); transition:transform .5s ease; pointer-events:none;
+}
+#init-overlay .brand-launch-btn:hover{ transform:translateY(-4px); border-color:var(--accent); }
+#init-overlay .brand-launch-btn:hover::before{ transform:translateX(120%); }
+#init-overlay .brand-launch-btn:active{ transform:translateY(-1px) scale(.98); }
+
+.brand-mark-lg{
+  width:78px; height:78px; border-radius:24px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:2.3rem;
+  box-shadow:0 16px 34px rgba(99,102,241,.4);
+}
+.brand-mark-lg svg{ width:42px; height:42px; }
+
+.glitter{ position:relative; overflow:hidden; }
+.glitter::after{
+  content:''; position:absolute; inset:-50%;
+  background:linear-gradient(135deg, transparent, rgba(255,255,255,.4), transparent);
+  transform:rotate(45deg); animation:glitter-sweep 4s infinite;
+}
+@keyframes glitter-sweep{
+  0%{ transform:translate(-100%,-100%) rotate(45deg); }
+  20%,100%{ transform:translate(100%,100%) rotate(45deg); }
+}
+
+#init-overlay .main-title{
+  font-family:'Fraunces',serif; font-size:clamp(2.8rem, 8vw, 4rem); font-weight:700;
+  color:var(--text-main); line-height:1.1; margin:0;
+  background:linear-gradient(135deg, var(--text-main) 60%, var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 4px rgba(0,0,0,.1));
+}
+#init-overlay .sub-title-premium{ font-size:clamp(1rem, 3vw, 1.2rem); color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; font-weight:600; margin-top:5px; }
+
+#init-overlay .start-meta{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+#init-overlay .version-tag{ font-size:.75rem; color:var(--text-muted); font-family:'JetBrains Mono',monospace; opacity:.7; }
+.creator-credit{ color:var(--text-muted); font-size:.9rem; font-weight:500; letter-spacing:.5px; }
+
+@media (min-width:900px){
+  #init-overlay .main-title{ font-size:4.5rem; }
+  #init-overlay .brand-launch-btn{ padding:56px 80px; }
+}
+@media (max-width:480px){
+  #init-overlay .brand-launch-btn{ padding:34px 28px; gap:18px; }
+  #init-overlay .welcome-content{ gap:28px; }
+}
+
+#module-view{ width:100%; flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Instellingen wonen in het opvraagbare paneel (drawer, #settings-drawer)
+   i.p.v. een altijd-zichtbare balk boven de kaart — knoppen i.p.v. een
+   dropdown-menu, zodat je in één tik kunt wisselen (zelfde patroon als de
+   kwintencirkel), maar nu opt-in via de tandwiel-knop. */
+#quick-controls{
+  width:100%; display:flex; flex-direction:column; align-items:stretch; gap:22px;
+}
+#quick-controls:empty{ display:none; }
+.setting-group{ display:flex; flex-direction:column; gap:6px; align-items:flex-start; width:100%; }
+.setting-group label{
+  display:inline-flex; align-items:center; gap:6px; font-size:.68rem; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.6px; font-weight:700;
+}
+.aa-icon{ width:19px; height:19px; flex-shrink:0; }
+.aa-delay-val{ text-transform:none; letter-spacing:0; color:var(--text-main); }
+/* Knop-labels met een korte mobiele variant (bijv. "Niv 1 (C3-C5)" i.p.v.
+   "Makkelijk (C3-C5)") — standaard (breed scherm) toont de volledige tekst. */
+.lbl-short{ display:none; }
+.opt-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-start; }
+.opt-btn{
+  background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-color);
+  border-radius:var(--radius-sm); padding:8px 14px; font-size:.85rem; font-weight:700; cursor:pointer;
+  transition:all .15s ease; font-family:'JetBrains Mono',monospace;
+}
+.opt-btn:hover{ background:var(--border-color); }
+.opt-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(99,102,241,.35); }
+
+.auto-delay-slider{
+  -webkit-appearance:none; appearance:none; width:150px; height:6px; border-radius:3px;
+  background:var(--border-color); outline:none; cursor:pointer;
+}
+.auto-delay-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2)); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.auto-delay-slider::-moz-range-thumb{
+  width:20px; height:20px; border-radius:50%; border:none;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2)); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+
+#workspace{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; justify-content:safe center;
+  padding:22px; background:var(--bg-dark); overflow-y:auto; overflow-x:hidden; width:100%;
+}
+
+/* Instellingen wonen nu altijd in het opvraagbare paneel (drawer, zie
+   #settings-drawer) i.p.v. een header-rij op breed scherm vs. een
+   inklapbaar paneel op smal scherm — daarom gelden de "smal-scherm"-
+   opmaakregels voor instellingen nu ONVOORWAARDELIJK (de drawer zelf is
+   altijd zo'n 380px breed, ongeacht viewportbreedte). */
+.auto-adv-controls{ display:grid; grid-template-columns:1fr; gap:14px 16px; justify-content:flex-start; }
+.auto-adv-controls .auto-delay-slider{ width:100%; max-width:280px; }
+
+/* Niveau-knoppen (Noten Lezen) onder elkaar i.p.v. 3-op-een-rij — de
+   drawer heeft nu ruim genoeg verticale ruimte, dus de volledige labels
+   ("Makkelijk (C3-C5)") passen weer gewoon op één regel per knop (zie
+   basisregel .lbl-short{display:none} hierboven — .lbl-full blijft dus
+   gewoon zichtbaar, geen override meer nodig). */
+#opt-notes-level{ display:grid; grid-template-columns:1fr; gap:6px; }
+#opt-notes-level .opt-btn{ justify-content:flex-start; text-align:left; }
+
+/* Kwintencirkel-modusknoppen ook onder elkaar i.p.v. naast elkaar — de
+   labels zijn intussen behoorlijk lang ("Relatieve Toonsoort Oefenen"),
+   dus één kolom leest een stuk prettiger dan gewrapte rijen. */
+#opt-circle-mode{ display:grid; grid-template-columns:1fr; gap:6px; }
+#opt-circle-mode .opt-btn{ justify-content:flex-start; text-align:left; }
+
+/* ---- Instellingen-paneel (drawer), rechts, op elke schermbreedte ---- */
+#settings-drawer-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:8999; opacity:0; pointer-events:none; transition:opacity .25s ease;
+}
+#settings-drawer-backdrop.open{ opacity:1; pointer-events:auto; }
+#settings-drawer{
+  position:fixed; top:0; right:0; height:100vh; height:100dvh; width:min(380px, 92vw); z-index:9000;
+  background:var(--bg-panel-glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-left:1px solid var(--border-color); box-shadow:var(--shadow-lg);
+  transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column; padding:22px;
+}
+#settings-drawer.open{ transform:translateX(0); }
+.settings-drawer-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-shrink:0; }
+.settings-drawer-head span{ font-family:'Fraunces',serif; font-weight:600; font-size:1.15rem; }
+#settings-drawer-close{ width:32px; height:32px; padding:0; border-radius:50%; }
+.settings-drawer-body{ overflow-y:auto; flex:1; }
+
+.flashcard{
+  background:var(--paper-bg); border-radius:var(--radius-lg); width:100%; max-width:1400px; min-height:340px;
+  box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center;
+  justify-content:center; justify-content:safe center; padding:24px; position:relative; color:var(--paper-ink); border:1px solid var(--paper-border);
+  transition:background-color .3s, border-color .3s, color .3s, min-height .3s ease; overflow-x:hidden;
+}
+
+#score-paper{ width:100%; min-width:0; display:flex; justify-content:center; }
+#score-paper svg, #answer-score svg{ width:100%; height:auto; display:block; }
+#circle-chord-preview svg{ width:100%; height:auto; display:block; }
+#answer-score{ margin-top:8px; width:100%; min-width:0; max-width:460px; display:flex; justify-content:center; }
+#svg-container{ width:100%; display:none; flex-direction:column; align-items:center; padding:10px 0; gap:12px; position:relative; }
+
+/* CSS GRID met benoemde gebieden i.p.v. flexbox+order+wrap-trucs — dat
+   bleek herhaaldelijk onvoorspelbaar op écht mobiel/tablet/desktop zonder
+   dat live te kunnen testen. Grid-template-areas beschrijft de layout
+   letterlijk als een ASCII-tekening per breakpoint — geen giswerk.
+   Mobiel (standaard): één kolom — wiel, dan notenbalk+toetsenbord, dan
+   de knoppenrijen. Vanaf 900px: vier kolommen naast elkaar.
+   min-width:0 blijft nodig zodat een brede notenbalk-SVG nooit een kolom
+   kan dwingen breder te worden dan zijn grid-track. */
+.circle-main{
+  width:100%; min-width:0; display:grid; gap:14px;
+  grid-template-columns: 1fr;
+  /* Mobiele volgorde: wiel, dan notenbalk+keyboard, dan de
+     akkoordsoort-knoppen (extra opties) onderaan — alleen op smal scherm,
+     desktop houdt zijn eigen 4-koloms volgorde hieronder. */
+  grid-template-areas: "wheel" "staff" "chordjump";
+}
+.circle-left-half{ display:contents; }
+.circle-center{ grid-area:wheel; min-width:0; width:100%; max-width:480px; justify-self:center; display:flex; justify-content:center; }
+#circle-wheel-wrap{ width:100%; min-width:0; display:flex; justify-content:center; aspect-ratio:1/1; max-width:480px; }
+#circle-wheel-wrap svg{ width:100%; min-width:0; max-width:100%; height:auto; display:block; aspect-ratio:1/1; }
+.circle-right-half{ grid-area:staff; width:100%; max-width:400px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:16px; justify-self:center; }
+/* Op mobiel vervangt het draaien aan het wiel zelf deze knoppenrij (zie
+   CircleWheel drag-to-rotate) — op breed scherm blijft hij staan. */
+#circle-quick-jump{ display:none; }
+#circle-chord-jump{ grid-area:chordjump; display:flex; flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:320px; gap:6px; justify-self:center; }
+.circle-jump-col{ min-width:0; }
+#circle-chord-preview{ min-width:0; min-height:60px; max-width:330px; overflow:hidden; display:flex; align-items:center; justify-content:center; width:100%; }
+#circle-keyboard-wrap{ display:flex; justify-content:center; justify-content:safe center; min-width:0; min-height:40px; align-items:center; overflow-x:auto; max-width:100%; width:100%; }
+
+@media (min-width:900px){
+  .circle-main{
+    grid-template-columns: auto minmax(300px, 560px) auto minmax(340px, 480px);
+    grid-template-areas: "keyjump wheel chordjump staff";
+    align-items:center; gap:32px; justify-content:center;
+  }
+  .circle-center{ width:100%; max-width:560px; }
+  #circle-quick-jump{
+    grid-area:keyjump; display:flex; flex-direction:column; flex-wrap:wrap;
+    justify-content:center; max-width:none; gap:6px; justify-self:start;
+  }
+  #circle-chord-jump{ flex-direction:column; max-width:none; justify-self:start; }
+  .circle-right-half{ width:auto; max-width:none; padding-top:0; justify-self:stretch; }
+}
+
+html.fullscreen-active #workspace{ padding:28px; }
+html.fullscreen-active .flashcard{ max-width:min(1800px, 98vw); }
+html.fullscreen-active .circle-jump-btn{ font-size:1rem; height:40px; padding:0 10px; }
+html.fullscreen-active .mini-key.white{ width:32px; height:112px; }
+html.fullscreen-active .mini-key.black{ width:19px; height:68px; margin-left:-9.5px; margin-right:-9.5px; }
+html.fullscreen-active .mini-key .mk-dot{ width:15px; height:15px; bottom:22px; }
+html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
+
+#circle-svg{ cursor:grab; touch-action:none; }
+/* Tonica-wijzertjes: zachte gloed i.p.v. een hard contrastlijntje, zodat
+   ze aansluiten bij de rest van het Aurora Glass-uiterlijk. */
+.wheel-tonic-marker{ filter:drop-shadow(0 0 5px var(--accent)); }
+#circle-svg:active{ cursor:grabbing; }
+
+.circle-jump-btn{
+  width:56px; height:32px; padding:0 6px; border-radius:var(--radius-sm); font-size:.76rem; font-weight:700;
+  color:var(--paper-ink); background:var(--paper-btn-bg); border:1px solid var(--paper-border); flex-shrink:0; font-family:'JetBrains Mono',monospace;
+  transition:all .15s ease;
+}
+.circle-jump-btn:hover{ background:var(--paper-btn-hover); }
+.circle-jump-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(99,102,241,.35); }
+.circle-jump-btn.chord{ width:60px; }
+
+.mini-key{ position:relative; flex-shrink:0; user-select:none; }
+.mini-key.white{ width:24px; height:88px; background:#fefcf6; border:1px solid var(--paper-border); border-radius:0 0 4px 4px; z-index:1; }
+.mini-key.black{ width:15px; height:54px; background:#1c1712; margin-left:-7.5px; margin-right:-7.5px; z-index:2; border-radius:0 0 3px 3px; }
+.mini-key .mk-dot{ position:absolute; left:50%; transform:translateX(-50%); width:11px; height:11px; border-radius:50%; bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+.mini-key.black .mk-dot{ bottom:8px; }
+.mini-key .mk-dot.root{ background:var(--accent); }
+.mini-key .mk-dot.tone{ background:#22c55e; }
+
+@media (max-width: 640px) {
+    .mini-key.white { width: 17px; height: 68px; }
+    .mini-key.black { width: 10px; height: 40px; margin-left: -5px; margin-right: -5px; }
+    .mini-key .mk-dot { width: 8px; height: 8px; bottom: 12px; }
+    .mini-key.black .mk-dot { bottom: 5px; }
+}
+
+.text-quiz-display{ font-size:1.5rem; font-weight:bold; text-align:center; margin:15px 0; display:none; }
+#answer-display{
+  margin-top:10px; margin-bottom:10px; font-size:1.4rem; font-weight:800; font-family:'JetBrains Mono',monospace;
+  color:var(--accent-hover); min-height:34px; opacity:0; transition:opacity .3s; text-align:center;
+}
+#answer-display.visible{ opacity:1; }
+
+.flashcard-actions{ width:100%; max-width:400px; margin-top:15px; display:flex; flex-direction:column; gap:15px; }
+.action-row-top{ display:flex; gap:10px; justify-content:center; }
+.action-row-top button{ color:var(--paper-ink); font-weight:700; background:var(--paper-btn-bg); border:1px solid var(--paper-border); }
+.action-row-top button:hover{ background:var(--paper-btn-hover); }
+.action-row-bottom{ display:flex; gap:10px; }
+.action-row-bottom button{ flex:1; padding:14px; font-size:1rem; }
+.swipe-hint{ text-align:center; font-size:.75rem; color:var(--text-muted); margin-top:6px; }
+
+#piano-module{ display:none; flex-direction:column; width:100%; height:100%; background:var(--bg-panel); overflow:hidden; transition:background-color .3s; }
+.piano-ui-controls{ display:flex; justify-content:space-between; width:100%; max-width:600px; margin:0 auto; padding:20px; gap:10px; }
+.piano-btn{ flex:1; }
+.piano-wrapper{
+  width:100%; padding:20px 0; overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--bg-dark);
+  border-top:1px solid var(--border-color); scroll-behavior:smooth; flex:1; display:flex; align-items:center;
+}
+.piano-keyboard{ display:flex; position:relative; height:250px; min-width:max-content; padding:0 40px; }
+.key{ cursor:pointer; flex-shrink:0; border-radius:0 0 6px 6px; user-select:none; }
+.key.white{ width:50px; height:100%; background:var(--piano-white); border:1px solid #ddd0b5; position:relative; z-index:1; box-shadow:inset 0 -4px 6px rgba(0,0,0,.1); }
+.key.white:active, .key.white.active{ background:#eee7d6; border-bottom:6px solid var(--accent); animation:key-glow-white .35s ease-out; }
+.key.black{ width:30px; height:60%; background:var(--piano-black); margin-left:-15px; margin-right:-15px; z-index:2; border-radius:0 0 4px 4px; box-shadow:inset 0 -4px 4px rgba(255,255,255,.2); }
+.key.black:active, .key.black.active{ background:#33291f; border-bottom:4px solid var(--accent); animation:key-glow-black .35s ease-out; }
+@keyframes key-glow-white{
+  0%{ box-shadow:inset 0 -4px 6px rgba(0,0,0,.1), 0 0 16px 4px rgba(99,102,241,.65); }
+  100%{ box-shadow:inset 0 -4px 6px rgba(0,0,0,.1), 0 0 0 0 rgba(99,102,241,0); }
+}
+@keyframes key-glow-black{
+  0%{ box-shadow:inset 0 -4px 4px rgba(255,255,255,.2), 0 0 16px 4px rgba(99,102,241,.65); }
+  100%{ box-shadow:inset 0 -4px 4px rgba(255,255,255,.2), 0 0 0 0 rgba(99,102,241,0); }
+}
+.key span{ position:absolute; bottom:15px; width:100%; text-align:center; font-size:14px; font-weight:700; color:#a9987a; pointer-events:none; }
+
+@media (max-width:768px){
+  #workspace{ padding:12px; }
+  .flashcard{ min-height:240px; padding:14px; transition:background-color .3s, border-color .3s, color .3s, min-height .3s ease; }
+  .piano-keyboard{ height:200px; }
+  .key.white{ width:44px; }
+  .key.black{ width:28px; margin-left:-14px; margin-right:-14px; }
+}
