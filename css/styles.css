@@ -482,6 +482,17 @@ html.fullscreen-active .mini-key.black .mk-dot{ bottom:9px; }
 }
 #answer-display.visible{ opacity:1; }
 
+/* MIDI-akkoordcontrole (Fase 2.2): neutraal = "aan het luisteren" (gedimd,
+   volgt tekstkleur), correct = groen, fout = rood — bewust GEEN eigen
+   kleurvariabelen, dit zijn de enige twee plekken in de app die
+   goed/fout-feedback tonen dus vaste kleuren volstaan. */
+#midi-answer-status{
+  margin-top:-6px; margin-bottom:10px; font-size:.95rem; font-weight:700; text-align:center;
+  color:var(--text-muted); transition:color .15s ease;
+}
+#midi-answer-status.correct{ color:#22c55e; }
+#midi-answer-status.wrong{ color:#ef4444; }
+
 .flashcard-actions{ width:100%; max-width:400px; margin-top:15px; display:flex; flex-direction:column; gap:15px; }
 .action-row-top{ display:flex; gap:10px; justify-content:center; }
 .action-row-top button{ color:var(--paper-ink); font-weight:700; background:var(--paper-btn-bg); border:1px solid var(--paper-border); }

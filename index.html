@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.5.0 | Bèta Editie</p>
+      <p class="version-tag">v0.6.0 | Bèta Editie</p>
     </div>
   </div>
 
@@ -154,6 +154,9 @@
         <div id="text-quiz" class="text-quiz-display">Vraag komt hier</div>
         <div id="answer-display">Antwoord</div>
         <div id="answer-score" style="display:none; width:100%;"></div>
+        <!-- MIDI-akkoordcontrole (Fase 2.2): alleen zichtbaar zolang App.wireMidiChordCheck
+             'm toont (module=Akkoorden + MidiEngine.connected) — zie app-core.js. -->
+        <div id="midi-answer-status" style="display:none;"></div>
 
         <div class="flashcard-actions" id="flashcard-actions">
           <div class="action-row-top">

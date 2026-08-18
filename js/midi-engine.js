@@ -15,6 +15,11 @@ const MidiEngine = {
   inputs: [],
   listeners: [],
   connected: false,
+  // Welke noten op dit moment daadwerkelijk ingedrukt zijn (fysiek + virtueel
+  // door elkaar) — bijgehouden op dit ene centrale punt zodat consumenten
+  // (bijv. akkoord-antwoordcontrole, zie App.evaluateMidiChordAnswer) niet
+  // allemaal hun eigen note-on/note-off-boekhouding hoeven te dupliceren.
+  activeNotes: new Set(),
 
   supported(){ return typeof navigator.requestMIDIAccess === 'function'; },
 
@@ -55,6 +60,10 @@ const MidiEngine = {
   onNote(callback){ this.listeners.push(callback); },
   offNote(callback){ this.listeners = this.listeners.filter(cb => cb !== callback); },
   _emit(type, midi, velocity, source){
+    // activeNotes bijwerken VÓÓR de listeners aanroepen, zodat een listener
+    // die op dit event reageert altijd de actuele volledige set ziet
+    // (inclusief de noot van dit event zelf).
+    if (type === 'on') this.activeNotes.add(midi); else this.activeNotes.delete(midi);
     this.listeners.forEach(cb => {
       try { cb({ type, midi, velocity, source }); }
       catch(err){ console.error('MIDI-listener gaf een fout:', err); }

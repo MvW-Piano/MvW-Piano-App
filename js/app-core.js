@@ -110,6 +110,7 @@ const App = {
 
   loadModule(moduleId){
     this.clearAutoTimers();
+    this.unwireMidiChordCheck();
     this.currentModule = moduleId;
     const ws = document.getElementById('workspace');
     if (ws) ws.scrollTop = 0;
@@ -146,6 +147,68 @@ const App = {
       this.moveQuickControlsToDrawer();
       this.history = []; this.historyIndex = -1;
       this.nextQuestion();
+      if (moduleId === 'chords') this.wireMidiChordCheck();
+    }
+  },
+
+  // ---- MIDI-akkoordcontrole (Fase 2.2, bouwt op MidiEngine uit Fase 1.1) ----
+  // Alleen actief zolang de Akkoorden-module open staat ÉN er een MIDI-
+  // apparaat verbonden is (zie MidiEngine.connected) — zonder verbonden
+  // apparaat kan een gebruiker vanaf dit scherm sowieso niets spelen (het
+  // virtuele klavier leeft alleen in de losse "Vrij Spelen"-module), dus
+  // zou de statustekst dan alleen verwarrend zijn. Volledig ADDITIEF: de
+  // bestaande zelfbeoordelingsknoppen (Toon Antwoord/Vorige/Volgende)
+  // blijven precies zoals ze waren.
+  _midiChordBound: null,
+  _midiChordDebounce: null,
+  _midiChordAdvancing: false,
+
+  wireMidiChordCheck(){
+    if (!MidiEngine.connected) return;
+    const status = document.getElementById('midi-answer-status');
+    if (!status) return;
+    status.style.display = 'block';
+    status.className = '';
+    status.textContent = Lang.t('midiChordListening');
+    this._midiChordAdvancing = false;
+    this._midiChordBound = () => this._onMidiChordEvent();
+    MidiEngine.onNote(this._midiChordBound);
+  },
+  unwireMidiChordCheck(){
+    if (this._midiChordBound) MidiEngine.offNote(this._midiChordBound);
+    this._midiChordBound = null;
+    if (this._midiChordDebounce){ clearTimeout(this._midiChordDebounce); this._midiChordDebounce = null; }
+    const status = document.getElementById('midi-answer-status');
+    if (status) status.style.display = 'none';
+  },
+  _onMidiChordEvent(){
+    // Kleine marge i.p.v. bij elke losse noot meteen evalueren — een
+    // akkoord wordt zelden perfect gelijktijdig ingedrukt (zie
+    // Root_Note_Stappenplan.md Fase 2.2).
+    if (this._midiChordDebounce) clearTimeout(this._midiChordDebounce);
+    this._midiChordDebounce = setTimeout(() => this._evaluateMidiChordAnswer(), 120);
+  },
+  _evaluateMidiChordAnswer(){
+    if (this._midiChordAdvancing || this.currentModule !== 'chords') return;
+    const data = this.history[this.historyIndex];
+    const status = document.getElementById('midi-answer-status');
+    if (!data || !data.slices || !data.slices[0] || !status) return;
+    const result = MusicTheory.matchChordNotes(MidiEngine.activeNotes, data.slices[0]);
+    if (result === 'incomplete'){
+      status.className = ''; status.textContent = Lang.t('midiChordListening');
+    } else if (result === 'wrong'){
+      status.className = 'wrong'; status.textContent = Lang.t('midiChordWrong');
+    } else {
+      status.className = 'correct'; status.textContent = Lang.t('midiChordCorrect');
+      this._midiChordAdvancing = true;
+      this.clearAutoTimers();
+      setTimeout(() => {
+        if (this.currentModule === 'chords'){
+          this.nextQuestion();
+          this._midiChordAdvancing = false;
+          if (status){ status.className = ''; status.textContent = Lang.t('midiChordListening'); }
+        }
+      }, 600);
     }
   },
 
@@ -624,6 +687,14 @@ const App = {
     answerScore.style.display = 'none'; answerScore.innerHTML = '';
 
     let id = this.currentModule;
+    // Nieuwe vraag = nieuw akkoord om te spelen: MIDI-statustekst terug naar
+    // neutraal, ongeacht via welke route (Volgende-knop, swipe, automatisch
+    // doorgaan) hier beland is — anders blijft een oude "Probeer opnieuw"
+    // soms nog even zichtbaar staan bij de volgende vraag.
+    if (id === 'chords'){
+      const midiStatus = document.getElementById('midi-answer-status');
+      if (midiStatus && midiStatus.style.display !== 'none'){ midiStatus.className = ''; midiStatus.textContent = Lang.t('midiChordListening'); }
+    }
     const isCircleVisual = (id === 'circle' && data.c_mode === 'visual');
     const { q, ans } = this.qa(data);
 

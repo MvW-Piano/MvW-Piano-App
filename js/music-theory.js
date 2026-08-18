@@ -33,3 +33,29 @@ const INTERVAL_ABBR = {
   "Reine Kwart":"P4", "Tritonus":"TT", "Reine Kwint":"P5", "Kleine Sext":"m6",
   "Grote Sext":"M6", "Klein Septiem":"m7", "Groot Septiem":"M7", "Octaaf":"P8"
 };
+
+// MIDI-akkoordcontrole (sinds Fase 2.2, Root_Note_Stappenplan.md) — puur
+// muziektheorie, geen DOM/App-afhankelijkheid, dus herbruikbaar voor elke
+// toekomstige module die "worden de juiste akkoordnoten ingedrukt?" moet
+// controleren (Akkoorden 2.2, later ook Akkoordprogressies 2.6 — bewust
+// dezelfde functie i.p.v. een tweede keer bouwen, zie stappenplan).
+// Vergelijkt op toonhoogteKLASSE (modulo 12), niet op exacte MIDI-nummers:
+// een gebruiker mag het akkoord in elk octaaf spelen. De baston (laagste
+// ingedrukte noot) moet wél de juiste toonhoogteklasse hebben — dat is wat
+// een omkering (inversie) muzikaal correct maakt, puur dezelfde verzameling
+// toonhoogteklassen zou omkeringen niet van elkaar onderscheiden.
+// Resultaat: 'incomplete' (nog geen foute noten, nog niet compleet — blijf
+// wachten, geen rood/groen), 'wrong' (foute noot(en) en/of foute bas) of
+// 'correct'.
+MusicTheory.matchChordNotes = function(activeMidiNotes, targetMidiNotes){
+  const active = Array.from(activeMidiNotes);
+  if (active.length === 0) return 'incomplete';
+  const targetPCs = new Set(targetMidiNotes.map(n => n % 12));
+  const activePCs = new Set(active.map(n => n % 12));
+  const hasWrongNote = Array.from(activePCs).some(pc => !targetPCs.has(pc));
+  if (hasWrongNote) return 'wrong';
+  if (activePCs.size < targetPCs.size) return 'incomplete';
+  const expectedBassPC = Math.min(...targetMidiNotes) % 12;
+  const actualBassPC = Math.min(...active) % 12;
+  return actualBassPC === expectedBassPC ? 'correct' : 'wrong';
+};
