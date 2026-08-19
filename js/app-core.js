@@ -79,7 +79,12 @@ const App = {
   init(){
     document.getElementById('init-overlay').style.display = 'none';
     AudioEngine.init();
-    MidiEngine.init();
+    // MidiEngine.init() draait sinds v0.16.1 al bij het laden van de
+    // cover page (zie de bootstrap-<script> in index.html) i.p.v. hier —
+    // op gebruikersverzoek, zodat de toestemmings-prompt en de eerste
+    // verbinding zo vroeg mogelijk starten, ruim vóórdat iemand een
+    // MIDI-module opent. NIET nogmaals aanroepen hier (zou een dubbele
+    // requestMIDIAccess()-aanroep geven).
     this.tryAutoLoadSamples();
     this.loadModule('notes');
   },
@@ -1394,10 +1399,16 @@ const App = {
         // (zie _questionKey hieronder) — bij NOTES_BAND_LENGTH willekeurige
         // noten uit een bereik van minstens 25 stuks is een exacte herhaalde
         // reeks astronomisch onwaarschijnlijk.
-        const seq = [];
-        for (let i = 0; i < this.NOTES_BAND_LENGTH; i++) seq.push(randomInt(min, max));
+        // data.useFlats is sinds v0.16.1 een ARRAY (per noot een eigen #/b-
+        // keuze, zie ScrollEngine._buildStrip()) i.p.v. één keer voor de
+        // hele 100-noten-sessie — op gebruikersverzoek: bij één vaste keuze
+        // per sessie bleven kruizen en mollen nooit door elkaar voorkomen
+        // binnen dezelfde lopende-band-sessie, wat er kunstmatig/herhalend
+        // uitzag t.o.v. echte notenleesoefening.
+        const seq = [], flats = [];
+        for (let i = 0; i < this.NOTES_BAND_LENGTH; i++){ seq.push(randomInt(min, max)); flats.push(Math.random() > 0.5); }
         data.type = 'none'; data.slices = [];
-        data.useFlats = Math.random() > 0.5;
+        data.useFlats = flats;
         data.kind = 'notesBand'; data.bandSequence = seq;
       } else if (mode === 'challenge'){
         // Challenge-modus (Fase 1.3/2.1d): zelfde soort losse-noten-reeks
@@ -1407,10 +1418,12 @@ const App = {
         // hier op de countdown-timer (ChallengeEngine), niet op het
         // opraken van de reeks; CHALLENGE_SEQUENCE_LENGTH is puur een
         // veilige bovengrens zodat de reeks nooit vóór de timer opraakt.
-        const seq = [];
-        for (let i = 0; i < this.CHALLENGE_SEQUENCE_LENGTH; i++) seq.push(randomInt(min, max));
+        // data.useFlats is sinds v0.16.1 een ARRAY, zelfde reden als bij
+        // Lopende Band hierboven.
+        const seq = [], flats = [];
+        for (let i = 0; i < this.CHALLENGE_SEQUENCE_LENGTH; i++){ seq.push(randomInt(min, max)); flats.push(Math.random() > 0.5); }
         data.type = 'none'; data.slices = [];
-        data.useFlats = Math.random() > 0.5;
+        data.useFlats = flats;
         data.kind = 'notesChallenge'; data.bandSequence = seq;
       } else {
         let m = randomInt(min, max);
@@ -1541,14 +1554,23 @@ const App = {
           // Lopende Band: meerdere progressies achter elkaar geplakt tot
           // ÉÉN doorlopende sessie (zelfde "geen tussentijdse reset"-
           // principe als Noten Lezen sinds v0.11.0).
-          let seq = [], useFlats = false;
+          // data.useFlats is sinds v0.16.1 een ARRAY, één waarde per AKKOORD
+          // (niet per progressie) — elke progressie behoudt intern wél zijn
+          // EIGEN, muzikaal correcte #/b-conventie (alle akkoorden van
+          // dezelfde progressie/toonsoort delen die), maar verschillende
+          // progressies in de sessie kunnen elk hun eigen conventie hebben.
+          // Fix voor een latent bugje: vóór v0.16.1 werd useFlats bij elke
+          // iteratie OVERSCHREVEN, dus gebruikten ALLE akkoorden — ook van
+          // eerder gegenereerde progressies in een andere toonsoort — alsnog
+          // de conventie van de LAATSTE progressie in de lus.
+          let seq = [], flats = [];
           for (let i = 0; i < this.PROGRESSIONS_BAND_COUNT; i++){
             const prog = buildOneProgression();
             seq = seq.concat(prog.slices);
-            useFlats = prog.useFlats;
+            flats = flats.concat(prog.slices.map(() => prog.useFlats));
           }
           data.type = 'none'; data.slices = [];
-          data.useFlats = useFlats;
+          data.useFlats = flats;
           data.kind = 'progressionBand'; data.progBandSequence = seq;
         }
       } else {

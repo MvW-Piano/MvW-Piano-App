@@ -259,6 +259,13 @@
 ThemeManager.init();
 SoundUI.init();
 Lang.init();
+// MIDI zo vroeg mogelijk starten (sinds v0.16.1, gebruikersfeedback) —
+// niet pas wanneer App.init() draait (dat gebeurt pas ná een klik op de
+// cover page). Zo begint de toestemmings-prompt/eerste-verbinding-race
+// (zie MidiEngine.init()'s vertraagde herscans) al te lopen terwijl de
+// gebruiker nog naar de cover page kijkt, ruim vóórdat iemand daadwerkelijk
+// een MIDI-module opent.
+MidiEngine.init();
 (function wireResponsiveSettings(){
   let resizeTimer = null;
   window.addEventListener('resize', () => {

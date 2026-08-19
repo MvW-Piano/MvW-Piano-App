@@ -63,6 +63,18 @@ const ScrollEngine = {
   // gutter niet naadloos aan op die van de scrollende strip erachter.
   TREBLE_Y: 60,
   STAVE_GAP: 55,
+  // Extra "leesruimte" (logische eenheden, sinds v0.16.1, gebruikersfeedback
+  // met screenshots) tussen de gutter/hit-lijn en de HUIDIGE noot — zie
+  // _slotOffset() hieronder. Zonder deze marge viel de noot bijna letterlijk
+  // BOVENOP de hit-lijn, met als gevolg dat een voorteken (#/b) links van de
+  // notenkop deels ONDER de ondoorzichtige gutter viel (bevestigd met
+  // screenshots: een kruis/mol bij de huidige noot was tot een dun sliertje
+  // afgesneden, terwijl latere noten verderop op de strip hun volledige
+  // voorteken gewoon lieten zien). 32 verschoven van de oude "70"-anker
+  // (zie _slotOffset) geeft ~45 echte pixels extra lucht — ruim genoeg voor
+  // zelfs het bredere mol-teken, en laat de hit-lijn nu ook duidelijk VOOR
+  // (links van) de naderende noot staan i.p.v. er dwars doorheen.
+  NOTE_LEAD_GAP: 32,
 
   _raf: null,
   _stripEl: null,
@@ -112,14 +124,27 @@ const ScrollEngine = {
   // (NOTE_SLOT_W) en de linkermarge (waar noot 0 ademstart, "70" logische
   // eenheden) moeten dus BEIDE met RENDER_SCALE vermenigvuldigd worden om
   // in echte pixels te kloppen. HIT_LINE_X zelf is al een echte pixelwaarde
-  // (een vast scherm-doel), blijft ongemoeid.
+  // (een vast scherm-doel), blijft ongemoeid. De "70" is de logische
+  // ademstart-marge van noot 0 binnen de strip's eigen (nog niet
+  // getransformeerde) coördinatenruimte — NOTE_LEAD_GAP wordt hier ALTIJD
+  // van afgetrokken zodat de strip iets minder ver naar links schuift, wat
+  // de huidige noot (incl. voorteken) juist verder naar RECHTS van de
+  // hit-lijn laat landen (zie NOTE_LEAD_GAP hierboven).
   _slotOffset(index){
-    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this.RENDER_SCALE) - (70 * this.RENDER_SCALE);
+    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this.RENDER_SCALE) - ((70 - this.NOTE_LEAD_GAP) * this.RENDER_SCALE);
   },
 
   _buildStrip(container, events, opts){
     const VF = Vex.Flow;
-    const useFlats = !!opts.useFlats;
+    // opts.useFlats mag sinds v0.16.1 ook een ARRAY zijn (per index een
+    // eigen #/b-keuze, zie app-core.js's band-/challenge-generatie) i.p.v.
+    // altijd één vaste boolean voor de hele reeks — op gebruikersverzoek,
+    // zodat een lange lopende-band-/challenge-sessie niet de hele sessie
+    // in dezelfde notatie-conventie vastzit. Gewone boolean blijft werken
+    // (bestaande aanroepers als Akkoordprogressies' enkele-akkoord-render
+    // via ScoreRenderer raken hier niet aan).
+    const useFlatsOpt = opts.useFlats;
+    const useFlatsAt = (i) => Array.isArray(useFlatsOpt) ? !!useFlatsOpt[i] : !!useFlatsOpt;
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     this._ink = isDark ? '#f2f4f9' : '#111827';
     // Notenbereik-instelling (Fase 2.1a, sinds v0.12.0): opts.clef
@@ -161,7 +186,7 @@ const ScrollEngine = {
       stave.addClef(this._singleClef);
       stave.setContext(ctx).draw();
 
-      const notes = events.map(slice => ScoreRenderer.buildNote(slice, this._singleClef, useFlats, this._ink));
+      const notes = events.map((slice, i) => ScoreRenderer.buildNote(slice, this._singleClef, useFlatsAt(i), this._ink));
       const voice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(notes);
       const formatter = new VF.Formatter();
       formatter.joinVoices([voice]);
@@ -181,11 +206,11 @@ const ScrollEngine = {
       new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
 
       const trebleNotes = [], bassNotes = [];
-      events.forEach(slice => {
+      events.forEach((slice, i) => {
         const treble = slice.filter(m => m >= 60);
         const bass = slice.filter(m => m < 60);
-        trebleNotes.push(ScoreRenderer.buildNote(treble, 'treble', useFlats, this._ink));
-        bassNotes.push(ScoreRenderer.buildNote(bass, 'bass', useFlats, this._ink));
+        trebleNotes.push(ScoreRenderer.buildNote(treble, 'treble', useFlatsAt(i), this._ink));
+        bassNotes.push(ScoreRenderer.buildNote(bass, 'bass', useFlatsAt(i), this._ink));
       });
       const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
       const bassVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(bassNotes);
