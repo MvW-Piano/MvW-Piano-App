@@ -105,7 +105,7 @@ const CircleWheel = {
       // het toetsenbord eronder komt nu van gedeelde CSS-centrering
       // (justify-content:safe center), niet meer van JS die de breedtes
       // geforceerd gelijk maakte — dat verhield zich niet met deze crop.
-      ScoreRenderer.render('circle-chord-preview', [notes], useFlats, { canvasW: 275 });
+      ScoreRenderer.render('circle-chord-preview', [notes], useFlats, { canvasW: 275, duration: 'w' });
     } catch(e){ console.warn('Kon akkoordvoorbeeld niet tekenen:', e); }
     try { MiniKeyboard.render('circle-keyboard-wrap', notes, notes[0]); }
     catch(e){ console.warn('Kon toetsenbord niet tekenen:', e); }

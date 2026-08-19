@@ -125,6 +125,7 @@ const App = {
     this.unwireProgBand();
     this.unwireChordsBand();
     this.unwireChordsChallenge();
+    this.unwireSightReading();
     this.currentModule = moduleId;
     const ws = document.getElementById('workspace');
     if (ws) ws.scrollTop = 0;
@@ -184,6 +185,11 @@ const App = {
       // ververs die renderData() toch al opnieuw doet), dus vooraf wiren is
       // veilig.
       if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); this.wireNotesChallenge(); }
+      // Zelfde reden als Noten Lezen hierboven — Vooruit Lezen se enige
+      // "modus" is de auto-scroll-klok (ScrollEngine.startChallenge()),
+      // dus vooraf wiren zodat een renderfout de MIDI-koppeling niet kan
+      // blokkeren.
+      if (moduleId === 'sightreading') this.wireSightReading();
       this.history = []; this.historyIndex = -1;
       this.nextQuestion();
       if (moduleId === 'chords'){ this.wireMidiChordCheck(); this.wireChordsBand(); this.wireChordsChallenge(); }
@@ -1151,6 +1157,125 @@ const App = {
     // — alleen het missen van de hit-lijn (de klok) telt als fout.
   },
 
+  // ---- Vooruit Lezen (Fase 3.1, Stappenplan) ----
+  // Nieuwe, achtste module — bouwt volledig op bestaand fundament: een
+  // "melodienoot + begeleidend akkoord" is gewoon een chord-SLICE (zie
+  // ScrollEngine, Sleutelinzicht in het implementatieplan), dus deze
+  // wiring is een direct sjabloon van wireChordsChallenge/
+  // _evaluateChordsChallengeStep hierboven — enige nieuwe stukken zitten
+  // in ScrollEngine zelf (opts.disappearOnPass/measuresAhead/
+  // slicesPerMeasure/trebleDuration/bassDuration, zie scroll-engine.js).
+  // ALTIJD de auto-scroll-klok-mechaniek (geen Kaarten/Lopende-Band-keuze
+  // zoals bij Noten Lezen/Akkoorden) — dat IS het punt van sight-reading.
+  _sightReadingBound: null,
+  _sightReadingDebounce: null,
+  _sightReadingSecLeft: 0,
+  _sightReadingFinished: false,
+
+  wireSightReading(){
+    if (!MidiEngine.connected) return;
+    this._sightReadingBound = (e) => this._onSightReadingEvent(e);
+    MidiEngine.onNote(this._sightReadingBound);
+  },
+  unwireSightReading(){
+    if (this._sightReadingBound) MidiEngine.offNote(this._sightReadingBound);
+    this._sightReadingBound = null;
+    if (this._sightReadingDebounce){ clearTimeout(this._sightReadingDebounce); this._sightReadingDebounce = null; }
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+  },
+  _renderSightReading(data){
+    const host = document.getElementById('scroll-strip-host');
+    const status = document.getElementById('scroll-status');
+    if (!host || !status) return;
+    if (!MidiEngine.connected){
+      host.innerHTML = '';
+      status.className = ''; status.textContent = Lang.t('scrollNeedsMidi');
+      return;
+    }
+    this._sightReadingFinished = false;
+    const speedSec = parseFloat(this.getSetting('sightreading', 'speed', String(this.CHALLENGE_SPEED_DEFAULT)));
+    const intervalMs = Math.round((isNaN(speedSec) ? this.CHALLENGE_SPEED_DEFAULT : speedSec) * 1000);
+    const duration = parseInt(this.getSetting('sightreading', 'duration', '60'), 10);
+    // Duration per sleutel op ROL (melodie=kwart, akkoorden=heel), niet op
+    // sleutel — "Melodie links/rechts" (data.sr_melodyHand) bepaalt WELKE
+    // sleutel welke rol speelt, zie ScrollEngine._buildStrip().
+    const melodyInBass = data.sr_melodyHand === 'links';
+    status.className = ''; status.textContent = Lang.t('midiNoteListening');
+    ScrollEngine.startChallenge('scroll-strip-host', data.bandSequence, {
+      useFlats: data.useFlats,
+      intervalMs,
+      slicesPerMeasure: data.sr_slicesPerMeasure,
+      measuresAhead: this.SIGHTREADING_MEASURES_VISIBLE,
+      disappearOnPass: true,
+      independentVoices: true,
+      trebleDuration: melodyInBass ? 'w' : 'q',
+      bassDuration: melodyInBass ? 'q' : 'w',
+      onMiss: () => { ChallengeEngine.recordMiss(); this._updateSightReadingStatus(); },
+      onSessionEnd: () => this._finishSightReading()
+    });
+    ChallengeEngine.start(duration, {
+      onTick: (secLeft) => { this._sightReadingSecLeft = secLeft; this._updateSightReadingStatus(); },
+      onEnd: () => this._finishSightReading()
+    });
+    this._sightReadingSecLeft = duration;
+    this._updateSightReadingStatus();
+  },
+  _updateSightReadingStatus(){
+    const counter = document.getElementById('scroll-counter');
+    if (!counter) return;
+    const m = Math.floor(this._sightReadingSecLeft / 60), s = this._sightReadingSecLeft % 60;
+    const timeStr = m + ':' + String(s).padStart(2, '0');
+    counter.textContent = Lang.t('challengeStatus', { time: timeStr, correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+  },
+  _finishSightReading(){
+    if (this._sightReadingFinished) return;
+    this._sightReadingFinished = true;
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+    const status = document.getElementById('scroll-status');
+    if (status){
+      status.className = 'correct';
+      status.textContent = Lang.t('challengeComplete', { correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+    }
+  },
+  _onSightReadingEvent(e){
+    if (this.currentModule !== 'sightreading') return;
+    if (this._sightReadingDebounce) clearTimeout(this._sightReadingDebounce);
+    // Zelfde kleine debounce als Akkoorden se Challenge — een slice kan hier
+    // ook een akkoord zijn (melodienoot + begeleiding), dus niet meteen bij
+    // de eerste losse aanslag evalueren.
+    this._sightReadingDebounce = setTimeout(() => this._evaluateSightReadingStep(), 120);
+  },
+  // Onafhankelijke stemmen (sinds Fase 3.1, gebruikersfeedback): de
+  // melodie (vioolsleutel of basleutel, afhankelijk van "Melodie links/
+  // rechts") en de begeleidende akkoorden hebben allebei hun EIGEN
+  // verwachte tel-positie binnen de maat en worden hier ONAFHANKELIJK van
+  // elkaar beoordeeld — beide sleutels worden bij ELK MIDI-event gewoon
+  // los gecontroleerd, generiek op basis van "heeft deze sleutel nu iets
+  // te spelen" (ScrollEngine.currentVoiceTarget()), niet met een
+  // aparte regel voor "akkoord=heel/melodie=kwart". Zo blijft dit ook
+  // kloppen zodra er later andere nootduren bijkomen.
+  _evaluateSightReadingStep(){
+    if (this.currentModule !== 'sightreading') return;
+    ['treble', 'bass'].forEach(role => {
+      const target = ScrollEngine.currentVoiceTarget(role);
+      if (!target || !target.length) return;
+      // Altijd EXACTE noten, geen Octaaf-instelling — sight-reading test
+      // bewust "vind deze specifiek genoteerde toon(en)". Bewust GEEN
+      // 'wrong'-afwijzing bij extra actieve noten (die kunnen legitiem bij
+      // de ANDERE stem horen, zie MusicTheory.notesContainAll()).
+      if (MusicTheory.notesContainAll(MidiEngine.activeNotes, target)){
+        ScrollEngine.markVoiceCorrect(role);
+        ChallengeEngine.recordCorrect();
+        this._updateSightReadingStatus();
+      }
+    });
+    // Zelfde filosofie als Noten Lezen/Akkoorden se Challenge hierboven:
+    // een foute/onvolledige aanslag krijgt hier bewust GEEN directe straf/
+    // kleurflits — alleen het missen van de hit-lijn (de klok) telt als fout.
+  },
+
   // Notenbalk-breedte voor #score-paper per module: smal voor modules waar
   // maar een handjevol noten aan het begin van de balk staan (leesbaarder,
   // ziet er niet grotendeels leeg uit); undefined = volle breedte, nodig
@@ -1172,10 +1297,21 @@ const App = {
   _isProgressionsSequence(id){
     return id === 'progressions' && this.getSetting('progressions', 'mode', 'kaarten') === 'reeks';
   },
-  paperRenderOpts(id){
+  paperRenderOpts(id, data){
     const w = this._isProgressionsSequence(id) ? undefined : this.PAPER_CANVAS_W[id];
     const opts = w ? { canvasW: w } : {};
     if (this._isProgressionsSequence(id)) opts.measures = true;
+    // Hele noten voor akkoord-achtige content (sinds v0.16.3, gebruikers-
+    // feedback: "las bij Akkoordprogressies-Reeks veel beter weg, graag
+    // ook bij Akkoorden/Kwintencirkel/Akkoordprogressies-Kaarten") — een
+    // stok/vlag suggereert een ritme dat er bij een akkoord toch niet is.
+    // Gedetecteerd via de data zelf (heeft de EERSTE slice meer dan 1
+    // noot?) i.p.v. per module-id te hardcoden — werkt daardoor vanzelf
+    // voor ALLE huidige en toekomstige akkoord-achtige vragen (Akkoorden,
+    // Kwintencirkel se quiz-standen, Akkoordprogressies Kaarten én Reeks,
+    // Intervallen-Harmonisch), terwijl losse-noten-reeksen (Toonladders,
+    // Intervallen-Melodisch) vanzelf op kwartnoten blijven staan.
+    if (data && data.slices && data.slices[0] && data.slices[0].length > 1) opts.duration = 'w';
     // Notenbereik-instelling (Fase 2.1a): alleen relevant voor Noten Lezen,
     // en alleen als er daadwerkelijk voor één sleutel gekozen is — "both"
     // laat ScoreRenderer gewoon de bestaande grand-staff tekenen.
@@ -1561,6 +1697,44 @@ const App = {
       this.renderSingleSelect(document.getElementById('opt-prog-octave'), 'progressions', 'octaveMode',
         [{value:'exact', label:Lang.t('octave_exact')}, {value:'vrij', label:Lang.t('octave_free')}], 'exact');
       if (progMode === 'kaarten') this.buildAutoAdvanceControls('progressions', c);
+
+    } else if (id === 'sightreading'){
+      t.innerText = Lang.t('nav_sightreading');
+      // Geen "Modus"-instelling (sinds Fase 3.1) — dit IS altijd de
+      // auto-scroll-klok-mechaniek, geen Kaarten/Lopende-Band-keuze zoals
+      // bij Noten Lezen/Akkoorden; dat is precies het punt van sight-
+      // reading. Type/Omkering/Octaaf-achtige instellingen zijn hier ook
+      // bewust afwezig (willekeurige toonsoort per sessie, op verzoek).
+      // Geen "Kijkvenster"-instelling (meer) — altijd een vaste grandstaff
+      // van SIGHTREADING_MEASURES_VISIBLE (4) maten, op expliciet verzoek
+      // ("altijd een grandstaff met 4 maten"), zie _renderSightReading().
+      c.innerHTML = `
+        <div class="setting-group"><label>${Lang.t('sr_chords_label')}</label><div class="opt-row" id="opt-sr-chords"></div></div>
+        <div class="setting-group"><label>${Lang.t('sr_melodyhand_label')}</label><div class="opt-row" id="opt-sr-melodyhand"></div></div>
+        <div class="setting-group">
+          <label title="${Lang.t('challengeSpeed_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('challengeSpeed_label')}</span> <span class="aa-delay-val" id="sr-speed-val">1.5s</span></label>
+          <input type="range" class="auto-delay-slider" id="sr-speed-slider" min="${this.CHALLENGE_SPEED_MIN}" max="${this.CHALLENGE_SPEED_MAX}" step="0.1">
+        </div>
+        <div class="setting-group"><label>${Lang.t('challengeDuration_label')}</label><div class="opt-row" id="opt-sr-duration"></div></div>`;
+      this.renderSingleSelect(document.getElementById('opt-sr-chords'), 'sightreading', 'chords',
+        [{value:'uit', label:Lang.t('auto_off')}, {value:'aan', label:Lang.t('auto_on')}], 'aan');
+      // "Melodie links/rechts" (sinds Fase 3.1, gebruikersfeedback: "zowel
+      // met links als rechts melodie/akkoorden kunnen oefenen") — bepaalt
+      // welke sleutel de melodie krijgt (kwartnoten) en welke de
+      // begeleidende akkoorden (hele noten); zie _generateOneQuestion()/
+      // _renderSightReading() voor hoe dit doorwerkt naar registerkeuze
+      // resp. ScrollEngine's nieuwe trebleDuration/bassDuration-opts.
+      this.renderSingleSelect(document.getElementById('opt-sr-melodyhand'), 'sightreading', 'melodyHand',
+        [{value:'rechts', label:Lang.t('sr_melodyhand_right')}, {value:'links', label:Lang.t('sr_melodyhand_left')}], 'rechts');
+      const srSpeedSlider = document.getElementById('sr-speed-slider');
+      const srSpeedVal = document.getElementById('sr-speed-val');
+      const srSavedSpeed = this.getSetting('sightreading', 'speed', String(this.CHALLENGE_SPEED_DEFAULT));
+      srSpeedSlider.value = srSavedSpeed;
+      srSpeedVal.textContent = srSavedSpeed + 's';
+      srSpeedSlider.addEventListener('input', () => { srSpeedVal.textContent = srSpeedSlider.value + 's'; });
+      srSpeedSlider.addEventListener('change', () => { this.setSetting('sightreading', 'speed', srSpeedSlider.value); });
+      this.renderSingleSelect(document.getElementById('opt-sr-duration'), 'sightreading', 'duration',
+        this.CHALLENGE_DURATIONS.map(s => ({value:String(s), label: Lang.t('challengeDuration_s', {s}) })), '60');
     }
   },
 
@@ -1632,6 +1806,16 @@ const App = {
   // steeds ruim boven de worst-case (90s ÷ 0.6s ≈ 150 akkoorden).
   CHORDS_BAND_LENGTH: 60,
   CHORDS_CHALLENGE_SEQUENCE_LENGTH: 160,
+  // Vooruit Lezen (Fase 3.1) — vaste 4 "tellen" per maat (kwartnoot-tempo
+  // voor de melodie), 60 maten totaal is ruim boven de worst-case
+  // duur/tempo-combinatie (90s ÷ 0,6s ≈ 150 tellen ≈ 37 maten). Kijkvenster-
+  // instelling ("hoeveel maten vooruit zichtbaar") in een klein vast rijtje
+  // i.p.v. een schuifregelaar — past bij "2-3 maten" uit het stappenplan.
+  SIGHTREADING_SLICES_PER_MEASURE: 4,
+  SIGHTREADING_TOTAL_MEASURES: 60,
+  // Altijd precies 4 zichtbare maten (vast, geen instelling) — expliciet
+  // gebruikersverzoek: "altijd een grandstaff met 4 maten".
+  SIGHTREADING_MEASURES_VISIBLE: 4,
 
   generateNewData(){
     const id = this.currentModule;
@@ -1931,6 +2115,67 @@ const App = {
         data.pgDegName = targetDeg.n; data.pgChordRoot = chordRoot; data.pgChordType = targetDeg.q;
       }
     }
+    else if (id === 'sightreading'){
+      // Vooruit Lezen (Fase 3.1) — willekeurige toonsoort per sessie (geen
+      // aparte instelling, op verzoek). "Melodie links/rechts" bepaalt WELK
+      // register de melodie resp. de begeleidende akkoorden krijgen: altijd
+      // ruim genoeg uit elkaar (>= een octaaf marge) zodat de generieke
+      // >=60-sleutelsplitsing in ScrollEngine._buildStrip() ze vanzelf in
+      // de juiste notenbalk zet, zonder dat ScrollEngine zelf iets over
+      // "melodie" of "akkoord" hoeft te weten (blijft content-neutraal).
+      const chordsOn = this.getSetting('sightreading', 'chords', 'aan') === 'aan';
+      const melodyHand = this.getSetting('sightreading', 'melodyHand', 'rechts');
+      const melodyInBass = melodyHand === 'links';
+      const spm = this.SIGHTREADING_SLICES_PER_MEASURE;
+      const total = this.SIGHTREADING_TOTAL_MEASURES * spm;
+      const flatPCs = [1, 3, 5, 8, 10]; // Db/Eb/F/Ab/Bb — zelfde vijf "mol"-toonsoorten als elders (zie useFlats hieronder)
+
+      // Melodie: eenvoudige random walk (±1 toonladderstap) binnen Majeur,
+      // altijd binnen hetzelfde octaaf gehouden aan één kant van middenC
+      // (zie melodyRoot-bereik) — bewust GEEN wilde sprongen, leest
+      // prettiger weg dan puur willekeurige noten.
+      const scaleFormula = MusicTheory.scales['Majeur'];
+      const melodyRoot = melodyInBass ? randomInt(38, 45) : randomInt(64, 72);
+      let scaleIdx = randomInt(1, scaleFormula.length - 2);
+      const melodySeq = [];
+      for (let s = 0; s < total; s++){
+        scaleIdx = Math.max(0, Math.min(scaleFormula.length - 2, scaleIdx + (Math.random() > 0.5 ? 1 : -1)));
+        melodySeq.push(melodyRoot + scaleFormula[scaleIdx]);
+      }
+
+      // Akkoorden: cyclt door één willekeurig gekozen, herkenbare progressie
+      // (dezelfde MusicTheory.progressions-bibliotheek als Akkoordprogressies,
+      // zie Root_Note_Context.md) — één akkoord op tel 1 van elke maat.
+      // Bewust NIET geharmoniseerd met de melodie (allebei diatonisch aan
+      // dezelfde toonsoort is genoeg voor v1, geen akkoord-op-maat-melodie-
+      // fit-algoritme). chordKeyRoot bewust laag/hoog genoeg gekozen dat
+      // zelfs de breedste progressie-akkoorden (iv tot 9, akkoordtoon tot 7)
+      // nooit de middenC-grens kruisen.
+      const progNames = Object.keys(MusicTheory.progressions);
+      const progDegs = MusicTheory.progressions[progNames[randomInt(0, progNames.length - 1)]];
+      const chordKeyRoot = melodyInBass ? randomInt(62, 66) : randomInt(36, 40);
+
+      const seq = [], flats = [];
+      let degIdx = 0;
+      for (let s = 0; s < total; s++){
+        const slice = [melodySeq[s]];
+        let sliceFlat = flatPCs.includes(melodySeq[s] % 12);
+        if (chordsOn && s % spm === 0){
+          const deg = progDegs[degIdx % progDegs.length]; degIdx++;
+          const chordRoot = chordKeyRoot + deg.iv;
+          slice.push(...MusicTheory.chords[deg.q].map(iv => chordRoot + iv));
+          sliceFlat = sliceFlat || flatPCs.includes(chordRoot % 12);
+        }
+        seq.push(slice);
+        flats.push(sliceFlat);
+      }
+
+      data.type = 'none'; data.slices = [];
+      data.useFlats = flats;
+      data.kind = 'sightReading'; data.bandSequence = seq;
+      data.sr_melodyHand = melodyHand;
+      data.sr_slicesPerMeasure = spm;
+    }
 
     return data;
   },
@@ -2038,6 +2283,9 @@ const App = {
     const isProgBand = (id === 'progressions' && data.pg_mode === 'band');
     const isChordsBand = (id === 'chords' && data.ch_mode === 'band');
     const isChordsChallenge = (id === 'chords' && data.ch_mode === 'challenge');
+    // Vooruit Lezen (Fase 3.1) heeft geen los "modus"-veld nodig — de HELE
+    // module is altijd de auto-scroll-klok-mechaniek, dus simpelweg de id.
+    const isSightReading = (id === 'sightreading');
     // ChallengeEngine is een LOSSE klok (setTimeout-gebaseerd, niet aan
     // ScrollEngine._raf gekoppeld) — render()/startChallenge() ruimen een
     // vorige ScrollEngine-RAF-loop altijd zelf op (allebei roepen
@@ -2064,8 +2312,8 @@ const App = {
     }
     const { q, ans } = this.qa(data);
 
-    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge) ? 'none' : 'flex';
-    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge) ? 'none' : 'block';
+    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge || isSightReading) ? 'none' : 'flex';
+    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge || isSightReading) ? 'none' : 'block';
 
     if (isCircleVisual){
       svgBox.style.display = 'flex';
@@ -2104,6 +2352,12 @@ const App = {
       document.getElementById('scroll-view').style.display = 'flex';
       this._renderChordsChallenge(data);
     }
+    else if (isSightReading){
+      svgBox.style.display = 'flex';
+      document.querySelector('.circle-main').style.display = 'none';
+      document.getElementById('scroll-view').style.display = 'flex';
+      this._renderSightReading(data);
+    }
     else if (id === 'circle' || (id === 'intervals' && data.i_mode === 'blind')){
       textQuiz.style.display = 'block';
       textQuiz.innerText = id === 'circle' ? q : Lang.t('listenBlind');
@@ -2114,7 +2368,7 @@ const App = {
       paper.style.display = 'flex';
       if (id === 'progressions'){ textQuiz.style.display = 'block'; textQuiz.innerHTML = q; }
       this.applyPaperMaxWidth(id);
-      ScoreRenderer.render('score-paper', data.slices, data.useFlats, this.paperRenderOpts(id));
+      ScoreRenderer.render('score-paper', data.slices, data.useFlats, this.paperRenderOpts(id, data));
       ansDisp.innerText = ans;
     }
 
@@ -2151,7 +2405,11 @@ const App = {
       // Kleinere canvasW zodat de 1-2 noten dicht bij elkaar staan i.p.v.
       // over de volle breedte uitgesmeerd — dat maakt het verschil tussen
       // bijv. P4 en P8 beter zichtbaar.
-      ScoreRenderer.render('answer-score', data.slices, data.useFlats, { canvasW: 260 });
+      // Hele noot bij Harmonisch (twee gelijktijdige noten, "chord-achtig")
+      // zelfde reden als paperRenderOpts() hierboven — Melodisch (twee
+      // losse noten na elkaar) blijft op kwartnoten.
+      const answerDuration = data.slices[0] && data.slices[0].length > 1 ? 'w' : 'q';
+      ScoreRenderer.render('answer-score', data.slices, data.useFlats, { canvasW: 260, duration: answerDuration });
     }
   },
 

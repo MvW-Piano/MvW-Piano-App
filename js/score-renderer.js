@@ -149,7 +149,7 @@ const ScoreRenderer = {
       // tickable die geen eigen noothoofd tekent, alleen een streepje, en
       // dankzij .setStrict(false) hieronder geen probleem geeft met de
       // ritme-optelling van de Voice.
-      const noteDuration0 = opts.measures ? 'w' : 'q';
+      const noteDuration0 = opts.duration || (opts.measures ? 'w' : 'q');
       const sliceList0 = slices.length ? slices : [[]];
       const notes = [];
       sliceList0.forEach((slice, i) => {
@@ -203,7 +203,7 @@ const ScoreRenderer = {
       // lead sheet. Spacer-ghostnotes krijgen dezelfde duration zodat de
       // ruimteverdeling tussen akkoord en maatstreepje evenredig blijft aan
       // de al geteste kwartnoten-versie.
-      const noteDuration = opts.measures ? 'w' : 'q';
+      const noteDuration = opts.duration || (opts.measures ? 'w' : 'q');
       const sliceList = slices.length ? slices : [[]];
       const spacerSet = new Set();
       const barSpacers = [];

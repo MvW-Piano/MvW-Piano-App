@@ -138,3 +138,18 @@ MusicTheory.matchExactNotes = function(activeMidiNotes, targetMidiNotes){
   if (active.length < targetSet.size) return 'incomplete';
   return 'correct';
 };
+
+// Vooruit Lezen (Fase 3.1) — onafhankelijke stemmen-matching: een melodie-
+// noot en een begeleidend akkoord hebben allebei hun EIGEN verwachte
+// tel-positie binnen de maat en worden ONAFHANKELIJK van elkaar beoordeeld
+// (zie ScrollEngine.currentVoiceTarget()/markVoiceCorrect() in
+// scroll-engine.js). Bewust GEEN 'wrong' bij een extra actieve noot —
+// anders zou de andere stem se noten (die legitiem ook ingedrukt kunnen
+// zijn, bijv. de linkerhand houdt het akkoord vast terwijl de rechterhand
+// de melodie speelt) deze stem se eigen match onterecht laten mislukken.
+// Puur: staan ALLE verwachte noten van DEZE stem momenteel ingedrukt?
+MusicTheory.notesContainAll = function(activeMidiNotes, targetMidiNotes){
+  if (!targetMidiNotes || targetMidiNotes.length === 0) return false;
+  const active = new Set(Array.from(activeMidiNotes));
+  return targetMidiNotes.every(n => active.has(n));
+};

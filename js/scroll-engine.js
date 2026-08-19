@@ -25,6 +25,15 @@
 // verdwijnen) — zie stappenplan Fase 1.2.
 const ScrollEngine = {
   NOTE_SLOT_W: 90,
+  // Extra logische breedte gereserveerd per maatstreep (sinds Vooruit
+  // Lezen, Fase 3.1) — een GhostNote-spacer (zie _buildStrip()'s
+  // slicesPerMeasure-tak) kost de formatter altijd wat ruimte, en
+  // _slotOffset() moet exact diezelfde breedte weer aftrekken om de
+  // hit-lijn-uitlijning kloppend te houden (zelfde "twee plekken die
+  // gelijk moeten blijven"-patroon als NOTE_LEAD_GAP/HIT_LINE_X
+  // hierboven). Startwaarde, empirisch geverifieerd/bijgesteld tijdens
+  // het bouwen van Vooruit Lezen.
+  BARLINE_SLOT_W: 14,
   // 270 i.p.v. een krappere waarde: bij "Moeilijk" (Noten Lezen, bereik
   // C1-C7) bleek een lagere waarde de onderkant van lage noten/
   // hulplijntjes af te snijden (SVG-viewBox clipt alles buiten
@@ -108,6 +117,26 @@ const ScrollEngine = {
   _events: [],
   _currentIndex: 0,
   _ink: '#111827',
+  // Vooruit Lezen-state (Fase 3.1) — allemaal 0/false by default, dus
+  // ongebruikt/geen gedragswijziging voor bestaande aanroepers (Noten
+  // Lezen/Akkoorden Band+Challenge, Akkoordprogressies Band) die deze
+  // nieuwe opts niet meegeven. Zie startChallenge()/_buildStrip().
+  _slicesPerMeasure: 0,
+  _measuresAhead: 0,
+  _disappearOnPass: false,
+  // Onafhankelijke-stemmen-matching (Vooruit Lezen, Fase 3.1) — een
+  // melodienoot en een begeleidend akkoord hebben allebei hun EIGEN
+  // verwachte tel-positie en worden onafhankelijk beoordeeld/gemist/
+  // vooruit-gespeeld, i.p.v. één gedeelde index voor de hele slice (zie
+  // currentVoiceTarget()/markVoiceCorrect()/_advanceVoiceMiss() hieronder).
+  // Generiek op "welke ruwe event-indices heeft deze stem echt iets te
+  // spelen" — geen aparte regel voor "akkoord=heel/melodie=kwart", werkt
+  // dus ook met toekomstige andere nootduren/rusten. false = uit,
+  // ongewijzigd single-track gedrag voor Noten Lezen/Akkoorden.
+  _independentVoices: false,
+  _voiceEventIndices: { treble: [], bass: [] },
+  _voiceCursors: { treble: 0, bass: 0 },
+  _voiceMatched: { treble: [], bass: [] },
 
   // events: array van SLICES (number[][], één akkoord — 1 of meer
   // gelijktijdige MIDI-nummers — per stap). Sinds Fase 2.6 (v0.14.0)
@@ -180,7 +209,16 @@ const ScrollEngine = {
   // (incl. voorteken) juist verder naar RECHTS van de hit-lijn laat landen
   // (zie NOTE_LEAD_GAP hierboven).
   _slotOffset(index){
-    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale);
+    // Maatstrepen (Vooruit Lezen, opts.slicesPerMeasure) eten in de
+    // strip-breedte een STUKJE extra ruimte per gepasseerde streep op —
+    // moet hier exact gecompenseerd worden, anders schuift de hit-lijn-
+    // uitlijning geleidelijk uit de pas naarmate er meer maatstrepen
+    // gepasseerd zijn. 0 als slicesPerMeasure niet actief is (bestaande
+    // aanroepers, geen wijziging).
+    const barlineCorrection = this._slicesPerMeasure > 0
+      ? Math.floor(index / this._slicesPerMeasure) * this.BARLINE_SLOT_W * this._activeScale
+      : 0;
+    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
   },
 
   _buildStrip(container, events, opts){
@@ -202,6 +240,10 @@ const ScrollEngine = {
     // toelichting. _singleClef wordt ook door _buildGutter()/_colorNoteAt()
     // gebruikt.
     this._singleClef = (opts.clef === 'treble' || opts.clef === 'bass') ? opts.clef : null;
+    // Maatstrepen (Vooruit Lezen, Fase 3.1): 0 = uit, ongewijzigd gedrag
+    // voor alle bestaande aanroepers. Instance-state (i.p.v. een lokale
+    // const) omdat _slotOffset() dit ook buiten deze functie nodig heeft.
+    this._slicesPerMeasure = opts.slicesPerMeasure || 0;
 
     const wrap = document.createElement('div');
     wrap.style.display = 'inline-block';
@@ -214,7 +256,11 @@ const ScrollEngine = {
     // ctx.scale() zorgt dat alles wat we dáárna met logische coördinaten
     // tekenen automatisch RENDER_SCALE keer zo groot uitpakt in echte
     // pixels (VexFlow's SVGContext ondersteunt scale() net als canvas2d).
-    const canvasW = Math.max(events.length * this.NOTE_SLOT_W + 160, 400);
+    // Extra breedte-budget voor maatstrepen (zie _slicesPerMeasure
+    // hierboven) — moet in verhouding blijven met de BARLINE_SLOT_W-
+    // correctie in _slotOffset().
+    const numBarlines = this._slicesPerMeasure > 0 ? Math.floor((events.length - 1) / this._slicesPerMeasure) : 0;
+    const canvasW = Math.max(events.length * this.NOTE_SLOT_W + numBarlines * this.BARLINE_SLOT_W + 160, 400);
     const scale = this._activeScale;
     const renderer = new VF.Renderer(wrap, VF.Renderer.Backends.SVG);
     renderer.resize(canvasW * scale, this.CANVAS_H * scale);
@@ -267,12 +313,53 @@ const ScrollEngine = {
       trebleStave.setContext(ctx).draw();
       bassStave.setContext(ctx).draw();
 
+      // Maatstrepen (Vooruit Lezen, Fase 3.1, this._slicesPerMeasure): zelfde
+      // GhostNote-spacer-techniek als ScoreRenderer._draw()'s opts.measures
+      // (v0.16.3) — onzichtbare tickables die alleen ruimte reserveren, de
+      // streep zelf komt van de handmatige ctx-tekencode verderop (VF.
+      // StaveConnector kan niet op een willekeurige tussenliggende x-positie
+      // verbinden). spacerSet (object-identiteit, GEEN instanceof-check)
+      // voorkomt dat deze de _trebleNotes/_bassNotes-index-uitlijning met de
+      // RUWE events-array verstoort — dezelfde valkuil als daar: een blote
+      // instanceof-filter zou ook de legitieme lege-akkoordkant-ghostnotes
+      // wegfilteren die buildNote() al gebruikt (bijv. bij een melodie-only
+      // slice zonder akkoord, is de baskant altijd zo'n lege GhostNote).
+      // Aparte duration per sleutel (sinds Vooruit Lezen, Fase 3.1,
+      // gebruikersfeedback: "akkoorden hele noten, melodie kwart noten
+      // blijven") — default 'q'/'q' voor alle bestaande aanroepers (geen
+      // wijziging). App._renderSightReading() wijst dit toe op ROL
+      // (melodie/akkoorden), niet op sleutel — welke sleutel welke rol
+      // speelt hangt af van de "Melodie links/rechts"-instelling, zie daar.
+      const trebleDuration = opts.trebleDuration || 'q';
+      const bassDuration = opts.bassDuration || 'q';
       const trebleNotes = [], bassNotes = [];
+      const spacerSet = new Set();
+      const barSpacers = [];
       events.forEach((slice, i) => {
         const treble = slice.filter(m => m >= 60);
         const bass = slice.filter(m => m < 60);
-        trebleNotes.push(ScoreRenderer.buildNote(treble, 'treble', useFlatsAt(i), this._ink));
-        bassNotes.push(ScoreRenderer.buildNote(bass, 'bass', useFlatsAt(i), this._ink));
+        // trebleDuration/bassDuration gelden UITSLUITEND voor een sleutel-kant
+        // die op deze slice ook echt iets speelt — een lege kant (bijv. de
+        // basleutel op een melodie-only tel, geen akkoord) blijft altijd 'q'
+        // (1 tel), ongeacht de rol-duration. Zonder deze uitzondering kreeg
+        // ELKE lege GhostNote-vulling in die maat ook 'w' (4 tellen) mee —
+        // een hele maat akkoord-begeleiding (1 note + 3 lege tellen) telde zo
+        // per ongeluk 16 tellen i.p.v. 4, waardoor de bas-voice 4× zo lang
+        // "tikte" als de melodie-voice en de formatter de twee voices niet
+        // meer gelijk kon uitlijnen (zichtbaar als veel te veel melodienoten
+        // vóór de volgende maatstreep, gemeld door de gebruiker).
+        const tDur = treble.length ? trebleDuration : 'q';
+        const bDur = bass.length ? bassDuration : 'q';
+        trebleNotes.push(ScoreRenderer.buildNote(treble, 'treble', useFlatsAt(i), this._ink, tDur));
+        bassNotes.push(ScoreRenderer.buildNote(bass, 'bass', useFlatsAt(i), this._ink, bDur));
+        if (this._slicesPerMeasure > 0 && (i + 1) % this._slicesPerMeasure === 0 && i < events.length - 1){
+          const tSpacer = new VF.GhostNote('q');
+          const bSpacer = new VF.GhostNote('q');
+          trebleNotes.push(tSpacer);
+          bassNotes.push(bSpacer);
+          spacerSet.add(tSpacer); spacerSet.add(bSpacer);
+          barSpacers.push(tSpacer);
+        }
       });
       const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
       const bassVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(bassNotes);
@@ -283,8 +370,23 @@ const ScrollEngine = {
       trebleVoice.draw(ctx, trebleStave);
       bassVoice.draw(ctx, bassStave);
 
-      this._trebleNotes = trebleNotes;
-      this._bassNotes = bassNotes;
+      // De maatstreep zelf: DOORLOPEND van de bovenste vioolsleutel-lijn tot
+      // de onderste basleutel-lijn — zelfde techniek als ScoreRenderer._draw().
+      if (barSpacers.length){
+        const topY = trebleStave.getYForLine(0);
+        const bottomY = bassStave.getYForLine(4);
+        barSpacers.forEach(spacer => {
+          const x = spacer.getAbsoluteX();
+          ctx.beginPath();
+          ctx.moveTo(x, topY);
+          ctx.lineTo(x, bottomY);
+          if (ctx.setLineWidth) ctx.setLineWidth(1);
+          ctx.stroke();
+        });
+      }
+
+      this._trebleNotes = trebleNotes.filter(nt => !spacerSet.has(nt));
+      this._bassNotes = bassNotes.filter(nt => !spacerSet.has(nt));
     }
   },
 
@@ -367,6 +469,56 @@ const ScrollEngine = {
       });
     });
   },
+  // Zichtbaarheid van de noot/het akkoord op index i (Vooruit Lezen, Fase
+  // 3.1) — LOS van _colorNoteAt()'s fill/stroke-kleur, via `opacity` op de
+  // hele SVG-<g> van de noot (notenkop, stok, voortekens ALLEMAAL tegelijk,
+  // zonder de kleur-logica hierboven te raken). Gebruikt voor zowel "nog
+  // niet onthuld" (buiten het kijkvenster) als "al gepasseerd, verdwenen"
+  // (opts.disappearOnPass) — zie startChallenge() hieronder.
+  _setNoteOpacity(i, opacity){
+    [this._trebleNotes[i], this._bassNotes[i]].forEach(note => {
+      if (!note || typeof note.getSVGElement !== 'function') return;
+      const el = note.getSVGElement();
+      if (el) el.style.opacity = opacity;
+    });
+  },
+  _hideNoteAt(i){ this._setNoteOpacity(i, 0); },
+  _revealNoteAt(i){ this._setNoteOpacity(i, 1); },
+  // Rol-specifieke varianten (Vooruit Lezen, onafhankelijke stemmen) — een
+  // stem mag NOOIT de noot van de ANDERE stem op dezelfde ruwe index
+  // kleuren/verbergen (bijv. de melodienoot op tel 1 mag niet verdwijnen
+  // omdat het akkoord op diezelfde tel al gemist/gespeeld is, en vice
+  // versa) — _colorNoteAt()/_setNoteOpacity() hierboven raken bewust
+  // ALTIJD beide sleutels tegelijk aan, dus voor onafhankelijke stemmen is
+  // een losse, sleutel-specifieke variant nodig.
+  _colorVoiceNoteAt(role, i, color){
+    const note = (role === 'treble' ? this._trebleNotes : this._bassNotes)[i];
+    if (!note || typeof note.getSVGElement !== 'function') return;
+    const el = note.getSVGElement();
+    if (!el) return;
+    el.querySelectorAll('path, rect, ellipse').forEach(p => {
+      p.setAttribute('fill', color);
+      p.setAttribute('stroke', color);
+    });
+  },
+  _hideVoiceNoteAt(role, i){
+    const note = (role === 'treble' ? this._trebleNotes : this._bassNotes)[i];
+    if (!note || typeof note.getSVGElement !== 'function') return;
+    const el = note.getSVGElement();
+    if (el) el.style.opacity = 0;
+  },
+  // Past het kijkvenster/verdwijn-gedrag toe bij een index-overgang (nieuwe
+  // waarde van this._currentIndex, ongeacht of die overgang van de klok
+  // komt — step()'s while-lus hieronder — of van een speler die vooruit
+  // speelt — markChallengeCorrect()). Bewust O(1) per overgang (niet elke
+  // animatieframe over de hele reeks herberekend) door alleen de net-
+  // gepasseerde en net-onthulde index aan te raken.
+  _applyRevealWindow(newIndex){
+    if (this._disappearOnPass) this._hideNoteAt(newIndex - 1);
+    if (this._measuresAhead > 0 && this._slicesPerMeasure > 0){
+      this._revealNoteAt(newIndex + this._measuresAhead * this._slicesPerMeasure - 1);
+    }
+  },
   // status: 'correct' (groen, blijft staan) of 'neutral' (terug naar de
   // gewone inktkleur van dit thema).
   markCurrent(status){
@@ -389,6 +541,58 @@ const ScrollEngine = {
     if (this.isLastNote()) return false;
     this._glideTo(this._currentIndex + 1);
     return true;
+  },
+
+  // ---- Onafhankelijke stemmen (Vooruit Lezen, Fase 3.1) ----
+  // role: 'treble' of 'bass'. Geeft de noten terug die DEZE stem nu
+  // verwacht (gefilterd op >=60/<60, zelfde conventie als _buildStrip()),
+  // of null als deze stem niets meer te spelen heeft. "Deze stem" bestaat
+  // uit alleen de ruwe event-indices waar die sleutel ook daadwerkelijk
+  // iets speelt (_voiceEventIndices) — een lege kant (bijv. de bassleutel
+  // op een melodie-only tel) telt niet mee als eigen "tel" voor die stem.
+  currentVoiceTarget(role){
+    const idxList = this._voiceEventIndices[role];
+    const cursor = this._voiceCursors[role];
+    if (!idxList || cursor >= idxList.length) return null;
+    const eventIdx = idxList[cursor];
+    const slice = this._events[eventIdx];
+    if (!slice) return null;
+    return slice.filter(m => role === 'treble' ? m >= 60 : m < 60);
+  },
+  // Markeert de HUIDIGE noot/akkoord van DEZE stem als correct gespeeld —
+  // schuift de cursor van DEZE stem alvast door (zelfde "sneller dan het
+  // tempo spelen mag"-principe als markChallengeCorrect(), nu per stem
+  // onafhankelijk: de melodie mag voorlopen op het akkoord en omgekeerd).
+  markVoiceCorrect(role){
+    const idxList = this._voiceEventIndices[role];
+    const cursor = this._voiceCursors[role];
+    if (!idxList || cursor >= idxList.length || this._voiceMatched[role][cursor]) return;
+    this._voiceMatched[role][cursor] = true;
+    const eventIdx = idxList[cursor];
+    this._colorVoiceNoteAt(role, eventIdx, '#22c55e');
+    if (this._disappearOnPass) this._hideVoiceNoteAt(role, eventIdx);
+    this._voiceCursors[role] = cursor + 1;
+  },
+  // Klok-gedreven missdetectie voor DEZE stem — schuift de cursor van deze
+  // stem door tot voorbij elke tel die de klok (targetIndex, ruwe
+  // event-index) al gepasseerd is; alles wat daarbij nog niet gematched
+  // was telt als MIS. Losse functie i.p.v. inline in step() omdat dit
+  // twee keer per frame gebeurt (eenmaal per stem), zie startChallenge().
+  _advanceVoiceMiss(role, targetIndex){
+    const idxList = this._voiceEventIndices[role];
+    const matched = this._voiceMatched[role];
+    let cursor = this._voiceCursors[role];
+    while (cursor < idxList.length && idxList[cursor] < targetIndex){
+      const eventIdx = idxList[cursor];
+      if (!matched[cursor]){
+        this._colorVoiceNoteAt(role, eventIdx, '#ef4444');
+        setTimeout(() => { this._colorVoiceNoteAt(role, eventIdx, this._ink); }, 400);
+        if (this._challengeCallbacks && this._challengeCallbacks.onMiss) this._challengeCallbacks.onMiss();
+      }
+      if (this._disappearOnPass) this._hideVoiceNoteAt(role, eventIdx);
+      cursor++;
+    }
+    this._voiceCursors[role] = cursor;
   },
 
   // ---- Challenge-modus (tijdsdruk, Fase 1.3, bouwt op ChallengeEngine
@@ -427,7 +631,40 @@ const ScrollEngine = {
     this._challengeMatched = new Array(slices.length).fill(false);
     this._challengeCallbacks = opts;
     this._currentIndex = 0;
+    // Vooruit Lezen-opties (Fase 3.1) — allebei 0/false als niet
+    // meegegeven, dus geen gedragswijziging voor Noten Lezen/Akkoorden se
+    // bestaande Challenge-modi. Zie _applyRevealWindow()/_hideNoteAt()
+    // hierboven.
+    this._disappearOnPass = !!opts.disappearOnPass;
+    this._measuresAhead = opts.measuresAhead || 0;
+    // Onafhankelijke stemmen (Vooruit Lezen, Fase 3.1, opts.independentVoices)
+    // — bouwt per sleutel de lijst ruwe event-indices waar die sleutel ook
+    // echt iets speelt (generiek, geen aanname over welke duur/rol) en
+    // start beide cursors op 0. Zie currentVoiceTarget()/markVoiceCorrect()/
+    // _advanceVoiceMiss() hierboven. false/leeg voor alle bestaande
+    // aanroepers — geen gedragswijziging.
+    this._independentVoices = !!opts.independentVoices;
+    if (this._independentVoices){
+      this._voiceEventIndices = {
+        treble: slices.map((s, i) => i).filter(i => slices[i].some(m => m >= 60)),
+        bass: slices.map((s, i) => i).filter(i => slices[i].some(m => m < 60))
+      };
+      this._voiceCursors = { treble: 0, bass: 0 };
+      this._voiceMatched = {
+        treble: new Array(this._voiceEventIndices.treble.length).fill(false),
+        bass: new Array(this._voiceEventIndices.bass.length).fill(false)
+      };
+    }
     this._setTransform(this._slotOffset(0));
+    // Initiële kijkvenster-grens (vóór er ook maar iets gespeeld is) —
+    // dezelfde grensformule als _applyRevealWindow(0) zou geven, maar dan
+    // toegepast op de HELE reeks voorbij die grens (eenmalig, bij het
+    // opbouwen van de sessie; daarna gaat elke volgende onthulling O(1)
+    // per index-overgang, zie step()/markChallengeCorrect() hieronder).
+    if (this._measuresAhead > 0 && this._slicesPerMeasure > 0){
+      const initialBoundary = this._measuresAhead * this._slicesPerMeasure - 1;
+      for (let i = initialBoundary + 1; i < slices.length; i++) this._hideNoteAt(i);
+    }
     let start = null;
     const step = (now) => {
       if (!this._challengeCallbacks) return;
@@ -441,13 +678,22 @@ const ScrollEngine = {
       // intussen alweer is doorgeschoven, per ongeluk de VERKEERDE
       // (inmiddels huidige) noot resetten i.p.v. de gemiste.
       while (this._currentIndex < targetIndex && this._currentIndex < this._events.length){
-        if (!this._challengeMatched[this._currentIndex]){
+        // Bij onafhankelijke stemmen gebeurt de eigenlijke missdetectie
+        // hieronder PER STEM (_advanceVoiceMiss) — dit blok werkt dan
+        // alleen nog het klok-gedreven kijkvenster bij (stem-onafhankelijk,
+        // gebaseerd op tijd/positie, niet op wie er wel/niet gematched heeft).
+        if (!this._independentVoices && !this._challengeMatched[this._currentIndex]){
           const missIdx = this._currentIndex;
           this._colorNoteAt(missIdx, '#ef4444');
           setTimeout(() => { this._colorNoteAt(missIdx, this._ink); }, 400);
           if (this._challengeCallbacks.onMiss) this._challengeCallbacks.onMiss();
         }
         this._currentIndex++;
+        this._applyRevealWindow(this._currentIndex);
+      }
+      if (this._independentVoices){
+        this._advanceVoiceMiss('treble', targetIndex);
+        this._advanceVoiceMiss('bass', targetIndex);
       }
       if (this._currentIndex >= this._events.length){
         const onSessionEnd = this._challengeCallbacks.onSessionEnd;
@@ -487,12 +733,20 @@ const ScrollEngine = {
     // een snelle speler de reeks nooit eerder "opraken" dan de klok zelf
     // ooit zou doen (sessie-einde blijft dus altijd echt de taak van de
     // countdown-timer, zie ChallengeEngine/app-core.js).
-    if (this._currentIndex < this._events.length - 1) this._currentIndex++;
+    if (this._currentIndex < this._events.length - 1){
+      this._currentIndex++;
+      this._applyRevealWindow(this._currentIndex);
+    }
   },
 
   stop(){
     if (this._raf){ cancelAnimationFrame(this._raf); this._raf = null; }
     this._trebleNotes = []; this._bassNotes = []; this._events = []; this._stripEl = null;
     this._challengeCallbacks = null;
+    this._slicesPerMeasure = 0; this._measuresAhead = 0; this._disappearOnPass = false;
+    this._independentVoices = false;
+    this._voiceEventIndices = { treble: [], bass: [] };
+    this._voiceCursors = { treble: 0, bass: 0 };
+    this._voiceMatched = { treble: [], bass: [] };
   }
 };
