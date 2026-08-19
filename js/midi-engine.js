@@ -44,6 +44,20 @@ const MidiEngine = {
         if (document.visibilityState === 'visible') this._wireInputs();
       });
       window.addEventListener('focus', () => this._wireInputs());
+      // Eerste-verbinding-race (sinds v0.16.1, gebruikersfeedback): sommige
+      // besturingssystemen/stuurprogramma's geven de MIDI-poort pas een
+      // fractie ná het toekennen van toestemming daadwerkelijk door aan de
+      // browser — access.inputs kan op het moment dat de Promise hierboven
+      // oplost dus nog leeg zijn, ook al is er wél een apparaat aangesloten.
+      // Tot nu toe was de enige workaround een focus-/zichtbaarheids-
+      // wisseling (handmatig naar een andere app en terug) — dat loste het
+      // symptoom toevallig op omdat het toevallig ook _wireInputs() opnieuw
+      // aanriep, niet omdat het specifiek nodig was. Twee korte vertraagde
+      // herscans dekken diezelfde race nu automatisch af, zonder een nieuwe
+      // requestMIDIAccess() (dus geen hernieuwde toestemmings-prompt) en
+      // zonder dat de gebruiker zelf van app moet wisselen.
+      setTimeout(() => this._wireInputs(), 800);
+      setTimeout(() => this._wireInputs(), 2500);
     }).catch(err => {
       console.warn('🎹 MIDI-toegang mislukt of geweigerd:', err);
       this.updateStatusIndicator();
