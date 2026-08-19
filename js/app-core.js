@@ -115,6 +115,7 @@ const App = {
     this.unwireMidiIntervalCheck();
     this.unwireScrollBand();
     this.unwireMidiNoteCheck();
+    this.unwireNotesChallenge();
     this.unwireMidiProgCheck();
     this.unwireProgBand();
     this.currentModule = moduleId;
@@ -168,7 +169,7 @@ const App = {
       if (moduleId === 'chords') this.wireMidiChordCheck();
       if (moduleId === 'scales') this.wireMidiScaleCheck();
       if (moduleId === 'intervals') this.wireMidiIntervalCheck();
-      if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); }
+      if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); this.wireNotesChallenge(); }
       if (moduleId === 'progressions'){ this.wireMidiProgCheck(); this.wireProgBand(); }
     }
   },
@@ -531,6 +532,104 @@ const App = {
           }
         }, 400);
       }
+    }
+  },
+
+  // ---- Challenge-modus Noten Lezen (Fase 1.3/2.1d, bouwt op ScrollEngine.
+  // startChallenge() + ChallengeEngine) ----
+  // Zelfde "los top-level scherm, vervangt de hele kaart-weergave"-opzet
+  // als Lopende Band hierboven (hergebruikt dezelfde #scroll-view-widgets),
+  // maar de strip schuift hier op een vaste klok door i.p.v. te wachten op
+  // MIDI-invoer — zie ScrollEngine.startChallenge() voor het tijdsdruk-
+  // mechanisme zelf. Deze sectie is puur de "lijm": MIDI-listener +
+  // ChallengeEngine-timer starten/stoppen, teller-tekst bijhouden.
+  // Altijd gewired zodra MidiEngine.connected (net als wireScrollBand/
+  // wireMidiNoteCheck) — de handler checkt zelf data.n_mode, zodat
+  // mid-sessie wisselen van Modus meteen goed werkt.
+  _challengeBound: null,
+  _challengeSecLeft: 0,
+  _challengeFinished: false,
+
+  wireNotesChallenge(){
+    if (!MidiEngine.connected) return;
+    this._challengeBound = (e) => this._onChallengeEvent(e);
+    MidiEngine.onNote(this._challengeBound);
+  },
+  unwireNotesChallenge(){
+    if (this._challengeBound) MidiEngine.offNote(this._challengeBound);
+    this._challengeBound = null;
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+  },
+  _onChallengeEvent(e){
+    if (e.type !== 'on' || this.currentModule !== 'notes') return;
+    const data = this.history[this.historyIndex];
+    if (!data || data.n_mode !== 'challenge') return;
+    const target = ScrollEngine.currentTarget();
+    if (!target) return;
+    if (e.midi === target[0]){
+      ScrollEngine.markChallengeCorrect();
+      ChallengeEngine.recordCorrect();
+      this._updateChallengeStatus();
+    }
+    // Een foute aanslag heeft hier bewust GEEN directe straf/kleurflits —
+    // alleen het daadwerkelijk missen van de hit-lijn (de klok, zie
+    // ScrollEngine's onMiss-callback) telt als fout, letterlijk uit het
+    // stappenplan ("mist de noot de lijn, telt hij als fout").
+  },
+  // startIndex bestaat bewust NIET zoals bij _renderNotesBand (geen
+  // "hervat na themawissel zonder voortgang te verliezen") — een Challenge-
+  // sessie op de klok opnieuw laten beginnen bij een themawissel zou de
+  // score ooneerlijk kunnen laten meetellen; ThemeManager.toggle() stopt
+  // deze modus daarom bewust NIET apart (zie theme.js), de VexFlow-inkt
+  // van een lopende Challenge-sessie blijft dus in het oude thema staan
+  // tot de sessie afloopt — geaccepteerde beperking, zie Root_Note_Context.md.
+  _renderNotesChallenge(data){
+    const host = document.getElementById('scroll-strip-host');
+    const status = document.getElementById('scroll-status');
+    if (!host || !status) return;
+    if (!MidiEngine.connected){
+      host.innerHTML = '';
+      status.className = ''; status.textContent = Lang.t('scrollNeedsMidi');
+      return;
+    }
+    this._challengeFinished = false;
+    const speed = this.getSetting('notes', 'challengeSpeed', 'normaal');
+    const intervalMs = this.CHALLENGE_SPEED_MS[speed] || this.CHALLENGE_SPEED_MS.normaal;
+    const duration = parseInt(this.getSetting('notes', 'challengeDuration', '60'), 10);
+    status.className = ''; status.textContent = Lang.t('midiNoteListening');
+    ScrollEngine.startChallenge('scroll-strip-host', data.bandSequence, {
+      useFlats: data.useFlats, clef: data.n_clef, intervalMs,
+      onMiss: () => { ChallengeEngine.recordMiss(); this._updateChallengeStatus(); },
+      onSessionEnd: () => this._finishNotesChallenge()
+    });
+    ChallengeEngine.start(duration, {
+      onTick: (secLeft) => { this._challengeSecLeft = secLeft; this._updateChallengeStatus(); },
+      onEnd: () => this._finishNotesChallenge()
+    });
+    this._challengeSecLeft = duration;
+    this._updateChallengeStatus();
+  },
+  _updateChallengeStatus(){
+    const counter = document.getElementById('scroll-counter');
+    if (!counter) return;
+    const m = Math.floor(this._challengeSecLeft / 60), s = this._challengeSecLeft % 60;
+    const timeStr = m + ':' + String(s).padStart(2, '0');
+    counter.textContent = Lang.t('challengeStatus', { time: timeStr, correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+  },
+  // Kan via TWEE routes bereikt worden (de countdown loopt af, óf de ruim
+  // gedimensioneerde noten-reeks raakt als eerste op — zie
+  // CHALLENGE_SEQUENCE_LENGTH) — _challengeFinished voorkomt dat beide
+  // elkaar dubbel zouden afronden als ze vlak na elkaar vallen.
+  _finishNotesChallenge(){
+    if (this._challengeFinished) return;
+    this._challengeFinished = true;
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+    const status = document.getElementById('scroll-status');
+    if (status){
+      status.className = 'correct';
+      status.textContent = Lang.t('challengeComplete', { correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
     }
   },
 
@@ -922,11 +1021,11 @@ const App = {
     this.clearAutoTimers();
     const id = this.currentModule;
     if (!['notes','scales','chords','progressions'].includes(id)) return;
-    // Lopende-band-modus (Fase 1.2) heeft geen "antwoord onthullen"-concept
-    // en wordt puur door MIDI-input voortgestuwd — de gewone Noten Lezen-
-    // auto-advance-instelling (zelfde sleutel, alleen relevant voor
-    // Kaarten) mag hier dus nooit een timer opstarten.
-    if (id === 'notes' && this.getSetting('notes', 'mode', 'kaarten') === 'band') return;
+    // Lopende-band-/Challenge-modus (Fase 1.2/1.3) hebben geen "antwoord
+    // onthullen"-concept en worden puur door MIDI-input/de klok voortgestuwd
+    // — de gewone Noten Lezen-auto-advance-instelling (zelfde sleutel,
+    // alleen relevant voor Kaarten) mag hier dus nooit een timer opstarten.
+    if (id === 'notes' && this.getSetting('notes', 'mode', 'kaarten') !== 'kaarten') return;
     // Zelfde reden als hierboven: Akkoordprogressies' Reeks/Lopende-Band-
     // modi (Fase 2.6) zijn ook puur MIDI-gestuurd, geen "onthullen"-concept.
     if (id === 'progressions' && this.getSetting('progressions', 'mode', 'kaarten') !== 'kaarten') return;
@@ -986,6 +1085,7 @@ const App = {
 
     if (id === 'notes'){
       t.innerText = Lang.t('nav_notes');
+      const notesMode = this.getSetting('notes', 'mode', 'kaarten');
       c.innerHTML = `
         <div class="setting-group">
           <label>${Lang.t('level_label')}</label>
@@ -998,7 +1098,15 @@ const App = {
         <div class="setting-group">
           <label>${Lang.t('clef_label')}</label>
           <div class="opt-row" id="opt-notes-clef"></div>
-        </div>`;
+        </div>
+        ${notesMode === 'challenge' ? `<div class="setting-group">
+          <label>${Lang.t('challengeSpeed_label')}</label>
+          <div class="opt-row" id="opt-notes-challenge-speed"></div>
+        </div>
+        <div class="setting-group">
+          <label>${Lang.t('challengeDuration_label')}</label>
+          <div class="opt-row" id="opt-notes-challenge-duration"></div>
+        </div>` : ''}`;
       this.renderSingleSelect(document.getElementById('opt-notes-level'), 'notes', 'level',
         [
           {value:'easy', label:Lang.t('level_easy'), shortLabel:Lang.t('level_easy_short')},
@@ -1010,24 +1118,33 @@ const App = {
       // MIDI-bereik _generateOneQuestion() gebruikt (zie daar — bewust
       // dezelfde fallback 'both' op beide plekken, zelfde valkuil als
       // eerder bij Akkoorden/Toonladders se defaults, ditmaal vermeden).
-      // Werkt in zowel Kaarten als Lopende Band.
+      // Werkt in Kaarten, Lopende Band ÉN Challenge.
       this.renderSingleSelect(document.getElementById('opt-notes-clef'), 'notes', 'clef',
         [{value:'both', label:Lang.t('clef_both')}, {value:'treble', label:Lang.t('clef_treble')}, {value:'bass', label:Lang.t('clef_bass')}], 'both');
-      // Modus-instelling (Fase 1.2/2.1c, sinds v0.10.0): "Kaarten" is de
-      // bestaande flashcard-flow (zelfbeoordeling, ongewijzigd), "Lopende
-      // Band" is de nieuwe MIDI-gestuurde scrollende notenbalk (zie
-      // ScrollEngine + App.wireScrollBand()) — vereist een verbonden
-      // MIDI-apparaat. "Automatisch doorgaan" hoort alleen bij Kaarten
-      // (er is in Lopende Band niets om automatisch te "onthullen" —
-      // voortgang komt daar puur uit MIDI-input), dus die knoppenrij
-      // verschijnt alleen in die stand.
+      // Modus-instelling (Fase 1.2/2.1c/1.3+2.1d): "Kaarten" is de bestaande
+      // flashcard-flow (zelfbeoordeling, ongewijzigd), "Lopende Band" is de
+      // MIDI-gestuurde scrollende notenbalk zonder tijdsdruk (sinds v0.10.0),
+      // "Challenge" (nieuw, sinds v0.16.0) is dezelfde scrollende notenbalk
+      // MET tijdsdruk — mist een noot de hit-lijn, dan telt hij als fout
+      // i.p.v. te wachten tot 'ie alsnog goed gespeeld wordt (zie
+      // ScrollEngine.startChallenge()/ChallengeEngine). "Automatisch
+      // doorgaan" hoort alleen bij Kaarten (er is in de andere twee niets om
+      // automatisch te "onthullen" — voortgang komt daar puur uit MIDI-
+      // input/de klok), dus die knoppenrij verschijnt alleen in die stand;
+      // Snelheid/Duur horen omgekeerd alleen bij Challenge.
       this.renderSingleSelect(document.getElementById('opt-notes-mode'), 'notes', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band')}], 'kaarten',
-        // De Auto-knoppenrij hoort/verschijnt alleen bij Kaarten — zonder
-        // deze her-render zou hij pas na het opnieuw openen van de module
-        // verdwijnen/verschijnen i.p.v. meteen bij het wisselen.
+        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band')}, {value:'challenge', label:Lang.t('mode_challenge')}], 'kaarten',
+        // Zonder deze her-render zouden de mode-afhankelijke instellingen-
+        // groepen (Auto / Snelheid+Duur) pas na het opnieuw openen van de
+        // module verschijnen/verdwijnen i.p.v. meteen bij het wisselen.
         () => this.buildSettings('notes'));
-      if (this.getSetting('notes', 'mode', 'kaarten') === 'kaarten') this.buildAutoAdvanceControls('notes', c);
+      if (notesMode === 'kaarten') this.buildAutoAdvanceControls('notes', c);
+      if (notesMode === 'challenge'){
+        this.renderSingleSelect(document.getElementById('opt-notes-challenge-speed'), 'notes', 'challengeSpeed',
+          [{value:'langzaam', label:Lang.t('challengeSpeed_slow')}, {value:'normaal', label:Lang.t('challengeSpeed_normal')}, {value:'snel', label:Lang.t('challengeSpeed_fast')}], 'normaal');
+        this.renderSingleSelect(document.getElementById('opt-notes-challenge-duration'), 'notes', 'challengeDuration',
+          this.CHALLENGE_DURATIONS.map(s => ({value:String(s), label: Lang.t('challengeDuration_s', {s}) })), '60');
+      }
 
     } else if (id === 'scales'){
       t.innerText = Lang.t('nav_scales');
@@ -1195,6 +1312,19 @@ const App = {
   // per sessie, bewust korter dan Noten Lezen se 100 (elk akkoord kost
   // veel meer "leestijd"/toetsaanslagen dan één losse noot).
   PROGRESSIONS_BAND_COUNT: 8,
+  // Bovengrens voor Noten Lezen se Challenge-modus (Fase 1.3/2.1d) — de
+  // sessie eindigt altijd op de countdown-timer (ChallengeEngine), nooit
+  // op het opraken van deze reeks; 140 is ruim boven de worst-case
+  // combinatie langste duur (90s) ÷ kortste noot-interval (900ms, "Snel")
+  // ≈ 100 noten, zie CHALLENGE_SPEED_MS/buildSettings() 'notes'-instellingen.
+  CHALLENGE_SEQUENCE_LENGTH: 140,
+  // Noot-interval per "Snelheid"-instelling (ms per naderende noot) resp.
+  // beschikbare countdown-duren (seconden) voor Noten Lezen se
+  // Challenge-modus — eigen, kleine instellingen naast de bestaande
+  // Modus/Notenbereik/Niveau, alleen zichtbaar als Modus=Challenge (zie
+  // buildSettings()).
+  CHALLENGE_SPEED_MS: { langzaam: 2200, normaal: 1500, snel: 900 },
+  CHALLENGE_DURATIONS: [30, 60, 90],
 
   generateNewData(){
     const id = this.currentModule;
@@ -1269,6 +1399,19 @@ const App = {
         data.type = 'none'; data.slices = [];
         data.useFlats = Math.random() > 0.5;
         data.kind = 'notesBand'; data.bandSequence = seq;
+      } else if (mode === 'challenge'){
+        // Challenge-modus (Fase 1.3/2.1d): zelfde soort losse-noten-reeks
+        // als Lopende Band hierboven, maar dan ruim gedimensioneerd op de
+        // WORST-CASE duur/snelheid-combinatie (langste duur ÷ kortste
+        // interval) i.p.v. een vaste NOTES_BAND_LENGTH — de sessie eindigt
+        // hier op de countdown-timer (ChallengeEngine), niet op het
+        // opraken van de reeks; CHALLENGE_SEQUENCE_LENGTH is puur een
+        // veilige bovengrens zodat de reeks nooit vóór de timer opraakt.
+        const seq = [];
+        for (let i = 0; i < this.CHALLENGE_SEQUENCE_LENGTH; i++) seq.push(randomInt(min, max));
+        data.type = 'none'; data.slices = [];
+        data.useFlats = Math.random() > 0.5;
+        data.kind = 'notesChallenge'; data.bandSequence = seq;
       } else {
         let m = randomInt(min, max);
         let useFlats = Math.random() > 0.5;
@@ -1537,11 +1680,30 @@ const App = {
     if (id === 'progressions' && MidiEngine.connected) this._refreshMidiProgUI();
     const isCircleVisual = (id === 'circle' && data.c_mode === 'visual');
     const isNotesBand = (id === 'notes' && data.n_mode === 'band');
+    const isNotesChallenge = (id === 'notes' && data.n_mode === 'challenge');
     const isProgBand = (id === 'progressions' && data.pg_mode === 'band');
+    // ChallengeEngine is een LOSSE klok (setTimeout-gebaseerd, niet aan
+    // ScrollEngine._raf gekoppeld) — render()/startChallenge() ruimen een
+    // vorige ScrollEngine-RAF-loop altijd zelf op (allebei roepen
+    // this.stop() als eerste regel aan), maar geen van beide (of Kaarten,
+    // die ScrollEngine sowieso nooit aanroept) stopt ooit een lopende
+    // ChallengeEngine-timer. Zonder deze regel zou een Challenge-sessie op
+    // de achtergrond blijven doortikken (en de score blijven bijhouden!)
+    // als de gebruiker via de Modus-instelling mid-sessie naar Kaarten Of
+    // Lopende Band terugschakelt — dezelfde "animatieloop/timer moet
+    // pauzeren"-eis uit het stappenplan, hier van toepassing op een
+    // modus-wissel i.p.v. een module-wissel (die laatste vangt
+    // App.unwireNotesChallenge() al af). Kaarten roept daarnaast ook nooit
+    // ScrollEngine aan, dus die moet hier expliciet mee gestopt worden;
+    // Lopende Band ruimt ScrollEngine al zelf op via zijn eigen render().
+    if (id === 'notes' && data.n_mode !== 'challenge'){
+      ChallengeEngine.stop();
+      if (data.n_mode === 'kaarten') ScrollEngine.stop();
+    }
     const { q, ans } = this.qa(data);
 
-    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isProgBand) ? 'none' : 'flex';
-    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isProgBand) ? 'none' : 'block';
+    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand) ? 'none' : 'flex';
+    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand) ? 'none' : 'block';
 
     if (isCircleVisual){
       svgBox.style.display = 'flex';
@@ -1555,6 +1717,12 @@ const App = {
       document.querySelector('.circle-main').style.display = 'none';
       document.getElementById('scroll-view').style.display = 'flex';
       this._renderNotesBand(data);
+    }
+    else if (isNotesChallenge){
+      svgBox.style.display = 'flex';
+      document.querySelector('.circle-main').style.display = 'none';
+      document.getElementById('scroll-view').style.display = 'flex';
+      this._renderNotesChallenge(data);
     }
     else if (isProgBand){
       svgBox.style.display = 'flex';

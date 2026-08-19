@@ -304,8 +304,84 @@ const ScrollEngine = {
     return true;
   },
 
+  // ---- Challenge-modus (tijdsdruk, Fase 1.3, bouwt op ChallengeEngine
+  // hierboven) ----
+  // Wezenlijk ANDERS dan render()/advance() hierboven: die wachten
+  // onbeperkt tot de juiste noot gespeeld is (geen tijdsdruk, bewuste
+  // ontwerpkeuze van Fase 1.2). Hier schuift de strip ONAFHANKELIJK van
+  // MIDI-invoer door op een vaste tijdsinterval (opts.intervalMs per noot)
+  // — een noot die de hit-lijn passeert zonder al correct gespeeld te zijn
+  // geldt als MISS (kort rood geflitst), de teller schuift gewoon door
+  // naar de volgende. Draait daarom een ECHTE doorlopende
+  // requestAnimationFrame-achtergrondloop (bewust anders dan de rest van
+  // deze engine, zie de toelichting bovenaan dit bestand) — hergebruikt
+  // `this._raf`/`stop()` van hierboven, dus MOET expliciet gestopt worden
+  // bij het verlaten van de module (App.unwireNotesChallenge() roept
+  // stop() aan) om te voorkomen dat de loop op de achtergrond doorloopt.
+  // events: number[] (losse noten, zelfde soort input als de bestaande
+  // Lopende-Band-aanroeper) — intern alsnog naar slices gewikkeld ([m])
+  // voor consistentie met _buildStrip()/_colorNoteAt().
+  // opts: { useFlats, clef, intervalMs, onMiss(), onSessionEnd() }.
+  startChallenge(containerId, events, opts = {}){
+    this.stop();
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    const slices = events.map(m => [m]);
+    this._events = slices;
+    this._buildStrip(container, slices, opts);
+    this._buildGutter(container);
+    this._challengeIntervalMs = opts.intervalMs || 1500;
+    this._challengeMatched = new Array(slices.length).fill(false);
+    this._challengeCallbacks = opts;
+    this._currentIndex = 0;
+    this._setTransform(this._slotOffset(0));
+    let start = null;
+    const step = (now) => {
+      if (!this._challengeCallbacks) return;
+      if (start === null) start = now;
+      const rawIndex = (now - start) / this._challengeIntervalMs;
+      const targetIndex = Math.floor(rawIndex);
+      // Elke noot wiens tijdvenster inmiddels volledig verstreken is zonder
+      // een correcte match: MISS. `missIdx` per iteratie apart vastleggen
+      // (i.p.v. this._currentIndex opnieuw uitlezen in de setTimeout) —
+      // anders zou de kleur-terugzet-timer hieronder, als _currentIndex
+      // intussen alweer is doorgeschoven, per ongeluk de VERKEERDE
+      // (inmiddels huidige) noot resetten i.p.v. de gemiste.
+      while (this._currentIndex < targetIndex && this._currentIndex < this._events.length){
+        if (!this._challengeMatched[this._currentIndex]){
+          const missIdx = this._currentIndex;
+          this._colorNoteAt(missIdx, '#ef4444');
+          setTimeout(() => { this._colorNoteAt(missIdx, this._ink); }, 400);
+          if (this._challengeCallbacks.onMiss) this._challengeCallbacks.onMiss();
+        }
+        this._currentIndex++;
+      }
+      if (this._currentIndex >= this._events.length){
+        const onSessionEnd = this._challengeCallbacks.onSessionEnd;
+        this._challengeCallbacks = null;
+        if (onSessionEnd) onSessionEnd();
+        return;
+      }
+      this._setTransform(this._slotOffset(rawIndex));
+      this._raf = requestAnimationFrame(step);
+    };
+    this._raf = requestAnimationFrame(step);
+  },
+  // Markeert de HUIDIGE (nog niet verstreken) Challenge-noot als correct
+  // gespeeld — voorkomt dat de achtergrondloop 'm later alsnog als MISS
+  // telt. Geen effect als de index al gemarkeerd was (dubbele MIDI-
+  // events/herhaalde aanslag op dezelfde noot).
+  markChallengeCorrect(){
+    const i = this._currentIndex;
+    if (!this._challengeMatched || i >= this._events.length || this._challengeMatched[i]) return;
+    this._challengeMatched[i] = true;
+    this.markCurrent('correct');
+  },
+
   stop(){
     if (this._raf){ cancelAnimationFrame(this._raf); this._raf = null; }
     this._trebleNotes = []; this._bassNotes = []; this._events = []; this._stripEl = null;
+    this._challengeCallbacks = null;
   }
 };
