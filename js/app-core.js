@@ -123,6 +123,8 @@ const App = {
     this.unwireNotesChallenge();
     this.unwireMidiProgCheck();
     this.unwireProgBand();
+    this.unwireChordsBand();
+    this.unwireChordsChallenge();
     this.currentModule = moduleId;
     const ws = document.getElementById('workspace');
     if (ws) ws.scrollTop = 0;
@@ -184,7 +186,7 @@ const App = {
       if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); this.wireNotesChallenge(); }
       this.history = []; this.historyIndex = -1;
       this.nextQuestion();
-      if (moduleId === 'chords') this.wireMidiChordCheck();
+      if (moduleId === 'chords'){ this.wireMidiChordCheck(); this.wireChordsBand(); this.wireChordsChallenge(); }
       if (moduleId === 'scales') this.wireMidiScaleCheck();
       if (moduleId === 'intervals') this.wireMidiIntervalCheck();
       if (moduleId === 'progressions'){ this.wireMidiProgCheck(); this.wireProgBand(); }
@@ -209,14 +211,10 @@ const App = {
 
   wireMidiChordCheck(){
     if (!MidiEngine.connected) return;
-    const status = document.getElementById('midi-answer-status');
-    if (!status) return;
-    status.style.display = 'block';
-    status.className = '';
-    status.textContent = Lang.t('midiChordListening');
     this._midiChordAdvancing = false;
     this._midiChordBound = () => this._onMidiChordEvent();
     MidiEngine.onNote(this._midiChordBound);
+    this._refreshMidiChordUI();
   },
   unwireMidiChordCheck(){
     if (this._midiChordBound) MidiEngine.offNote(this._midiChordBound);
@@ -224,6 +222,21 @@ const App = {
     if (this._midiChordDebounce){ clearTimeout(this._midiChordDebounce); this._midiChordDebounce = null; }
     const status = document.getElementById('midi-answer-status');
     if (status) status.style.display = 'none';
+  },
+  // Toont/verbergt #midi-answer-status op basis van data.ch_mode (sinds
+  // v0.16.3, Lopende Band/Challenge kregen dit widget nooit — die hebben
+  // hun EIGEN #scroll-status/#scroll-counter, zie _renderChordsBand/
+  // _renderChordsChallenge hieronder) — zelfde patroon als Noten Lezen se
+  // _refreshMidiNoteUI().
+  _refreshMidiChordUI(){
+    const data = this.history[this.historyIndex];
+    const status = document.getElementById('midi-answer-status');
+    if (!status) return;
+    if (!data || data.ch_mode !== 'kaarten'){
+      status.style.display = 'none';
+    } else {
+      status.style.display = 'block'; status.className = ''; status.textContent = Lang.t('midiChordListening');
+    }
   },
   _onMidiChordEvent(){
     // Kleine marge i.p.v. bij elke losse noot meteen evalueren — een
@@ -316,6 +329,10 @@ const App = {
     const pill = progress.querySelector(`[data-index="${this._midiScaleIndex}"]`);
     if (e.midi === expected[0]){
       if (pill){ pill.classList.remove('wrong', 'current'); pill.classList.add('done'); }
+      // Naast de pil ALSNAAST ook de daadwerkelijke noot op #score-paper
+      // groen kleuren (sinds v0.16.3, gebruikersfeedback) — zelfde
+      // StaveNote-kleurtechniek als ScrollEngine, zie ScoreRenderer.
+      ScoreRenderer.markCorrect(this._midiScaleIndex);
       this._midiScaleIndex++;
       if (this._midiScaleIndex >= data.slices.length){
         this._midiScaleAdvancing = true;
@@ -329,6 +346,7 @@ const App = {
       }
     } else if (pill){
       pill.classList.add('wrong');
+      ScoreRenderer.flashWrong(this._midiScaleIndex);
       setTimeout(() => { if (pill) pill.classList.remove('wrong'); }, 400);
     }
   },
@@ -436,19 +454,26 @@ const App = {
     if (this._midiIntervalFirstNote === null){
       if (octaveMode === 'exact' && midi !== data.ivRoot){
         if (p0){ p0.classList.add('wrong'); setTimeout(() => { if (p0) p0.classList.remove('wrong'); }, 400); }
+        ScoreRenderer.flashWrong(0);
         return;
       }
       this._midiIntervalFirstNote = midi;
       if (p0){ p0.classList.remove('current'); p0.classList.add('done'); }
       if (p1) p1.classList.add('current');
+      // Zelfde StaveNote-kleurtechniek als Toonladders hierboven (sinds
+      // v0.16.3) — data.slices staat in dezelfde volgorde als de pillen
+      // (index 0 = grondtoon, index 1 = toptoon).
+      ScoreRenderer.markCorrect(0);
       return;
     }
     const targetSecond = octaveMode === 'exact' ? data.ivTop : this._midiIntervalFirstNote + (data.ivTop - data.ivRoot);
     if (midi === targetSecond){
       if (p1){ p1.classList.remove('current', 'wrong'); p1.classList.add('done'); }
+      ScoreRenderer.markCorrect(1);
       this._finishMidiIntervalCorrect();
     } else if (p1){
       p1.classList.add('wrong');
+      ScoreRenderer.flashWrong(1);
       setTimeout(() => { if (p1) p1.classList.remove('wrong'); }, 400);
     }
   },
@@ -612,8 +637,8 @@ const App = {
       return;
     }
     this._challengeFinished = false;
-    const speed = this.getSetting('notes', 'challengeSpeed', 'normaal');
-    const intervalMs = this.CHALLENGE_SPEED_MS[speed] || this.CHALLENGE_SPEED_MS.normaal;
+    const speedSec = parseFloat(this.getSetting('notes', 'challengeSpeed', String(this.CHALLENGE_SPEED_DEFAULT)));
+    const intervalMs = Math.round((isNaN(speedSec) ? this.CHALLENGE_SPEED_DEFAULT : speedSec) * 1000);
     const duration = parseInt(this.getSetting('notes', 'challengeDuration', '60'), 10);
     status.className = ''; status.textContent = Lang.t('midiNoteListening');
     ScrollEngine.startChallenge('scroll-strip-host', data.bandSequence, {
@@ -836,6 +861,10 @@ const App = {
     const pill = progress.querySelector(`[data-index="${this._progSeqIndex}"]`);
     if (result === 'correct'){
       if (pill){ pill.classList.remove('current', 'wrong'); pill.classList.add('done'); }
+      // Zelfde StaveNote-kleurtechniek als Toonladders/Intervallen-
+      // Melodisch hierboven (sinds v0.16.3) — index klopt met data.slices
+      // ondanks de measures-barlijnen, zie ScoreRenderer._draw().
+      ScoreRenderer.markCorrect(this._progSeqIndex);
       this._progSeqIndex++;
       if (this._progSeqIndex >= data.slices.length){
         this._progSeqAdvancing = true;
@@ -849,6 +878,7 @@ const App = {
       }
     } else if (result === 'wrong' && pill){
       pill.classList.add('wrong');
+      ScoreRenderer.flashWrong(this._progSeqIndex);
       setTimeout(() => { if (pill) pill.classList.remove('wrong'); }, 400);
     }
   },
@@ -940,6 +970,187 @@ const App = {
     }
   },
 
+  // ---- Lopende-band-modus Akkoorden (sinds v0.16.3, gebruikersfeedback:
+  // "Lopende Band voegt niet veel toe bij Akkoordprogressies maar wel bij
+  // Akkoorden") ----
+  // Bijna identiek aan wireProgBand/_onProgBandEvent/_evaluateProgBandStep
+  // hierboven — enige verschil is dat elke stap hier een ONAFHANKELIJK
+  // akkoord is (data.bandSequence, geloot met de gewone Type/Omkering-
+  // instellingen) i.p.v. een reeks samenhangende, benoemde progressies.
+  _chordsBandBound: null,
+  _chordsBandDebounce: null,
+  _chordsBandCorrectCount: 0,
+
+  wireChordsBand(){
+    if (!MidiEngine.connected) return;
+    this._chordsBandCorrectCount = 0;
+    this._updateChordsBandCounter();
+    this._chordsBandBound = (e) => this._onChordsBandEvent(e);
+    MidiEngine.onNote(this._chordsBandBound);
+  },
+  unwireChordsBand(){
+    if (this._chordsBandBound) MidiEngine.offNote(this._chordsBandBound);
+    this._chordsBandBound = null;
+    if (this._chordsBandDebounce){ clearTimeout(this._chordsBandDebounce); this._chordsBandDebounce = null; }
+    ScrollEngine.stop();
+  },
+  _updateChordsBandCounter(){
+    const counter = document.getElementById('scroll-counter');
+    const data = this.history[this.historyIndex];
+    const total = data && data.bandSequence ? data.bandSequence.length : 0;
+    if (counter) counter.textContent = Lang.t('scrollCounter', { n: this._chordsBandCorrectCount, total });
+  },
+  _renderChordsBand(data, startIndex = 0){
+    const host = document.getElementById('scroll-strip-host');
+    const status = document.getElementById('scroll-status');
+    if (!host || !status) return;
+    if (!MidiEngine.connected){
+      host.innerHTML = '';
+      status.className = ''; status.textContent = Lang.t('scrollNeedsMidi');
+      return;
+    }
+    ScrollEngine.render('scroll-strip-host', data.bandSequence, { useFlats: data.useFlats, startIndex });
+    status.className = ''; status.textContent = Lang.t('midiChordListening');
+    this._updateChordsBandCounter();
+  },
+  _onChordsBandEvent(e){
+    if (this.currentModule !== 'chords') return;
+    const data = this.history[this.historyIndex];
+    if (!data || data.ch_mode !== 'band') return;
+    if (this._chordsBandDebounce) clearTimeout(this._chordsBandDebounce);
+    this._chordsBandDebounce = setTimeout(() => this._evaluateChordsBandStep(), 120);
+  },
+  _evaluateChordsBandStep(){
+    if (this.currentModule !== 'chords') return;
+    const data = this.history[this.historyIndex];
+    const status = document.getElementById('scroll-status');
+    if (!data || data.ch_mode !== 'band' || !status) return;
+    const target = ScrollEngine.currentTarget();
+    if (!target) return;
+    const octaveMode = this.getSetting('chords', 'octaveMode', 'exact');
+    const result = octaveMode === 'exact'
+      ? MusicTheory.matchExactNotes(MidiEngine.activeNotes, target)
+      : MusicTheory.matchChordNotes(MidiEngine.activeNotes, target);
+    if (result === 'correct'){
+      ScrollEngine.markCurrent('correct');
+      this._chordsBandCorrectCount++;
+      this._updateChordsBandCounter();
+      if (this._chordsBandCorrectCount >= data.bandSequence.length){
+        status.className = 'correct'; status.textContent = Lang.t('scrollSessionComplete', { total: data.bandSequence.length });
+        this.clearAutoTimers();
+      } else {
+        ScrollEngine.advance();
+        status.className = ''; status.textContent = Lang.t('midiChordListening');
+      }
+    } else if (result === 'wrong'){
+      ScrollEngine.flashWrong();
+      status.className = 'wrong'; status.textContent = Lang.t('midiChordWrong');
+      setTimeout(() => {
+        if (this.currentModule === 'chords' && document.getElementById('scroll-status')){
+          status.className = ''; status.textContent = Lang.t('midiChordListening');
+        }
+      }, 400);
+    }
+  },
+
+  // ---- Challenge-modus Akkoorden (sinds v0.16.3, gebruikersfeedback:
+  // "ook Challenge mag aan Akkoorden worden toegevoegd") ----
+  // Zelfde "los top-level scherm, bouwt op ScrollEngine.startChallenge() +
+  // ChallengeEngine"-opzet als Noten Lezen se Challenge (zie
+  // wireNotesChallenge/_renderNotesChallenge hierboven) — enige wezenlijke
+  // verschil is dat de MIDI-match hier een heel AKKOORD betreft (dus met
+  // debounce, net als Akkoorden/Akkoordprogressies se andere controles)
+  // i.p.v. één losse toets meteen bij de eerste aanslag. ScrollEngine.
+  // startChallenge() accepteert sinds deze versie ook al number[][]
+  // (akkoord-slices) naast de oorspronkelijke number[] (zie scroll-engine.js).
+  _chordsChallengeBound: null,
+  _chordsChallengeDebounce: null,
+  _chordsChallengeSecLeft: 0,
+  _chordsChallengeFinished: false,
+
+  wireChordsChallenge(){
+    if (!MidiEngine.connected) return;
+    this._chordsChallengeBound = (e) => this._onChordsChallengeEvent(e);
+    MidiEngine.onNote(this._chordsChallengeBound);
+  },
+  unwireChordsChallenge(){
+    if (this._chordsChallengeBound) MidiEngine.offNote(this._chordsChallengeBound);
+    this._chordsChallengeBound = null;
+    if (this._chordsChallengeDebounce){ clearTimeout(this._chordsChallengeDebounce); this._chordsChallengeDebounce = null; }
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+  },
+  _renderChordsChallenge(data){
+    const host = document.getElementById('scroll-strip-host');
+    const status = document.getElementById('scroll-status');
+    if (!host || !status) return;
+    if (!MidiEngine.connected){
+      host.innerHTML = '';
+      status.className = ''; status.textContent = Lang.t('scrollNeedsMidi');
+      return;
+    }
+    this._chordsChallengeFinished = false;
+    const speedSec = parseFloat(this.getSetting('chords', 'challengeSpeed', String(this.CHALLENGE_SPEED_DEFAULT)));
+    const intervalMs = Math.round((isNaN(speedSec) ? this.CHALLENGE_SPEED_DEFAULT : speedSec) * 1000);
+    const duration = parseInt(this.getSetting('chords', 'challengeDuration', '60'), 10);
+    status.className = ''; status.textContent = Lang.t('midiChordListening');
+    ScrollEngine.startChallenge('scroll-strip-host', data.bandSequence, {
+      useFlats: data.useFlats, intervalMs,
+      onMiss: () => { ChallengeEngine.recordMiss(); this._updateChordsChallengeStatus(); },
+      onSessionEnd: () => this._finishChordsChallenge()
+    });
+    ChallengeEngine.start(duration, {
+      onTick: (secLeft) => { this._chordsChallengeSecLeft = secLeft; this._updateChordsChallengeStatus(); },
+      onEnd: () => this._finishChordsChallenge()
+    });
+    this._chordsChallengeSecLeft = duration;
+    this._updateChordsChallengeStatus();
+  },
+  _updateChordsChallengeStatus(){
+    const counter = document.getElementById('scroll-counter');
+    if (!counter) return;
+    const m = Math.floor(this._chordsChallengeSecLeft / 60), s = this._chordsChallengeSecLeft % 60;
+    const timeStr = m + ':' + String(s).padStart(2, '0');
+    counter.textContent = Lang.t('challengeStatus', { time: timeStr, correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+  },
+  _finishChordsChallenge(){
+    if (this._chordsChallengeFinished) return;
+    this._chordsChallengeFinished = true;
+    ChallengeEngine.stop();
+    ScrollEngine.stop();
+    const status = document.getElementById('scroll-status');
+    if (status){
+      status.className = 'correct';
+      status.textContent = Lang.t('challengeComplete', { correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+    }
+  },
+  _onChordsChallengeEvent(e){
+    if (this.currentModule !== 'chords') return;
+    const data = this.history[this.historyIndex];
+    if (!data || data.ch_mode !== 'challenge') return;
+    if (this._chordsChallengeDebounce) clearTimeout(this._chordsChallengeDebounce);
+    this._chordsChallengeDebounce = setTimeout(() => this._evaluateChordsChallengeStep(), 120);
+  },
+  _evaluateChordsChallengeStep(){
+    if (this.currentModule !== 'chords') return;
+    const data = this.history[this.historyIndex];
+    if (!data || data.ch_mode !== 'challenge') return;
+    const target = ScrollEngine.currentTarget();
+    if (!target) return;
+    const octaveMode = this.getSetting('chords', 'octaveMode', 'exact');
+    const result = octaveMode === 'exact'
+      ? MusicTheory.matchExactNotes(MidiEngine.activeNotes, target)
+      : MusicTheory.matchChordNotes(MidiEngine.activeNotes, target);
+    if (result === 'correct'){
+      ScrollEngine.markChallengeCorrect();
+      ChallengeEngine.recordCorrect();
+      this._updateChordsChallengeStatus();
+    }
+    // Zelfde filosofie als Noten Lezen se Challenge hierboven: een foute/
+    // onvolledige aanslag krijgt hier bewust GEEN directe straf/kleurflits
+    // — alleen het missen van de hit-lijn (de klok) telt als fout.
+  },
+
   // Notenbalk-breedte voor #score-paper per module: smal voor modules waar
   // maar een handjevol noten aan het begin van de balk staan (leesbaarder,
   // ziet er niet grotendeels leeg uit); undefined = volle breedte, nodig
@@ -949,9 +1160,22 @@ const App = {
   // "intervals" (Blind Audio > Toon Antwoord) als het bevestigd-goede
   // ijkpunt — die waarde bleef daarom ongewijzigd.
   PAPER_CANVAS_W: { notes: 188, chords: 275, progressions: 275, intervals: 260 },
+  // Reeks-modus (Akkoordprogressies) toont een HELE progressie (meerdere
+  // akkoorden) i.p.v. één losse noot/akkoord — de smalle, ingezoomde
+  // PAPER_CANVAS_W-breedte hierboven (bedoeld voor "één ding centraal")
+  // liet die akkoorden tegen elkaar aan proppen (gebruikersfeedback met
+  // screenshot, sinds v0.16.3). Zelfde behandeling als Toonladders: geen
+  // vaste breedte (volle kaart-breedte), plus `measures:true` (zie
+  // ScoreRenderer._draw()) voor een maatstreepje tussen elk akkoord — ook
+  // alvast een stap richting de toekomstige Vooruit Lezen-functie
+  // (Stappenplan Fase 3.1), die dezelfde maatverdeling nodig zal hebben.
+  _isProgressionsSequence(id){
+    return id === 'progressions' && this.getSetting('progressions', 'mode', 'kaarten') === 'reeks';
+  },
   paperRenderOpts(id){
-    const w = this.PAPER_CANVAS_W[id];
+    const w = this._isProgressionsSequence(id) ? undefined : this.PAPER_CANVAS_W[id];
     const opts = w ? { canvasW: w } : {};
+    if (this._isProgressionsSequence(id)) opts.measures = true;
     // Notenbereik-instelling (Fase 2.1a): alleen relevant voor Noten Lezen,
     // en alleen als er daadwerkelijk voor één sleutel gekozen is — "both"
     // laat ScoreRenderer gewoon de bestaande grand-staff tekenen.
@@ -970,7 +1194,7 @@ const App = {
   // Toonladders (geen entry in PAPER_CANVAS_W) blijft bewust ongelimiteerd —
   // die had al vóór alle crop-wijzigingen de volle breedte, zonder klachten.
   applyPaperMaxWidth(id){
-    const w = this.PAPER_CANVAS_W[id];
+    const w = this._isProgressionsSequence(id) ? undefined : this.PAPER_CANVAS_W[id];
     document.getElementById('score-paper').style.maxWidth = w ? Math.round(w * 1.77) + 'px' : '';
   },
 
@@ -1118,8 +1342,8 @@ const App = {
           <div class="opt-row" id="opt-notes-clef"></div>
         </div>
         ${notesMode === 'challenge' ? `<div class="setting-group">
-          <label>${Lang.t('challengeSpeed_label')}</label>
-          <div class="opt-row" id="opt-notes-challenge-speed"></div>
+          <label title="${Lang.t('challengeSpeed_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('challengeSpeed_label')}</span> <span class="aa-delay-val" id="challenge-speed-val">1.5s</span></label>
+          <input type="range" class="auto-delay-slider" id="challenge-speed-slider" min="${this.CHALLENGE_SPEED_MIN}" max="${this.CHALLENGE_SPEED_MAX}" step="0.1">
         </div>
         <div class="setting-group">
           <label>${Lang.t('challengeDuration_label')}</label>
@@ -1158,8 +1382,21 @@ const App = {
         () => this.buildSettings('notes'));
       if (notesMode === 'kaarten') this.buildAutoAdvanceControls('notes', c);
       if (notesMode === 'challenge'){
-        this.renderSingleSelect(document.getElementById('opt-notes-challenge-speed'), 'notes', 'challengeSpeed',
-          [{value:'langzaam', label:Lang.t('challengeSpeed_slow')}, {value:'normaal', label:Lang.t('challengeSpeed_normal')}, {value:'snel', label:Lang.t('challengeSpeed_fast')}], 'normaal');
+        // Snelheid als slider i.p.v. drie knoppen (gebruikersfeedback, sinds
+        // v0.16.3: "meer gradatie... beginner die moet zoeken vs gevorderde
+        // die het snelle tempo aankan") — zelfde patroon als de Bedenktijd-
+        // slider in buildAutoAdvanceControls(). Slaat rechtstreeks seconden
+        // per noot op i.p.v. een langzaam/normaal/snel-sleutel, dus élke
+        // tussenwaarde is nu bereikbaar; CHALLENGE_SPEED_MIN/MAX geven de
+        // grenzen (0.6s = sneller dan de oude "Snel", 3s = trager dan de
+        // oude "Langzaam", zie toelichting bij die constanten).
+        const speedSlider = document.getElementById('challenge-speed-slider');
+        const speedVal = document.getElementById('challenge-speed-val');
+        const savedSpeed = this.getSetting('notes', 'challengeSpeed', String(this.CHALLENGE_SPEED_DEFAULT));
+        speedSlider.value = savedSpeed;
+        speedVal.textContent = savedSpeed + 's';
+        speedSlider.addEventListener('input', () => { speedVal.textContent = speedSlider.value + 's'; });
+        speedSlider.addEventListener('change', () => { this.setSetting('notes', 'challengeSpeed', speedSlider.value); });
         this.renderSingleSelect(document.getElementById('opt-notes-challenge-duration'), 'notes', 'challengeDuration',
           this.CHALLENGE_DURATIONS.map(s => ({value:String(s), label: Lang.t('challengeDuration_s', {s}) })), '60');
       }
@@ -1196,10 +1433,35 @@ const App = {
     } else if (id === 'chords'){
       t.innerText = Lang.t('nav_chords');
       const keys = Object.keys(MusicTheory.chords);
+      const chordsMode = this.getSetting('chords', 'mode', 'kaarten');
       c.innerHTML = `
+        <div class="setting-group">
+          <label>${Lang.t('mode_label')}</label>
+          <div class="opt-row" id="opt-chords-mode"></div>
+        </div>
         <div class="setting-group"><label>${Lang.t('type_label')}</label><div class="opt-row" id="opt-chord-types"></div></div>
         <div class="setting-group"><label>${Lang.t('inversions_label')}</label><div class="opt-row" id="opt-chord-inv"></div></div>
-        <div class="setting-group"><label>${Lang.t('octave_label')}</label><div class="opt-row" id="opt-chord-octave"></div></div>`;
+        <div class="setting-group"><label>${Lang.t('octave_label')}</label><div class="opt-row" id="opt-chord-octave"></div></div>
+        ${chordsMode === 'challenge' ? `<div class="setting-group">
+          <label title="${Lang.t('challengeSpeed_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('challengeSpeed_label')}</span> <span class="aa-delay-val" id="chords-challenge-speed-val">1.5s</span></label>
+          <input type="range" class="auto-delay-slider" id="chords-challenge-speed-slider" min="${this.CHALLENGE_SPEED_MIN}" max="${this.CHALLENGE_SPEED_MAX}" step="0.1">
+        </div>
+        <div class="setting-group">
+          <label>${Lang.t('challengeDuration_label')}</label>
+          <div class="opt-row" id="opt-chords-challenge-duration"></div>
+        </div>` : ''}`;
+      // Modus-instelling (sinds v0.16.3, gebruikersfeedback: "Lopende Band
+      // voegt weinig toe bij Akkoordprogressies maar wel bij Akkoorden, ook
+      // Challenge mag bij Akkoorden") — zelfde drie-standen-patroon als
+      // Noten Lezen (Kaarten/Lopende Band/Challenge), hier één akkoord per
+      // stap i.p.v. één losse noot. Type/Omkering/Octaaf blijven in ALLE
+      // standen zichtbaar (bepalen het akkoordmateriaal, ongeacht hoe je
+      // het oefent) — alleen Auto-doorgaan (Kaarten-only) en Snelheid/Duur
+      // (Challenge-only) zijn modus-afhankelijk, zelfde onderscheid als bij
+      // Noten Lezen.
+      this.renderSingleSelect(document.getElementById('opt-chords-mode'), 'chords', 'mode',
+        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band')}, {value:'challenge', label:Lang.t('mode_challenge')}], 'kaarten',
+        () => this.buildSettings('chords'));
       // Standaard alleen "Majeur" geselecteerd (was voorheen alle types) —
       // op verzoek van de gebruiker, zodat een nieuwe/gewiste sessie niet
       // meteen met alle 11 types tegelijk start.
@@ -1216,7 +1478,22 @@ const App = {
       // vooraf al kan worden ingesteld.
       this.renderSingleSelect(document.getElementById('opt-chord-octave'), 'chords', 'octaveMode',
         [{value:'exact', label:Lang.t('octave_exact')}, {value:'vrij', label:Lang.t('octave_free')}], 'exact');
-      this.buildAutoAdvanceControls('chords', c);
+      if (chordsMode === 'kaarten') this.buildAutoAdvanceControls('chords', c);
+      if (chordsMode === 'challenge'){
+        // Zelfde slider-aanpak als Noten Lezen se Challenge-snelheid (zie
+        // daar) — eigen DOM-ids (chords-challenge-speed-*) maar dezelfde
+        // 'chords'-modulesetting-sleutel 'challengeSpeed' als Noten Lezen
+        // gebruikt voor 'notes', puur toevallig dezelfde naam per module.
+        const speedSlider = document.getElementById('chords-challenge-speed-slider');
+        const speedVal = document.getElementById('chords-challenge-speed-val');
+        const savedSpeed = this.getSetting('chords', 'challengeSpeed', String(this.CHALLENGE_SPEED_DEFAULT));
+        speedSlider.value = savedSpeed;
+        speedVal.textContent = savedSpeed + 's';
+        speedSlider.addEventListener('input', () => { speedVal.textContent = speedSlider.value + 's'; });
+        speedSlider.addEventListener('change', () => { this.setSetting('chords', 'challengeSpeed', speedSlider.value); });
+        this.renderSingleSelect(document.getElementById('opt-chords-challenge-duration'), 'chords', 'challengeDuration',
+          this.CHALLENGE_DURATIONS.map(s => ({value:String(s), label: Lang.t('challengeDuration_s', {s}) })), '60');
+      }
 
     } else if (id === 'circle'){
       t.innerText = Lang.t('nav_circle');
@@ -1333,16 +1610,28 @@ const App = {
   // Bovengrens voor Noten Lezen se Challenge-modus (Fase 1.3/2.1d) — de
   // sessie eindigt altijd op de countdown-timer (ChallengeEngine), nooit
   // op het opraken van deze reeks; 140 is ruim boven de worst-case
-  // combinatie langste duur (90s) ÷ kortste noot-interval (900ms, "Snel")
-  // ≈ 100 noten, zie CHALLENGE_SPEED_MS/buildSettings() 'notes'-instellingen.
-  CHALLENGE_SEQUENCE_LENGTH: 140,
-  // Noot-interval per "Snelheid"-instelling (ms per naderende noot) resp.
-  // beschikbare countdown-duren (seconden) voor Noten Lezen se
-  // Challenge-modus — eigen, kleine instellingen naast de bestaande
-  // Modus/Notenbereik/Niveau, alleen zichtbaar als Modus=Challenge (zie
-  // buildSettings()).
-  CHALLENGE_SPEED_MS: { langzaam: 2200, normaal: 1500, snel: 900 },
+  // combinatie langste duur (90s) ÷ kortste noot-interval (CHALLENGE_SPEED_MIN,
+  // 600ms) ≈ 150 noten, zie CHALLENGE_SPEED_MIN/buildSettings() 'notes'-
+  // instellingen.
+  CHALLENGE_SEQUENCE_LENGTH: 160,
+  // Snelheid-slider voor Noten Lezen se Challenge-modus (seconden per
+  // naderende noot, sinds v0.16.3 een vrij instelbare slider i.p.v. drie
+  // knoppen — gebruikersfeedback: "meer gradatie, beginner moet kunnen
+  // zoeken, gevorderde het snelle tempo aankunnen"). MIN=0.6s (rapper dan
+  // de oude vaste "Snel"-stand van 900ms) t/m MAX=3s (trager dan de oude
+  // "Langzaam"-stand van 2200ms) dekt dus een breder bereik aan beide
+  // kanten. Resp. beschikbare countdown-duren (seconden).
+  CHALLENGE_SPEED_MIN: 0.6,
+  CHALLENGE_SPEED_MAX: 3,
+  CHALLENGE_SPEED_DEFAULT: 1.5,
   CHALLENGE_DURATIONS: [30, 60, 90],
+  // Lopende Band/Challenge voor Akkoorden (sinds v0.16.3, gebruikersfeedback)
+  // — zelfde soort constanten als NOTES_BAND_LENGTH/CHALLENGE_SEQUENCE_LENGTH
+  // hierboven, maar een akkoord kost meer tijd om te spelen dan één losse
+  // toets, dus kleinere aantallen. CHORDS_CHALLENGE_SEQUENCE_LENGTH nog
+  // steeds ruim boven de worst-case (90s ÷ 0.6s ≈ 150 akkoorden).
+  CHORDS_BAND_LENGTH: 60,
+  CHORDS_CHALLENGE_SEQUENCE_LENGTH: 160,
 
   generateNewData(){
     const id = this.currentModule;
@@ -1472,17 +1761,46 @@ const App = {
       let types = this.getSetting('chords', 'types', ['Majeur']);
       if (!types.length) types = ['Majeur'];
       let invSel = this.getSetting('chords', 'inversion', '0');
-      let type = types[randomInt(0, types.length - 1)];
-      let root = randomInt(48, 60);
-      let formula = [...MusicTheory.chords[type]];
-      let inv = invSel === 'ALL' ? randomInt(0, formula.length - 1) : Math.min(parseInt(invSel), formula.length - 1);
-      for (let i = 0; i < inv; i++) formula[i] += 12;
-      formula.sort((a,b) => a - b);
-      let useFlats = [53, 58, 51, 56, 49, 65, 70, 63, 68, 61].includes(root);
-      data.type = 'chord';
-      data.useFlats = useFlats;
-      data.slices = [formula.map(iv => root + iv)];
-      data.kind = 'chord'; data.chordRoot = root; data.chordType = type; data.chordInv = inv;
+      // Eén akkoord loten met de huidige Type/Omkering-instellingen — apart
+      // gezet als functie omdat Lopende Band/Challenge hieronder 'm
+      // meerdere keren achter elkaar aanroepen voor een hele reeks
+      // onafhankelijke akkoorden (net als Noten Lezen se band/challenge-
+      // generatie hierboven, maar dan per akkoord i.p.v. per losse noot).
+      const buildOneChord = () => {
+        let type = types[randomInt(0, types.length - 1)];
+        let root = randomInt(48, 60);
+        let formula = [...MusicTheory.chords[type]];
+        let inv = invSel === 'ALL' ? randomInt(0, formula.length - 1) : Math.min(parseInt(invSel), formula.length - 1);
+        for (let i = 0; i < inv; i++) formula[i] += 12;
+        formula.sort((a,b) => a - b);
+        let useFlats = [53, 58, 51, 56, 49, 65, 70, 63, 68, 61].includes(root);
+        return { slice: formula.map(iv => root + iv), useFlats, root, type, inv };
+      };
+      // Modus-instelling (sinds v0.16.3, gebruikersfeedback): "Kaarten" is
+      // de bestaande vraag-voor-vraag-aanpak hieronder, ONGEWIJZIGD.
+      // "Lopende Band"/"Challenge" hergebruiken ScrollEngine/ChallengeEngine,
+      // zelfde patroon als Noten Lezen — data.slices blijft dan leeg,
+      // data.bandSequence draagt de hele reeks akkoord-slices.
+      let mode = this.getSetting('chords', 'mode', 'kaarten');
+      data.ch_mode = mode;
+      if (mode === 'band' || mode === 'challenge'){
+        const len = mode === 'band' ? this.CHORDS_BAND_LENGTH : this.CHORDS_CHALLENGE_SEQUENCE_LENGTH;
+        const seq = [], flats = [];
+        for (let i = 0; i < len; i++){
+          const c = buildOneChord();
+          seq.push(c.slice); flats.push(c.useFlats);
+        }
+        data.type = 'none'; data.slices = [];
+        data.useFlats = flats;
+        data.kind = mode === 'band' ? 'chordsBand' : 'chordsChallenge';
+        data.bandSequence = seq;
+      } else {
+        const c = buildOneChord();
+        data.type = 'chord';
+        data.useFlats = c.useFlats;
+        data.slices = [c.slice];
+        data.kind = 'chord'; data.chordRoot = c.root; data.chordType = c.type; data.chordInv = c.inv;
+      }
     }
     else if (id === 'circle'){
       let mode = this.getSetting('circle', 'mode', 'visual');
@@ -1688,10 +2006,11 @@ const App = {
     // neutraal, ongeacht via welke route (Volgende-knop, swipe, automatisch
     // doorgaan) hier beland is — anders blijft een oude "Probeer opnieuw"
     // soms nog even zichtbaar staan bij de volgende vraag.
-    if (id === 'chords'){
-      const midiStatus = document.getElementById('midi-answer-status');
-      if (midiStatus && midiStatus.style.display !== 'none'){ midiStatus.className = ''; midiStatus.textContent = Lang.t('midiChordListening'); }
-    }
+    // Modus-instelling (sinds v0.16.3): data.ch_mode kan mid-sessie wisselen
+    // als de Modus-instelling is aangepast, zelfde reden als bij Noten
+    // Lezen/Intervallen/Akkoordprogressies hieronder — _refreshMidiChordUI()
+    // toont het #midi-answer-status-widget alleen nog in Kaarten-modus.
+    if (id === 'chords' && MidiEngine.connected) this._refreshMidiChordUI();
     // Nieuwe toonladder = nieuwe reeks: index en pillen-rij opnieuw opbouwen
     // (zelfde route-onafhankelijke reset als bij Akkoorden hierboven).
     if (id === 'scales'){
@@ -1717,6 +2036,8 @@ const App = {
     const isNotesBand = (id === 'notes' && data.n_mode === 'band');
     const isNotesChallenge = (id === 'notes' && data.n_mode === 'challenge');
     const isProgBand = (id === 'progressions' && data.pg_mode === 'band');
+    const isChordsBand = (id === 'chords' && data.ch_mode === 'band');
+    const isChordsChallenge = (id === 'chords' && data.ch_mode === 'challenge');
     // ChallengeEngine is een LOSSE klok (setTimeout-gebaseerd, niet aan
     // ScrollEngine._raf gekoppeld) — render()/startChallenge() ruimen een
     // vorige ScrollEngine-RAF-loop altijd zelf op (allebei roepen
@@ -1735,10 +2056,16 @@ const App = {
       ChallengeEngine.stop();
       if (data.n_mode === 'kaarten') ScrollEngine.stop();
     }
+    // Zelfde reden als bij Noten Lezen hierboven, nu voor Akkoorden se
+    // eigen Challenge-modus (sinds v0.16.3).
+    if (id === 'chords' && data.ch_mode !== 'challenge'){
+      ChallengeEngine.stop();
+      if (data.ch_mode === 'kaarten') ScrollEngine.stop();
+    }
     const { q, ans } = this.qa(data);
 
-    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand) ? 'none' : 'flex';
-    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand) ? 'none' : 'block';
+    document.getElementById('flashcard-actions').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge) ? 'none' : 'flex';
+    document.getElementById('swipe-hint').style.display = (isCircleVisual || isNotesBand || isNotesChallenge || isProgBand || isChordsBand || isChordsChallenge) ? 'none' : 'block';
 
     if (isCircleVisual){
       svgBox.style.display = 'flex';
@@ -1764,6 +2091,18 @@ const App = {
       document.querySelector('.circle-main').style.display = 'none';
       document.getElementById('scroll-view').style.display = 'flex';
       this._renderProgBand(data);
+    }
+    else if (isChordsBand){
+      svgBox.style.display = 'flex';
+      document.querySelector('.circle-main').style.display = 'none';
+      document.getElementById('scroll-view').style.display = 'flex';
+      this._renderChordsBand(data);
+    }
+    else if (isChordsChallenge){
+      svgBox.style.display = 'flex';
+      document.querySelector('.circle-main').style.display = 'none';
+      document.getElementById('scroll-view').style.display = 'flex';
+      this._renderChordsChallenge(data);
     }
     else if (id === 'circle' || (id === 'intervals' && data.i_mode === 'blind')){
       textQuiz.style.display = 'block';

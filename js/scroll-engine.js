@@ -89,8 +89,20 @@ const ScrollEngine = {
   // met de oorspronkelijke v0.16.1-marge).
   NOTE_LEAD_GAP: 55,
 
+  // Kleinst toegestane schaal (zie _effectiveScale hieronder) — voorkomt
+  // dat de notatie op een heel kort scherm onleesbaar klein zou worden;
+  // 1.1 blijft nog altijd groter dan de oorspronkelijke v0.10.0-waarde (1.0
+  // vóór RENDER_SCALE bestond).
+  MIN_RENDER_SCALE: 1.1,
+  // Ruwe schatting (echte pixels) van wat er ROND de notatie nog nodig is
+  // binnen de viewport-hoogte (topbalk, teller-tekst, status-tekst,
+  // marges) — gebruikt door _effectiveScale() om te bepalen hoeveel ruimte
+  // de notatie zelf mag innemen zonder dat #workspace moet gaan scrollen.
+  CHROME_HEIGHT_BUDGET: 340,
+
   _raf: null,
   _stripEl: null,
+  _activeScale: 2.2,
   _trebleNotes: [],
   _bassNotes: [],
   _events: [],
@@ -110,11 +122,31 @@ const ScrollEngine = {
   // opnieuw getekend worden in de nieuwe inktkleur, maar zonder de
   // voortgang van de gebruiker kwijt te raken. De al-voltooide noten
   // (0..startIndex-1) worden meteen weer groen gezet.
+  // Sinds v0.16.3 (gebruikersfeedback met foto's van een compact secundair
+  // beeldscherm): RENDER_SCALE (2.2) is vast genoeg gekozen om Toonladders'
+  // grootte te evenaren op een gewoon scherm, maar op een korter scherm
+  // maakte de vaste 2.2×-hoogte de hele flashcard-kaart hoger dan de
+  // viewport — #workspace moest dan gaan scrollen (een verticale
+  // schuifbalk, met de onderkant van de kaart buiten beeld), terwijl
+  // Toonladders (geen vaste hoge canvas, gewoon ScoreRenderer) daar prima
+  // paste. Schaalt de notatie dus naar beneden zodra CANVAS_H × schaal +
+  // CHROME_HEIGHT_BUDGET niet meer in window.innerHeight past — nooit
+  // BOVEN RENDER_SCALE, nooit ONDER MIN_RENDER_SCALE. Wordt bij elke
+  // render() opnieuw bepaald (dus ook na een venster-formaatwijziging
+  // tussen twee sessies in).
+  _effectiveScale(){
+    const available = window.innerHeight - this.CHROME_HEIGHT_BUDGET;
+    const maxByViewport = Math.max(available, 0) / this.CANVAS_H;
+    return Math.max(this.MIN_RENDER_SCALE, Math.min(this.RENDER_SCALE, maxByViewport));
+  },
+
   render(containerId, events, opts = {}){
     this.stop();
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
+    this._activeScale = this._effectiveScale();
+    container.style.height = Math.ceil(this.CANVAS_H * this._activeScale) + 'px';
     this._events = events;
     this._buildStrip(container, events, opts);
     // Vaste sleutel-"gutter" (sinds v0.11.0, op verzoek: vioolsleutel/
@@ -135,16 +167,20 @@ const ScrollEngine = {
   // translateX werkt in ECHTE CSS-pixels (op het al-gerenderde, dus al
   // RENDER_SCALE-keer-vergrote SVG-element) — de logische afstand per noot
   // (NOTE_SLOT_W) en de linkermarge (waar noot 0 ademstart, "70" logische
-  // eenheden) moeten dus BEIDE met RENDER_SCALE vermenigvuldigd worden om
-  // in echte pixels te kloppen. HIT_LINE_X zelf is al een echte pixelwaarde
-  // (een vast scherm-doel), blijft ongemoeid. De "70" is de logische
-  // ademstart-marge van noot 0 binnen de strip's eigen (nog niet
-  // getransformeerde) coördinatenruimte — NOTE_LEAD_GAP wordt hier ALTIJD
-  // van afgetrokken zodat de strip iets minder ver naar links schuift, wat
-  // de huidige noot (incl. voorteken) juist verder naar RECHTS van de
-  // hit-lijn laat landen (zie NOTE_LEAD_GAP hierboven).
+  // eenheden) moeten dus BEIDE met de actieve schaal vermenigvuldigd worden
+  // om in echte pixels te kloppen — sinds v0.16.3 `_activeScale`
+  // (bepaald per render(), zie _effectiveScale()) i.p.v. de vaste
+  // RENDER_SCALE rechtstreeks, anders zou een omlaag-geschaalde render op
+  // een kort scherm alsnog met de VOLLE 2.2× rekenen en de noot verkeerd
+  // positioneren. HIT_LINE_X zelf is al een echte pixelwaarde (een vast
+  // scherm-doel), blijft ongemoeid. De "70" is de logische ademstart-marge
+  // van noot 0 binnen de strip's eigen (nog niet getransformeerde)
+  // coördinatenruimte — NOTE_LEAD_GAP wordt hier ALTIJD van afgetrokken
+  // zodat de strip iets minder ver naar links schuift, wat de huidige noot
+  // (incl. voorteken) juist verder naar RECHTS van de hit-lijn laat landen
+  // (zie NOTE_LEAD_GAP hierboven).
   _slotOffset(index){
-    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this.RENDER_SCALE) - ((70 - this.NOTE_LEAD_GAP) * this.RENDER_SCALE);
+    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale);
   },
 
   _buildStrip(container, events, opts){
@@ -179,7 +215,7 @@ const ScrollEngine = {
     // tekenen automatisch RENDER_SCALE keer zo groot uitpakt in echte
     // pixels (VexFlow's SVGContext ondersteunt scale() net als canvas2d).
     const canvasW = Math.max(events.length * this.NOTE_SLOT_W + 160, 400);
-    const scale = this.RENDER_SCALE;
+    const scale = this._activeScale;
     const renderer = new VF.Renderer(wrap, VF.Renderer.Backends.SVG);
     renderer.resize(canvasW * scale, this.CANVAS_H * scale);
     const ctx = renderer.getContext();
@@ -220,12 +256,16 @@ const ScrollEngine = {
     } else {
       const trebleStave = new VF.Stave(20, trebleY, staveW);
       const bassStave = new VF.Stave(20, trebleY + gap, staveW);
-      // GEEN addClef() hier — zie toelichting bij de single-clef-tak
-      // hierboven, zelfde reden/fix.
+      // GEEN addClef() ÉN GEEN StaveConnector (accolade/lijn) hier (sinds
+      // v0.16.3, vervolgfix op v0.16.2) — de eerdere fix verwijderde alleen
+      // de sleutel-glyphs, maar de accolade ({-vorm) die de scrollende laag
+      // ZELF ook nog tekende bleek OM DEZELFDE REDEN gedeeltelijk buiten de
+      // gutter uit te steken (bevestigd met een nieuwe screenshot: een
+      // "golfje" zichtbaar naast de vaste gutter-accolade). De vaste gutter
+      // (_buildGutter() hieronder) tekent al een permanente accolade, dus
+      // ook dit hoeft de scrollende laag nooit zelf te doen.
       trebleStave.setContext(ctx).draw();
       bassStave.setContext(ctx).draw();
-      new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
-      new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
 
       const trebleNotes = [], bassNotes = [];
       events.forEach((slice, i) => {
@@ -255,7 +295,7 @@ const ScrollEngine = {
   // _buildStrip() zodat de lijnen naadloos aansluiten.
   _buildGutter(container){
     const VF = Vex.Flow;
-    const scale = this.RENDER_SCALE;
+    const scale = this._activeScale;
     const gutter = document.createElement('div');
     gutter.className = 'scroll-gutter';
     container.appendChild(gutter);
@@ -367,14 +407,19 @@ const ScrollEngine = {
   // stop() aan) om te voorkomen dat de loop op de achtergrond doorloopt.
   // events: number[] (losse noten, zelfde soort input als de bestaande
   // Lopende-Band-aanroeper) — intern alsnog naar slices gewikkeld ([m])
-  // voor consistentie met _buildStrip()/_colorNoteAt().
+  // voor consistentie met _buildStrip()/_colorNoteAt(). Sinds v0.16.3
+  // (Akkoorden se Challenge-modus) mag events OOK al number[][] (akkoord-
+  // slices) zijn, zelfde detectie-aanpak als ScoreRenderer/ScrollEngine.render()
+  // elders — geen wikkeling dan nodig.
   // opts: { useFlats, clef, intervalMs, onMiss(), onSessionEnd() }.
   startChallenge(containerId, events, opts = {}){
     this.stop();
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
-    const slices = events.map(m => [m]);
+    this._activeScale = this._effectiveScale();
+    container.style.height = Math.ceil(this.CANVAS_H * this._activeScale) + 'px';
+    const slices = Array.isArray(events[0]) ? events : events.map(m => [m]);
     this._events = slices;
     this._buildStrip(container, slices, opts);
     this._buildGutter(container);
@@ -424,6 +469,25 @@ const ScrollEngine = {
     if (!this._challengeMatched || i >= this._events.length || this._challengeMatched[i]) return;
     this._challengeMatched[i] = true;
     this.markCurrent('correct');
+    // Sneller dan het ingestelde tempo mogen spelen (gebruikersfeedback,
+    // sinds v0.16.3: "ik moet het tempo van de challenge aanhouden, ook als
+    // ik sneller ben — de limiet is dan tot de volgende noot in beeld
+    // komt") — schuift de VERWACHTE noot (currentTarget()) direct één
+    // positie door zodra de huidige juist gespeeld is, ONAFHANKELIJK van de
+    // klok (rawIndex in startChallenge()'s step()-lus hieronder). Puur de
+    // INDEX ophogen, GEEN advance()/_glideTo() hier — die delen `this._raf`
+    // met de doorlopende Challenge-tijdslus zelf; een glide zou die lus
+    // stiekem afbreken (cancelAnimationFrame op het verkeerde RAF-gebruik).
+    // De zichtbare scrollpositie blijft dus gewoon op de klok lopen (de
+    // noten staan toch al ruim van tevoren zichtbaar op de vooraf getekende
+    // strip, zie _buildStrip) — alleen WELKE noot als "volgende te spelen"
+    // geldt loopt hiermee voor op de klok. Blijft de speler juist ACHTER,
+    // dan haalt de klok deze index vanzelf weer in via de gewone while-lus
+    // in step(). Nooit voorbij de LAATSTE noot (cap op length-1) — zo kan
+    // een snelle speler de reeks nooit eerder "opraken" dan de klok zelf
+    // ooit zou doen (sessie-einde blijft dus altijd echt de taak van de
+    // countdown-timer, zie ChallengeEngine/app-core.js).
+    if (this._currentIndex < this._events.length - 1) this._currentIndex++;
   },
 
   stop(){

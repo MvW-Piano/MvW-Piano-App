@@ -413,12 +413,16 @@ select:focus{ border-color:var(--accent); }
   font-size:1.1rem; font-weight:800; color:var(--accent); font-family:'JetBrains Mono',monospace;
 }
 #scroll-strip-host{
-  /* height MOET gelijk blijven aan ScrollEngine.CANVAS_H × RENDER_SCALE
-     (270×2.2=594, naar boven afgerond) — zie de toelichting bij
-     RENDER_SCALE in scroll-engine.js (sinds v0.16.2 opgehoogd van 1.4 naar
-     2.2 om de lopende-band-/challenge-weergave even groot te maken als
-     Toonladders). */
-  position:relative; width:100%; height:596px; overflow:hidden;
+  /* height wordt sinds v0.16.3 per render() door ScrollEngine zelf gezet
+     (`element.style.height`, zie _effectiveScale()) — de vaste 380px hier
+     is puur een fallback vóór de allereerste render (voorkomt een flits
+     van 0-hoogte). ScrollEngine schaalt de notatie op basis van
+     window.innerHeight (nooit boven RENDER_SCALE=2.2, nooit onder
+     MIN_RENDER_SCALE=1.1) — op een kort scherm (bijv. een compact
+     secundair beeldscherm) zou een vaste 2.2×-hoogte de hele flashcard-
+     kaart hoger maken dan de viewport, met een onhandige scrollbalk tot
+     gevolg (bevestigd met foto's, gefixt in v0.16.3). */
+  position:relative; width:100%; height:380px; overflow:hidden;
   border-radius:var(--radius-md); background:var(--paper-bg); border:1px solid var(--paper-border);
 }
 #scroll-strip-host::after{
