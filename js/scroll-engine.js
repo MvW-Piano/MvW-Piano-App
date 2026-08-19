@@ -42,7 +42,15 @@ const ScrollEngine = {
   // simpelweg RENDER_SCALE keer zo groot in werkelijke pixels. Zowel de
   // canvas-afmetingen (renderer.resize) als de translateX-berekening
   // (_slotOffset) moeten hiermee rekening houden — zie _buildStrip().
-  RENDER_SCALE: 1.4,
+  // Sinds v0.16.2 (gebruikersfeedback: "grootte van de notenbalk is niet
+  // consistent tussen oefeningen") verder opgehoogd van 1.4 naar 2.2 — op
+  // 1.4 was de notenbalklijn-afstand hier ~14px, terwijl Toonladders
+  // (gewone ScoreRenderer, geen vaste canvas-breedte) op ~21.8px uitkwam;
+  // empirisch gemeten (`getBoundingClientRect()` op twee opeenvolgende
+  // notenbalklijnen) i.p.v. geschat, 2.2 geeft een vrijwel identieke
+  // regelafstand. Kaarten-modus (één losse noot, bewust klein/ingezoomd)
+  // gebruikt ScoreRenderer's eigen PAPER_CANVAS_W en blijft hier los van.
+  RENDER_SCALE: 2.2,
   STEP_MS: 350,
   // Moet gelijk blijven aan de --scroll-hitline-x-waarde in styles.css
   // (de verticale hit-lijn-marker) — twee losse plekken omdat CSS geen
@@ -70,11 +78,16 @@ const ScrollEngine = {
   // notenkop deels ONDER de ondoorzichtige gutter viel (bevestigd met
   // screenshots: een kruis/mol bij de huidige noot was tot een dun sliertje
   // afgesneden, terwijl latere noten verderop op de strip hun volledige
-  // voorteken gewoon lieten zien). 32 verschoven van de oude "70"-anker
-  // (zie _slotOffset) geeft ~45 echte pixels extra lucht — ruim genoeg voor
-  // zelfs het bredere mol-teken, en laat de hit-lijn nu ook duidelijk VOOR
-  // (links van) de naderende noot staan i.p.v. er dwars doorheen.
-  NOTE_LEAD_GAP: 32,
+  // voorteken gewoon lieten zien). Verschoven op de oude "70"-anker (zie
+  // _slotOffset) — laat de hit-lijn nu ook duidelijk VOOR (links van) de
+  // naderende noot staan i.p.v. er dwars doorheen. **55 i.p.v. de eerdere
+  // 32** (sinds v0.16.2): toen RENDER_SCALE van 1.4 naar 2.2 ging (zelfde
+  // versie, zie hierboven) én de scrollende laag zijn eigen sleutel verloor
+  // (_buildStrip()-bugfix, zie daar), verschoof de natuurlijke ademstart-
+  // positie van noot 0 mee — empirisch herijkt via `getScreenCTM()`-metingen
+  // tot de marge tot de hit-lijn weer ~50 echte pixels was (vergelijkbaar
+  // met de oorspronkelijke v0.16.1-marge).
+  NOTE_LEAD_GAP: 55,
 
   _raf: null,
   _stripEl: null,
@@ -183,7 +196,16 @@ const ScrollEngine = {
 
     if (this._singleClef){
       const stave = new VF.Stave(20, trebleY, staveW);
-      stave.addClef(this._singleClef);
+      // GEEN stave.addClef() hier (sinds v0.16.2, bugfix) — de vaste gutter
+      // (_buildGutter() hieronder) tekent AL een permanente sleutel; deze
+      // scrollende laag had zijn EIGEN sleutel vroeger alleen omdat 'ie
+      // toevallig verborgen zat achter de gutter. Sinds NOTE_LEAD_GAP
+      // (v0.16.1) meer ademruimte gaf vóór de hit-lijn, schoof deze eigen
+      // sleutel gedeeltelijk BUITEN de gutter uit — zichtbaar als een
+      // dubbele notenbalk/sleutel bij de eerste noot (bevestigd met
+      // screenshots). Simpelste, robuustste fix: deze sleutel nooit tekenen
+      // i.p.v. de gutter-breedte/hit-lijn-positie tegen elkaar uit blijven
+      // balanceren.
       stave.setContext(ctx).draw();
 
       const notes = events.map((slice, i) => ScoreRenderer.buildNote(slice, this._singleClef, useFlatsAt(i), this._ink));
@@ -197,9 +219,9 @@ const ScrollEngine = {
       this._bassNotes = this._singleClef === 'bass' ? notes : [];
     } else {
       const trebleStave = new VF.Stave(20, trebleY, staveW);
-      trebleStave.addClef('treble');
       const bassStave = new VF.Stave(20, trebleY + gap, staveW);
-      bassStave.addClef('bass');
+      // GEEN addClef() hier — zie toelichting bij de single-clef-tak
+      // hierboven, zelfde reden/fix.
       trebleStave.setContext(ctx).draw();
       bassStave.setContext(ctx).draw();
       new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();

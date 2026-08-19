@@ -169,12 +169,24 @@ const App = {
 
       this.buildSettings(moduleId);
       this.moveQuickControlsToDrawer();
+      // Noten Lezen se drie MIDI-listeners (sinds v0.16.2, bugfix) worden
+      // hier BEWUST vóór nextQuestion() gewired i.p.v. erna (zoals de
+      // andere modules hieronder nog doen) — als de eerste render van een
+      // sessie ooit een fout gooit (bijv. Challenge-modus se
+      // ScrollEngine.startChallenge()/ChallengeEngine.start()), zou dat bij
+      // de OUDE volgorde de wireXxx()-aanroepen daarna stilzwijgend
+      // overslaan: de MIDI-listener werd dan nooit geregistreerd, ook niet
+      // na de module te verlaten en terug te komen (dezelfde render-fout
+      // zou zich gewoon herhalen). Deze drie functies hebben zelf geen
+      // data uit this.history nodig om te wiren (hooguit een no-op UI-
+      // ververs die renderData() toch al opnieuw doet), dus vooraf wiren is
+      // veilig.
+      if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); this.wireNotesChallenge(); }
       this.history = []; this.historyIndex = -1;
       this.nextQuestion();
       if (moduleId === 'chords') this.wireMidiChordCheck();
       if (moduleId === 'scales') this.wireMidiScaleCheck();
       if (moduleId === 'intervals') this.wireMidiIntervalCheck();
-      if (moduleId === 'notes'){ this.wireScrollBand(); this.wireMidiNoteCheck(); this.wireNotesChallenge(); }
       if (moduleId === 'progressions'){ this.wireMidiProgCheck(); this.wireProgBand(); }
     }
   },
@@ -466,10 +478,11 @@ const App = {
 
   wireScrollBand(){
     if (!MidiEngine.connected) return;
-    // Reset draait NA _renderNotesBand() (loadModule() roept nextQuestion()
-    // vóór wireScrollBand() aan) — dus de teller-DOM hier ook expliciet
-    // verversen, anders blijft de tekst van de vorige sessie (bijv.
-    // "100/100 goed") nog even hangen ondanks dat de teller zelf al 0 is.
+    // Wordt sinds v0.16.2 VÓÓR nextQuestion() aangeroepen (zie loadModule())
+    // — de teller-DOM hier toch expliciet verversen (i.p.v. te vertrouwen
+    // op _renderNotesBand()'s eigen _updateScrollCounter()-aanroep) blijft
+    // een goede gewoonte: zo toont de teller "0/100" al meteen, ook al zou
+    // de daaropvolgende render onverhoopt mislukken.
     this._notesBandCorrectCount = 0;
     this._updateScrollCounter();
     this._scrollBandBound = (e) => this._onScrollBandEvent(e);

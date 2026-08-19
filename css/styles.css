@@ -413,7 +413,12 @@ select:focus{ border-color:var(--accent); }
   font-size:1.1rem; font-weight:800; color:var(--accent); font-family:'JetBrains Mono',monospace;
 }
 #scroll-strip-host{
-  position:relative; width:100%; height:380px; overflow:hidden;
+  /* height MOET gelijk blijven aan ScrollEngine.CANVAS_H × RENDER_SCALE
+     (270×2.2=594, naar boven afgerond) — zie de toelichting bij
+     RENDER_SCALE in scroll-engine.js (sinds v0.16.2 opgehoogd van 1.4 naar
+     2.2 om de lopende-band-/challenge-weergave even groot te maken als
+     Toonladders). */
+  position:relative; width:100%; height:596px; overflow:hidden;
   border-radius:var(--radius-md); background:var(--paper-bg); border:1px solid var(--paper-border);
 }
 #scroll-strip-host::after{
