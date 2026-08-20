@@ -34,6 +34,14 @@ const ScrollEngine = {
   // hierboven). Startwaarde, empirisch geverifieerd/bijgesteld tijdens
   // het bouwen van Vooruit Lezen.
   BARLINE_SLOT_W: 14,
+  // Vaste "ademstart"-positie (logische eenheden) van noot 0 binnen de
+  // strip's eigen coördinatenruimte — sinds v0.17.1 een naam i.p.v. de losse
+  // magische "70" die voorheen alleen inline in _slotOffset() stond, want
+  // sinds de vaste-breedte-uitlijningsfix (zie _buildStrip()'s grand-staff-
+  // tak) is dit OOK het anker waar elke noot expliciet naartoe geschoven
+  // wordt — twee plekken die letterlijk gelijk moeten blijven, dus nu één
+  // gedeelde constante i.p.v. de waarde op twee plekken los te laten staan.
+  SLOT_ANCHOR_X: 70,
   // 270 i.p.v. een krappere waarde: bij "Moeilijk" (Noten Lezen, bereik
   // C1-C7) bleek een lagere waarde de onderkant van lage noten/
   // hulplijntjes af te snijden (SVG-viewBox clipt alles buiten
@@ -234,7 +242,7 @@ const ScrollEngine = {
     const barlineCorrection = this._slicesPerMeasure > 0
       ? Math.floor(index / this._slicesPerMeasure) * this.BARLINE_SLOT_W * this._activeScale
       : 0;
-    return this._cursorX - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
+    return this._cursorX - (index * this.NOTE_SLOT_W * this._activeScale) - ((this.SLOT_ANCHOR_X - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
   },
 
   _buildStrip(container, events, opts){
@@ -329,17 +337,6 @@ const ScrollEngine = {
       trebleStave.setContext(ctx).draw();
       bassStave.setContext(ctx).draw();
 
-      // Maatstrepen (Vooruit Lezen, Fase 3.1, this._slicesPerMeasure): zelfde
-      // GhostNote-spacer-techniek als ScoreRenderer._draw()'s opts.measures
-      // (v0.16.3) — onzichtbare tickables die alleen ruimte reserveren, de
-      // streep zelf komt van de handmatige ctx-tekencode verderop (VF.
-      // StaveConnector kan niet op een willekeurige tussenliggende x-positie
-      // verbinden). spacerSet (object-identiteit, GEEN instanceof-check)
-      // voorkomt dat deze de _trebleNotes/_bassNotes-index-uitlijning met de
-      // RUWE events-array verstoort — dezelfde valkuil als daar: een blote
-      // instanceof-filter zou ook de legitieme lege-akkoordkant-ghostnotes
-      // wegfilteren die buildNote() al gebruikt (bijv. bij een melodie-only
-      // slice zonder akkoord, is de baskant altijd zo'n lege GhostNote).
       // Aparte duration per sleutel (sinds Vooruit Lezen, Fase 3.1,
       // gebruikersfeedback: "akkoorden hele noten, melodie kwart noten
       // blijven") — default 'q'/'q' voor alle bestaande aanroepers (geen
@@ -349,8 +346,6 @@ const ScrollEngine = {
       const trebleDuration = opts.trebleDuration || 'q';
       const bassDuration = opts.bassDuration || 'q';
       const trebleNotes = [], bassNotes = [];
-      const spacerSet = new Set();
-      const barSpacers = [];
       events.forEach((slice, i) => {
         const treble = slice.filter(m => m >= 60);
         const bass = slice.filter(m => m < 60);
@@ -368,15 +363,15 @@ const ScrollEngine = {
         const bDur = bass.length ? bassDuration : 'q';
         trebleNotes.push(ScoreRenderer.buildNote(treble, 'treble', useFlatsAt(i), this._ink, tDur));
         bassNotes.push(ScoreRenderer.buildNote(bass, 'bass', useFlatsAt(i), this._ink, bDur));
-        if (this._slicesPerMeasure > 0 && (i + 1) % this._slicesPerMeasure === 0 && i < events.length - 1){
-          const tSpacer = new VF.GhostNote('q');
-          const bSpacer = new VF.GhostNote('q');
-          trebleNotes.push(tSpacer);
-          bassNotes.push(bSpacer);
-          spacerSet.add(tSpacer); spacerSet.add(bSpacer);
-          barSpacers.push(tSpacer);
-        }
       });
+      // GEEN GhostNote-maatstreep-spacers meer (sinds v0.17.1, was hier tot
+      // en met v0.17.0) — die bestonden alleen om de Formatter een x-positie
+      // voor de streep te geven. Sinds de vaste-breedte-uitlijningsfix
+      // hieronder wordt de x van ELKE noot toch al volledig overschreven, dus
+      // de Formatter/Voice hoeft alleen nog geldige tick-posities te geven
+      // zodat draw() werkt — geen aparte tick-boekhouding voor de streep
+      // meer nodig, en dus ook geen spacerSet-filter meer om die spacers weer
+      // uit _trebleNotes/_bassNotes te halen (zie hieronder).
       const trebleVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(trebleNotes);
       const bassVoice = new VF.Voice({ num_beats: n, beat_value: 4 }).setStrict(false).addTickables(bassNotes);
       const formatter = new VF.Formatter();
@@ -386,23 +381,57 @@ const ScrollEngine = {
       trebleVoice.draw(ctx, trebleStave);
       bassVoice.draw(ctx, bassStave);
 
+      // Vaste-breedte-uitlijning (OPEN PUNT-fix, sinds v0.17.1). VexFlow's
+      // automatische Formatter (hierboven, nodig om elke noot een geldige
+      // tick-positie/glyph te geven) geeft elke maat zijn EIGEN, inhoud-
+      // afhankelijke breedte — een maat met veel voortekens werd zo breder
+      // dan een lege maat, en de melodie-/akkoordnoot van dezelfde tel lagen
+      // niet meer onder elkaar (bevestigd met screenshots, zie
+      // Root_Note_Context.md "OPEN PUNT"). Hier wordt de X die de Formatter
+      // koos VOLLEDIG overschreven met een vaste breedte per tel-index
+      // (NOTE_SLOT_W, plus BARLINE_SLOT_W per gepasseerde maatstreep) — exact
+      // dezelfde "vaste breedte per index"-aanname die _slotOffset() (de
+      // scroll-transform) al maakte, dus die twee sluiten nu weer naadloos op
+      // elkaar aan. Techniek: dezelfde SVG-<g>-benadering als
+      // _colorNoteAt()/_setNoteOpacity() hierboven (getSVGElement()), maar nu
+      // met een transform i.p.v. fill/opacity. Treble- én baskant krijgen op
+      // DEZELFDE index i DEZELFDE formule, dus per constructie identiek
+      // uitgelijnd, ongeacht hoeveel voortekens de een of de ander heeft.
+      const barlineOffset = (i) => this._slicesPerMeasure > 0
+        ? Math.floor(i / this._slicesPerMeasure) * this.BARLINE_SLOT_W : 0;
+      const desiredX = (i) => this.SLOT_ANCHOR_X + i * this.NOTE_SLOT_W + barlineOffset(i);
+      const applyFixedX = (note, i) => {
+        if (!note || typeof note.getAbsoluteX !== 'function' || typeof note.getSVGElement !== 'function') return;
+        const el = note.getSVGElement();
+        if (!el) return;
+        el.setAttribute('transform', `translate(${desiredX(i) - note.getAbsoluteX()}, 0)`);
+      };
+      events.forEach((slice, i) => {
+        applyFixedX(trebleNotes[i], i);
+        applyFixedX(bassNotes[i], i);
+      });
+
       // De maatstreep zelf: DOORLOPEND van de bovenste vioolsleutel-lijn tot
-      // de onderste basleutel-lijn — zelfde techniek als ScoreRenderer._draw().
-      if (barSpacers.length){
+      // de onderste basleutel-lijn — sinds v0.17.1 analytisch berekend
+      // (midden tussen de nu VASTE posities van de laatste noot vóór en de
+      // eerste noot ná de streep) i.p.v. via een GhostNote-spacer se
+      // formatter-toegekende positie (die hierboven is losgelaten, was de
+      // bron van de scheve maatbreedtes).
+      if (this._slicesPerMeasure > 0){
         const topY = trebleStave.getYForLine(0);
         const bottomY = bassStave.getYForLine(4);
-        barSpacers.forEach(spacer => {
-          const x = spacer.getAbsoluteX();
+        for (let i = this._slicesPerMeasure - 1; i < n - 1; i += this._slicesPerMeasure){
+          const x = desiredX(i) + (this.NOTE_SLOT_W + this.BARLINE_SLOT_W) / 2;
           ctx.beginPath();
           ctx.moveTo(x, topY);
           ctx.lineTo(x, bottomY);
           if (ctx.setLineWidth) ctx.setLineWidth(1);
           ctx.stroke();
-        });
+        }
       }
 
-      this._trebleNotes = trebleNotes.filter(nt => !spacerSet.has(nt));
-      this._bassNotes = bassNotes.filter(nt => !spacerSet.has(nt));
+      this._trebleNotes = trebleNotes;
+      this._bassNotes = bassNotes;
     }
   },
 
