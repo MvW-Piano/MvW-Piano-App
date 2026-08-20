@@ -1357,10 +1357,18 @@ const App = {
     // Sommige opties hebben een kortere `shortLabel` voor smal scherm (bijv.
     // "Niv 1 (C3-C5)" i.p.v. "Makkelijk (C3-C5)") — op breed scherm blijft
     // het volledige label staan, CSS wisselt tussen beide per breakpoint.
-    container.innerHTML = options.map(o => o.shortLabel
-      ? `<button type="button" class="opt-btn" data-value="${o.value}"><span class="lbl-full">${o.label}</span><span class="lbl-short">${o.shortLabel}</span></button>`
-      : `<button type="button" class="opt-btn" data-value="${o.value}">${o.label}</button>`
-    ).join('');
+    // `o.midi` (sinds v0.17.2, gebruikersverzoek: "structuur aanbrengen in
+    // oefeningen die alleen met MIDI-keyboard + groter scherm werken") zet
+    // er een klein badge-chipje bij — puur signalerend, geen gedragswijziging
+    // (die modi vereisten al langer `MidiEngine.connected`, zie de eigen
+    // "Sluit een MIDI-apparaat aan"-melding per module).
+    const midiBadge = `<span class="midi-badge" data-i18n-title="midiBadgeTitle" title="${Lang.t('midiBadgeTitle')}">${Lang.t('midiBadge')}</span>`;
+    container.innerHTML = options.map(o => {
+      const label = o.shortLabel
+        ? `<span class="lbl-full">${o.label}</span><span class="lbl-short">${o.shortLabel}</span>`
+        : o.label;
+      return `<button type="button" class="opt-btn" data-value="${o.value}">${label}${o.midi ? midiBadge : ''}</button>`;
+    }).join('');
     const saved = this.getSetting(moduleId, key, fallback);
     container.querySelectorAll('.opt-btn').forEach(btn => {
       if (btn.dataset.value === saved) btn.classList.add('active');
@@ -1518,7 +1526,7 @@ const App = {
       // input/de klok), dus die knoppenrij verschijnt alleen in die stand;
       // Snelheid/Duur horen omgekeerd alleen bij Challenge.
       this.renderSingleSelect(document.getElementById('opt-notes-mode'), 'notes', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band')}, {value:'challenge', label:Lang.t('mode_challenge')}], 'kaarten',
+        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band'), midi:true}, {value:'challenge', label:Lang.t('mode_challenge'), midi:true}], 'kaarten',
         // Zonder deze her-render zouden de mode-afhankelijke instellingen-
         // groepen (Auto / Snelheid+Duur) pas na het opnieuw openen van de
         // module verschijnen/verdwijnen i.p.v. meteen bij het wisselen.
@@ -1603,7 +1611,7 @@ const App = {
       // (Challenge-only) zijn modus-afhankelijk, zelfde onderscheid als bij
       // Noten Lezen.
       this.renderSingleSelect(document.getElementById('opt-chords-mode'), 'chords', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band')}, {value:'challenge', label:Lang.t('mode_challenge')}], 'kaarten',
+        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band'), midi:true}, {value:'challenge', label:Lang.t('mode_challenge'), midi:true}], 'kaarten',
         () => this.buildSettings('chords'));
       // Standaard alleen "Majeur" geselecteerd (was voorheen alle types) —
       // op verzoek van de gebruiker, zodat een nieuwe/gewiste sessie niet
@@ -1689,7 +1697,7 @@ const App = {
           <div class="opt-row" id="opt-prog-octave"></div>
         </div>`;
       this.renderSingleSelect(document.getElementById('opt-prog-mode'), 'progressions', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'reeks', label:Lang.t('mode_sequence')}, {value:'band', label:Lang.t('mode_band')}], 'kaarten',
+        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'reeks', label:Lang.t('mode_sequence'), midi:true}, {value:'band', label:Lang.t('mode_band'), midi:true}], 'kaarten',
         // Majeur/Mineur-rij en Auto-doorgaan horen alleen bij Kaarten —
         // her-render nodig zodat ze meteen verschijnen/verdwijnen bij het
         // wisselen, zelfde patroon als Noten Lezen se Modus-instelling.

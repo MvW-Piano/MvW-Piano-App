@@ -96,8 +96,21 @@ body{
 .nav-item:hover{ background:var(--bg-card); color:var(--text-main); }
 .nav-item.active{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; box-shadow:0 6px 16px rgba(99,102,241,.3); }
 .nav-item.active .nav-icon{ filter:none; }
-.nav-icon{ font-size:1.3rem; flex-shrink:0; width:auto; text-align:center; }
+.nav-icon{ font-size:1.3rem; flex-shrink:0; width:auto; text-align:center; position:relative; display:inline-block; }
 .nav-label{ display:none; }
+
+/* Klein signaal-stipje op het navigatie-icoon van modules die HELEMAAL
+   MIDI-only zijn (momenteel alleen Vooruit Lezen) — zichtbaar nog VOORDAT je
+   de module opent, i.t.t. de "Sluit een MIDI-apparaat aan"-melding die pas
+   verschijnt als je er al in zit. Zelfde signaalkleur als de MIDI-
+   statusindicator (#midi-status-indicator) voor herkenbaarheid, maar hier
+   puur decoratief (geen live status) — de tooltip (title-attribuut) geeft
+   de uitleg. */
+.nav-midi-dot{
+  position:absolute; top:-3px; right:-5px; width:7px; height:7px; border-radius:50%;
+  background:var(--accent); border:1.5px solid var(--bg-panel); pointer-events:none;
+}
+.nav-item.active .nav-midi-dot{ background:#fff; border-color:var(--accent); }
 
 .sidebar-footer{ display:flex; flex-direction:column; gap:8px; padding:12px 8px; border-top:1px solid var(--border-color); flex-shrink:0; margin-top:auto; }
 .sidebar-icon-btn{
@@ -177,7 +190,7 @@ body{
     gap:2px; background:transparent; border:none; border-radius:8px; color:var(--text-muted);
     font-size:.62rem; font-weight:700; padding:6px 4px;
   }
-  .bnav-icon{ font-size:1.15rem; }
+  .bnav-icon{ font-size:1.15rem; position:relative; display:inline-block; }
   .bnav-item.active{ color:var(--accent); background:var(--bg-card); }
   #app-shell{ flex-direction:column; }
   /* Genoeg ruimte zodat Vorige/Volgende nooit door de onderbalk worden
@@ -321,6 +334,19 @@ select:focus{ border-color:var(--accent); }
 }
 .opt-btn:hover{ background:var(--border-color); }
 .opt-btn.active{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; box-shadow:0 4px 12px rgba(99,102,241,.35); }
+
+/* MIDI-badge (sinds v0.17.2): signaleert modi die een aangesloten
+   MIDI-keyboard vereisen (Lopende Band/Challenge/Reeks) — puur visueel, geen
+   gedragswijziging (die modi vereisten `MidiEngine.connected` al langer, zie
+   de eigen "Sluit een MIDI-apparaat aan"-melding per module). Op de actieve
+   knop (gradient-achtergrond) een halfdoorzichtig wit randje i.p.v. de
+   accentkleur, anders valt de badge weg tegen de eigen accent-achtergrond. */
+.midi-badge{
+  display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px;
+  font-family:'JetBrains Mono',monospace; font-size:.6rem; font-weight:800; letter-spacing:.03em;
+  color:var(--accent); border:1px solid var(--accent); vertical-align:middle;
+}
+.opt-btn.active .midi-badge{ color:#fff; border-color:rgba(255,255,255,.6); }
 
 .auto-delay-slider{
   -webkit-appearance:none; appearance:none; width:150px; height:6px; border-radius:3px;

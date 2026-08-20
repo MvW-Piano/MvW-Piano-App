@@ -1,15 +1,22 @@
-# Root Note v0.17.1
+# Root Note v0.17.2
 
 ## Nieuw
-- Geen nieuwe functionaliteit deze ronde — puur een bugfix.
+- **"MIDI"-badge op modus-knoppen.** Modi die een aangesloten
+  MIDI-keyboard vereisen (Lopende Band/Challenge bij Noten Lezen en
+  Akkoorden, Reeks/Lopende Band bij Akkoordprogressies) zijn nu duidelijk
+  gemarkeerd, zodat je in één oogopslag ziet welke oefeningen niet op de
+  telefoon werken.
+- **Signaalstipje op Vooruit Lezen.** Deze module is volledig
+  MIDI-afhankelijk — dat is nu al zichtbaar op het navigatie-icoon zelf,
+  nog voordat je de module opent.
 
 ## Opgelost
-- **Vooruit Lezen: notenuitlijning en maatbreedte.** Elke maat heeft nu
-  dezelfde, vaste breedte (was afhankelijk van het aantal voortekens), en
-  de melodienoot en het akkoord van dezelfde tel staan nu altijd netjes
-  onder elkaar.
+- Geen bugfixes deze ronde — puur structuur/duidelijkheid.
 
 ## Geschiedenis
+- **v0.17.1** — Vooruit Lezen: notenuitlijning en maatbreedte gefixt (elke
+  maat nu even breed, melodie en akkoord van dezelfde tel netjes onder
+  elkaar).
 - **v0.17.0** — Nieuwe module Vooruit Lezen (melodie + akkoorden op een
   scrollende notenbalk, tijdsdruk, links/rechts-handwissel); hele noten
   bij alle akkoord-weergaves.
