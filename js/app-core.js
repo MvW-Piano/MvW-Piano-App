@@ -1206,7 +1206,14 @@ const App = {
       useFlats: data.useFlats,
       intervalMs,
       slicesPerMeasure: data.sr_slicesPerMeasure,
-      measuresAhead: this.SIGHTREADING_MEASURES_VISIBLE,
+      // measuresAhead = totale index-spanne vanaf de klok-positie (de
+      // "nu"-maat + de echte vooruitkijk-maten) — cursorMeasures schuift
+      // de VASTE cursorlijn zelf net zo ver door, zodat de "nu"-maat nog
+      // net zichtbaar links van de cursor staat i.p.v. al meteen
+      // verdwenen te zijn (gebruikersfeedback: "cursor op de
+      // maat1/maat2-grens, maat 1 volledig zichtbaar links ervan").
+      measuresAhead: this.SIGHTREADING_MEASURES_BEHIND + this.SIGHTREADING_MEASURES_VISIBLE,
+      cursorMeasures: this.SIGHTREADING_MEASURES_BEHIND,
       disappearOnPass: true,
       independentVoices: true,
       trebleDuration: melodyInBass ? 'w' : 'q',
@@ -1812,10 +1819,19 @@ const App = {
   // instelling ("hoeveel maten vooruit zichtbaar") in een klein vast rijtje
   // i.p.v. een schuifregelaar — past bij "2-3 maten" uit het stappenplan.
   SIGHTREADING_SLICES_PER_MEASURE: 4,
-  SIGHTREADING_TOTAL_MEASURES: 60,
-  // Altijd precies 4 zichtbare maten (vast, geen instelling) — expliciet
-  // gebruikersverzoek: "altijd een grandstaff met 4 maten".
+  // 100 i.p.v. de eerdere 60 — extra veiligheidsmarge (worst-case
+  // duur/tempo blijft ~37 maten, dus dit was al ruim genoeg, maar sinds
+  // een gemelde bug waarbij een sessie te vroeg leek te stoppen is dit
+  // extra opgehoogd als goedkope verzekering).
+  SIGHTREADING_TOTAL_MEASURES: 100,
+  // Altijd precies 4 zichtbare maten VOORUIT (vast, geen instelling) —
+  // expliciet gebruikersverzoek: "altijd een grandstaff met 4 maten
+  // vooruit". Apart van SIGHTREADING_MEASURES_BEHIND (de "nu"-maat, nog
+  // net zichtbaar links van de vaste cursorlijn totdat 'ie gespeeld is) —
+  // samen bepalen ze ScrollEngine's measuresAhead-kijkvenster, zie
+  // _renderSightReading().
   SIGHTREADING_MEASURES_VISIBLE: 4,
+  SIGHTREADING_MEASURES_BEHIND: 1,
 
   generateNewData(){
     const id = this.currentModule;

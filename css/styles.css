@@ -425,8 +425,14 @@ select:focus{ border-color:var(--accent); }
   position:relative; width:100%; height:380px; overflow:hidden;
   border-radius:var(--radius-md); background:var(--paper-bg); border:1px solid var(--paper-border);
 }
+/* left:140px = de --scroll-cursor-x-fallback, moet gelijk blijven aan
+   ScrollEngine.HIT_LINE_X. Vooruit Lezen (Fase 3.1) zet --scroll-cursor-x
+   inline op #scroll-strip-host naar een verschoven waarde (zie
+   ScrollEngine.startChallenge()'s opts.cursorMeasures) zodat de cursor
+   verder in de strip staat i.p.v. vlak na de gutter — alle andere
+   aanroepers laten deze var weg en vallen terug op 140px. */
 #scroll-strip-host::after{
-  content:''; position:absolute; left:140px; top:0; bottom:0; width:2px;
+  content:''; position:absolute; left:var(--scroll-cursor-x, 140px); top:0; bottom:0; width:2px;
   background:var(--accent); opacity:.55; pointer-events:none;
 }
 /* Vaste sleutel-"gutter" (sinds v0.11.0, op verzoek: vioolsleutel/

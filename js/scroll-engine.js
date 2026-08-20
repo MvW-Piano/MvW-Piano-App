@@ -112,6 +112,12 @@ const ScrollEngine = {
   _raf: null,
   _stripEl: null,
   _activeScale: 2.2,
+  // Cursorpositie (echte pixels) — default HIT_LINE_X (bestaande gedrag,
+  // ongewijzigd voor alle huidige aanroepers). Vooruit Lezen (Fase 3.1,
+  // gebruikersfeedback: "cursor hoort op de maat1/maat2-grens te staan,
+  // met maat 1 volledig zichtbaar LINKS ervan") schuift 'm op via
+  // opts.cursorMeasures in startChallenge() — zie daar.
+  _cursorX: 140,
   _trebleNotes: [],
   _bassNotes: [],
   _events: [],
@@ -176,6 +182,16 @@ const ScrollEngine = {
     container.innerHTML = '';
     this._activeScale = this._effectiveScale();
     container.style.height = Math.ceil(this.CANVAS_H * this._activeScale) + 'px';
+    // Geen opts.cursorMeasures-ondersteuning hier (alleen startChallenge()
+    // gebruikt dit, zie daar) — expliciet resetten naar HIT_LINE_X zodat
+    // een voorgaande Vooruit Lezen-sessie de cursor niet laat "verschoven"
+    // staan voor Lopende Band/Kaarten.
+    this._cursorX = this.HIT_LINE_X;
+    // container is een HERGEBRUIKT DOM-element (innerHTML='' hierboven wist
+    // alleen kinderen, geen inline custom properties) — een eerdere Vooruit
+    // Lezen-sessie kan hier nog --scroll-cursor-x op hebben staan, dus
+    // expliciet terugzetten.
+    container.style.removeProperty('--scroll-cursor-x');
     this._events = events;
     this._buildStrip(container, events, opts);
     // Vaste sleutel-"gutter" (sinds v0.11.0, op verzoek: vioolsleutel/
@@ -218,7 +234,7 @@ const ScrollEngine = {
     const barlineCorrection = this._slicesPerMeasure > 0
       ? Math.floor(index / this._slicesPerMeasure) * this.BARLINE_SLOT_W * this._activeScale
       : 0;
-    return this.HIT_LINE_X - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
+    return this._cursorX - (index * this.NOTE_SLOT_W * this._activeScale) - ((70 - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
   },
 
   _buildStrip(container, events, opts){
@@ -655,6 +671,21 @@ const ScrollEngine = {
         bass: new Array(this._voiceEventIndices.bass.length).fill(false)
       };
     }
+    // Cursorpositie (Vooruit Lezen, Fase 3.1, opts.cursorMeasures) —
+    // schuift de VASTE cursorlijn opts.cursorMeasures maten voorbij
+    // HIT_LINE_X, zodat die maat/die maten ERVOOR nog zichtbaar blijven
+    // (de "nu"-maat) terwijl de rest van het kijkvenster erna nog moet
+    // komen (het "vooruitlezen") — gebruikersfeedback: "cursor hoort op
+    // de maat1/maat2-grens te staan, met maat 1 volledig zichtbaar LINKS
+    // ervan". 0 (default) = ongewijzigd HIT_LINE_X-gedrag voor alle
+    // bestaande aanroepers.
+    const cursorMeasures = opts.cursorMeasures || 0;
+    this._cursorX = this.HIT_LINE_X + (cursorMeasures * this._slicesPerMeasure * this.NOTE_SLOT_W * this._activeScale);
+    // --scroll-cursor-x verplaatst de CSS-cursorlijn zelf mee (zie
+    // styles.css) — anders zou de VISUELE lijn op de oude HIT_LINE_X
+    // blijven staan terwijl de nootpositionering (_slotOffset) al wél naar
+    // de nieuwe cursorX rekent.
+    container.style.setProperty('--scroll-cursor-x', this._cursorX + 'px');
     this._setTransform(this._slotOffset(0));
     // Initiële kijkvenster-grens (vóór er ook maar iets gespeeld is) —
     // dezelfde grensformule als _applyRevealWindow(0) zou geven, maar dan
@@ -748,5 +779,6 @@ const ScrollEngine = {
     this._voiceEventIndices = { treble: [], bass: [] };
     this._voiceCursors = { treble: 0, bass: 0 };
     this._voiceMatched = { treble: [], bass: [] };
+    this._cursorX = this.HIT_LINE_X;
   }
 };
