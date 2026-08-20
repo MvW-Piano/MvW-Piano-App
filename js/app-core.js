@@ -1171,6 +1171,18 @@ const App = {
   _sightReadingDebounce: null,
   _sightReadingSecLeft: 0,
   _sightReadingFinished: false,
+  // Gescheiden score-telling (sinds v0.17.3, gebruikersverzoek): melodie en
+  // akkoorden hebben allebei hun EIGEN goed/fout-teller (i.p.v. één gedeelde
+  // ChallengeEngine.correctCount/missCount, die voor Vooruit Lezen niet meer
+  // gebruikt wordt — puur de TIMER van ChallengeEngine blijft in gebruik).
+  // _srMelodyRole/_srChordRole ('treble'/'bass') volgen uit de "Melodie
+  // links/rechts"-instelling, gezet bij elke nieuwe render. Puntentelling
+  // (zie _srScore()): akkoord goed = 2 punten, melodienoot goed = 1 punt —
+  // vallen ze op dezelfde tel samen dan is dat gewoon de som (3), geen
+  // aparte "samen"-regel nodig.
+  _srMelodyRole: 'treble', _srChordRole: 'bass',
+  _srMelodyCorrect: 0, _srMelodyMiss: 0,
+  _srChordCorrect: 0, _srChordMiss: 0,
 
   wireSightReading(){
     if (!MidiEngine.connected) return;
@@ -1194,13 +1206,17 @@ const App = {
       return;
     }
     this._sightReadingFinished = false;
-    const speedSec = parseFloat(this.getSetting('sightreading', 'speed', String(this.CHALLENGE_SPEED_DEFAULT)));
-    const intervalMs = Math.round((isNaN(speedSec) ? this.CHALLENGE_SPEED_DEFAULT : speedSec) * 1000);
+    const speedRate = parseFloat(this.getSetting('sightreading', 'speedRate', String(this.SIGHTREADING_RATE_DEFAULT)));
+    const intervalMs = Math.round(this.SIGHTREADING_BASE_INTERVAL_MS / (isNaN(speedRate) || speedRate <= 0 ? this.SIGHTREADING_RATE_DEFAULT : speedRate));
     const duration = parseInt(this.getSetting('sightreading', 'duration', '60'), 10);
     // Duration per sleutel op ROL (melodie=kwart, akkoorden=heel), niet op
     // sleutel — "Melodie links/rechts" (data.sr_melodyHand) bepaalt WELKE
     // sleutel welke rol speelt, zie ScrollEngine._buildStrip().
     const melodyInBass = data.sr_melodyHand === 'links';
+    this._srMelodyRole = melodyInBass ? 'bass' : 'treble';
+    this._srChordRole = melodyInBass ? 'treble' : 'bass';
+    this._srMelodyCorrect = 0; this._srMelodyMiss = 0;
+    this._srChordCorrect = 0; this._srChordMiss = 0;
     status.className = ''; status.textContent = Lang.t('midiNoteListening');
     ScrollEngine.startChallenge('scroll-strip-host', data.bandSequence, {
       useFlats: data.useFlats,
@@ -1214,11 +1230,16 @@ const App = {
       // maat1/maat2-grens, maat 1 volledig zichtbaar links ervan").
       measuresAhead: this.SIGHTREADING_MEASURES_BEHIND + this.SIGHTREADING_MEASURES_VISIBLE,
       cursorMeasures: this.SIGHTREADING_MEASURES_BEHIND,
+      // Smallere tel-slots (sinds v0.17.3, gebruikersverzoek: "meer maten
+      // tegelijk zichtbaar") — ALLEEN hier, via het nieuwe opt-in
+      // opts.slotWidthScale (zie scroll-engine.js) — raakt geen andere
+      // ScrollEngine-aanroeper.
+      slotWidthScale: this.SIGHTREADING_SLOT_WIDTH_SCALE,
       disappearOnPass: true,
       independentVoices: true,
       trebleDuration: melodyInBass ? 'w' : 'q',
       bassDuration: melodyInBass ? 'q' : 'w',
-      onMiss: () => { ChallengeEngine.recordMiss(); this._updateSightReadingStatus(); },
+      onMiss: (role) => { this._recordSightReadingResult(role, false); this._updateSightReadingStatus(); },
       onSessionEnd: () => this._finishSightReading()
     });
     ChallengeEngine.start(duration, {
@@ -1228,12 +1249,34 @@ const App = {
     this._sightReadingSecLeft = duration;
     this._updateSightReadingStatus();
   },
+  // Routeert een goed/fout-uitslag naar de juiste teller (melodie of
+  // akkoorden) op basis van de rol ('treble'/'bass') — role kan een tel zijn
+  // waar deze sessie geen akkoorden op speelt (bijv. "Akkoorden: Uit"), dan
+  // komt hier nooit een miss/correct voor die rol binnen (ScrollEngine se
+  // _voiceEventIndices is dan leeg voor die kant), dus geen extra check nodig.
+  _recordSightReadingResult(role, correct){
+    if (role === this._srMelodyRole){ if (correct) this._srMelodyCorrect++; else this._srMelodyMiss++; }
+    else if (role === this._srChordRole){ if (correct) this._srChordCorrect++; else this._srChordMiss++; }
+  },
+  // Puntentelling (gebruikersverzoek, sinds v0.17.3): akkoord goed = 2
+  // punten, melodienoot goed = 1 punt. Vallen ze op dezelfde tel samen (tel 1
+  // van een maat, als "Akkoorden: Aan") dan is dat gewoon de som (3) — geen
+  // aparte "samen"-regel nodig, dat volgt automatisch uit twee onafhankelijke
+  // tellingen.
+  _srScore(){ return this._srMelodyCorrect * 1 + this._srChordCorrect * 2; },
   _updateSightReadingStatus(){
     const counter = document.getElementById('scroll-counter');
     if (!counter) return;
     const m = Math.floor(this._sightReadingSecLeft / 60), s = this._sightReadingSecLeft % 60;
     const timeStr = m + ':' + String(s).padStart(2, '0');
-    counter.textContent = Lang.t('challengeStatus', { time: timeStr, correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+    // Drie losse segmenten (sinds v0.17.3, gebruikersverzoek: "onderscheid
+    // maken in puntentelling") i.p.v. één gedeelde goed/fout-teller — zie
+    // .sr-score-row in styles.css.
+    counter.innerHTML = `
+      <span class="sr-stat sr-stat-time">⏱ ${timeStr}</span>
+      <span class="sr-stat">${Lang.t('sr_stat_melody')}: <span class="sr-good">${this._srMelodyCorrect}</span>/<span class="sr-bad">${this._srMelodyMiss}</span></span>
+      <span class="sr-stat">${Lang.t('sr_stat_chords')}: <span class="sr-good">${this._srChordCorrect}</span>/<span class="sr-bad">${this._srChordMiss}</span></span>
+      <span class="sr-stat sr-stat-score">${Lang.t('sr_stat_score')}: ${this._srScore()}</span>`;
   },
   _finishSightReading(){
     if (this._sightReadingFinished) return;
@@ -1243,7 +1286,11 @@ const App = {
     const status = document.getElementById('scroll-status');
     if (status){
       status.className = 'correct';
-      status.textContent = Lang.t('challengeComplete', { correct: ChallengeEngine.correctCount, miss: ChallengeEngine.missCount });
+      status.textContent = Lang.t('sightReadingComplete', {
+        melodyCorrect: this._srMelodyCorrect, melodyMiss: this._srMelodyMiss,
+        chordCorrect: this._srChordCorrect, chordMiss: this._srChordMiss,
+        score: this._srScore()
+      });
     }
   },
   _onSightReadingEvent(e){
@@ -1274,7 +1321,7 @@ const App = {
       // de ANDERE stem horen, zie MusicTheory.notesContainAll()).
       if (MusicTheory.notesContainAll(MidiEngine.activeNotes, target)){
         ScrollEngine.markVoiceCorrect(role);
-        ChallengeEngine.recordCorrect();
+        this._recordSightReadingResult(role, true);
         this._updateSightReadingStatus();
       }
     });
@@ -1727,8 +1774,8 @@ const App = {
         <div class="setting-group"><label>${Lang.t('sr_chords_label')}</label><div class="opt-row" id="opt-sr-chords"></div></div>
         <div class="setting-group"><label>${Lang.t('sr_melodyhand_label')}</label><div class="opt-row" id="opt-sr-melodyhand"></div></div>
         <div class="setting-group">
-          <label title="${Lang.t('challengeSpeed_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('challengeSpeed_label')}</span> <span class="aa-delay-val" id="sr-speed-val">1.5s</span></label>
-          <input type="range" class="auto-delay-slider" id="sr-speed-slider" min="${this.CHALLENGE_SPEED_MIN}" max="${this.CHALLENGE_SPEED_MAX}" step="0.1">
+          <label title="${Lang.t('sr_speedRate_label')}">${UI_ICONS.delay}<span class="setting-label-text">${Lang.t('sr_speedRate_label')}</span> <span class="aa-delay-val" id="sr-speed-val">1.00x</span></label>
+          <input type="range" class="auto-delay-slider" id="sr-speed-slider" min="${this.SIGHTREADING_RATE_MIN}" max="${this.SIGHTREADING_RATE_MAX}" step="${this.SIGHTREADING_RATE_STEP}">
         </div>
         <div class="setting-group"><label>${Lang.t('challengeDuration_label')}</label><div class="opt-row" id="opt-sr-duration"></div></div>`;
       this.renderSingleSelect(document.getElementById('opt-sr-chords'), 'sightreading', 'chords',
@@ -1741,13 +1788,20 @@ const App = {
       // resp. ScrollEngine's nieuwe trebleDuration/bassDuration-opts.
       this.renderSingleSelect(document.getElementById('opt-sr-melodyhand'), 'sightreading', 'melodyHand',
         [{value:'rechts', label:Lang.t('sr_melodyhand_right')}, {value:'links', label:Lang.t('sr_melodyhand_left')}], 'rechts');
+      // Afspeelsnelheid als TEMPO-FACTOR (sinds v0.17.3, zie
+      // SIGHTREADING_RATE_MIN/MAX hierboven voor de volledige toelichting) —
+      // een GEWONE range met min=laag/langzaam links, max=hoog/snel rechts,
+      // dus geen omkering nodig zoals de oude seconden-slider die had.
+      // Losse localStorage-sleutel 'speedRate' (i.p.v. het oude 'speed') zodat
+      // een eerder opgeslagen waarde IN SECONDEN nooit per ongeluk als
+      // tempo-factor wordt uitgelezen.
       const srSpeedSlider = document.getElementById('sr-speed-slider');
       const srSpeedVal = document.getElementById('sr-speed-val');
-      const srSavedSpeed = this.getSetting('sightreading', 'speed', String(this.CHALLENGE_SPEED_DEFAULT));
-      srSpeedSlider.value = srSavedSpeed;
-      srSpeedVal.textContent = srSavedSpeed + 's';
-      srSpeedSlider.addEventListener('input', () => { srSpeedVal.textContent = srSpeedSlider.value + 's'; });
-      srSpeedSlider.addEventListener('change', () => { this.setSetting('sightreading', 'speed', srSpeedSlider.value); });
+      const srSavedRate = this.getSetting('sightreading', 'speedRate', String(this.SIGHTREADING_RATE_DEFAULT));
+      srSpeedSlider.value = srSavedRate;
+      srSpeedVal.textContent = parseFloat(srSavedRate).toFixed(2) + 'x';
+      srSpeedSlider.addEventListener('input', () => { srSpeedVal.textContent = parseFloat(srSpeedSlider.value).toFixed(2) + 'x'; });
+      srSpeedSlider.addEventListener('change', () => { this.setSetting('sightreading', 'speedRate', srSpeedSlider.value); });
       this.renderSingleSelect(document.getElementById('opt-sr-duration'), 'sightreading', 'duration',
         this.CHALLENGE_DURATIONS.map(s => ({value:String(s), label: Lang.t('challengeDuration_s', {s}) })), '60');
     }
@@ -1840,6 +1894,30 @@ const App = {
   // _renderSightReading().
   SIGHTREADING_MEASURES_VISIBLE: 4,
   SIGHTREADING_MEASURES_BEHIND: 1,
+  // Afspeelsnelheid als TEMPO-FACTOR i.p.v. rauwe seconden (sinds v0.17.3,
+  // gebruikersverzoek) — de oude seconden-slider (CHALLENGE_SPEED_MIN/MAX,
+  // gedeeld met Noten Lezen/Akkoorden se Challenge-modi) stond hier "achterste-
+  // voren" (helemaal links = kortste interval = SNELST, i.p.v. het
+  // verwachte "links = langzaam"). Nieuw model: 0.25x (langzaamst) t/m 3.00x
+  // (snelst), stappen van 0.25 — SIGHTREADING_BASE_INTERVAL_MS (3000ms, de
+  // oude CHALLENGE_SPEED_MAX/langzaamste stand) is het 1x-ijkpunt: interval
+  // = BASE / rate. Een gewone <input type="range" min="0.25" max="3"> heeft
+  // dan vanzelf de juiste richting (links=laag=langzaam, rechts=hoog=snel),
+  // geen omkering nodig. Losse constanten (i.p.v. CHALLENGE_SPEED_*
+  // hergebruiken) juist OMDAT dit een ander eenheden-model is (factor i.p.v.
+  // seconden) — Noten Lezen/Akkoorden se sliders blijven ongewijzigd.
+  SIGHTREADING_BASE_INTERVAL_MS: 3000,
+  SIGHTREADING_RATE_MIN: 0.25,
+  SIGHTREADING_RATE_MAX: 3,
+  SIGHTREADING_RATE_STEP: 0.25,
+  SIGHTREADING_RATE_DEFAULT: 1,
+  // Horizontale inkrimpfactor voor de scrollende strip (sinds v0.17.3,
+  // gebruikersverzoek: "meer maten tegelijk zichtbaar") — zie
+  // ScrollEngine._slotW()/opts.slotWidthScale. 0.7 empirisch gekozen/
+  // getest: smal genoeg voor merkbaar meer leesruimte, breed genoeg om ook
+  // het worst-case akkoord (3 gestapelde voortekens) niet in de buurslot te
+  // laten overlappen (zie Root_Note_Context.md-testverslag).
+  SIGHTREADING_SLOT_WIDTH_SCALE: 0.7,
 
   generateNewData(){
     const id = this.currentModule;

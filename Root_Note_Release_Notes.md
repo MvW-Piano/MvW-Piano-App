@@ -1,19 +1,27 @@
-# Root Note v0.17.2
+# Root Note v0.17.3
 
 ## Nieuw
-- **"MIDI"-badge op modus-knoppen.** Modi die een aangesloten
-  MIDI-keyboard vereisen (Lopende Band/Challenge bij Noten Lezen en
-  Akkoorden, Reeks/Lopende Band bij Akkoordprogressies) zijn nu duidelijk
-  gemarkeerd, zodat je in één oogopslag ziet welke oefeningen niet op de
-  telefoon werken.
-- **Signaalstipje op Vooruit Lezen.** Deze module is volledig
-  MIDI-afhankelijk — dat is nu al zichtbaar op het navigatie-icoon zelf,
-  nog voordat je de module opent.
+- **Nieuw puntensysteem in Vooruit Lezen.** Een akkoord goed spelen is nu
+  2 punten waard, een melodienoot 1 punt — met losse tellers voor
+  **Melodie**, **Akkoorden** en de totale **Score**, i.p.v. één gedeelde
+  goed/fout-teller.
+- **Afspeelsnelheid herzien.** De schuifregelaar loopt nu logisch van
+  0,25× (langzaamst) tot 3,00× (snelst) i.p.v. het vorige, averechtse
+  bereik.
+- **Smallere maten.** Meer maten tegelijk zichtbaar op de scrollende
+  notenbalk.
 
 ## Opgelost
-- Geen bugfixes deze ronde — puur structuur/duidelijkheid.
+- **Vooruit Lezen: akkoorden telden veel te snel als gemist.** Een
+  heel-noot-akkoord kreeg voorheen maar een fractie van zijn genoteerde
+  duur de tijd voordat het als fout werd afgekeurd — dit was de
+  hoofdoorzaak van onterecht lage scores.
+- **Noten verdwijnen nu exact op de cursorlijn**, niet meer een fractie
+  later.
 
 ## Geschiedenis
+- **v0.17.2** — "MIDI"-badge op modus-knoppen die een MIDI-keyboard
+  vereisen + signaalstipje op Vooruit Lezen in de navigatie.
 - **v0.17.1** — Vooruit Lezen: notenuitlijning en maatbreedte gefixt (elke
   maat nu even breed, melodie en akkoord van dezelfde tel netjes onder
   elkaar).

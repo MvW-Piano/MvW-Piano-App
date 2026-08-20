@@ -437,7 +437,18 @@ select:focus{ border-color:var(--accent); }
    8 — deze teller toont de voortgang daarin. */
 #scroll-counter{
   font-size:1.1rem; font-weight:800; color:var(--accent); font-family:'JetBrains Mono',monospace;
+  /* Vooruit Lezen (sinds v0.17.3) zet hier een rijtje losse segmenten
+     (tijd/melodie/akkoorden/score, zie .sr-stat hieronder) i.p.v. één platte
+     tekstregel — flex+wrap laat dat netjes afbreken op smalle schermen.
+     Noten Lezen/Akkoorden se Lopende Band/Challenge zetten hier nog gewoon
+     platte tekst (geen kind-elementen), flex heeft daar geen zichtbaar
+     effect op. */
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:6px 16px;
 }
+.sr-stat{ font-size:.95rem; font-weight:700; color:var(--text-muted); }
+.sr-stat-time, .sr-stat-score{ color:var(--accent); font-weight:800; }
+.sr-good{ color:#22c55e; }
+.sr-bad{ color:#ef4444; }
 #scroll-strip-host{
   /* height wordt sinds v0.16.3 per render() door ScrollEngine zelf gezet
      (`element.style.height`, zie _effectiveScale()) — de vaste 380px hier

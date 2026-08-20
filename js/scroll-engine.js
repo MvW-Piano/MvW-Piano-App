@@ -138,6 +138,16 @@ const ScrollEngine = {
   _slicesPerMeasure: 0,
   _measuresAhead: 0,
   _disappearOnPass: false,
+  // Horizontale inkrimpfactor per tel-slot (sinds v0.17.3, gebruikersverzoek
+  // Vooruit Lezen: "meer maten tegelijk zichtbaar") — vermenigvuldigt
+  // NOTE_SLOT_W/BARLINE_SLOT_W ALLEEN voor de aanroeper die dit meegeeft via
+  // opts.slotWidthScale (default 1 = ongewijzigd gedrag voor alle bestaande
+  // aanroepers). Puur horizontaal — CANVAS_H/RENDER_SCALE/notenkop-grootte
+  // blijven ongemoeid, alleen de AFSTAND tussen tellen krimpt. Zie
+  // _slotW()/_barlineW() hieronder; _slotOffset() en _buildStrip()'s vaste-
+  // breedte-uitlijning gebruiken deze twee helpers i.p.v. de rauwe
+  // constanten, zodat er maar op één plek geschaald hoeft te worden.
+  _slotWidthScale: 1,
   // Onafhankelijke-stemmen-matching (Vooruit Lezen, Fase 3.1) — een
   // melodienoot en een begeleidend akkoord hebben allebei hun EIGEN
   // verwachte tel-positie en worden onafhankelijk beoordeeld/gemist/
@@ -151,6 +161,20 @@ const ScrollEngine = {
   _voiceEventIndices: { treble: [], bass: [] },
   _voiceCursors: { treble: 0, bass: 0 },
   _voiceMatched: { treble: [], bass: [] },
+  // Aantal ruwe klok-tellen dat de genoteerde duur van een stem beslaat
+  // (sinds v0.17.3) — zie startChallenge()/_advanceVoiceMiss(). 1/1 (kwart)
+  // by default, ongebruikt zolang _independentVoices false is.
+  _voiceTickSpan: { treble: 1, bass: 1 },
+  // 'w' (hele noot) beslaat een volledige maat — this._slicesPerMeasure
+  // tellen, wat dat er ook is (spm=4 in de huidige Vooruit Lezen-opzet, maar
+  // niet hardcoded); alles anders ('q', of geen duur opgegeven) is 1 tel.
+  // Generiek genoeg om later een 'h' (halve noot, 2 tellen) toe te voegen
+  // zonder deze functie te hoeven aanpassen op de aanroeper.
+  _durationTicks(dur){
+    if (dur === 'w') return this._slicesPerMeasure > 0 ? this._slicesPerMeasure : 4;
+    if (dur === 'h') return 2;
+    return 1;
+  },
 
   // events: array van SLICES (number[][], één akkoord — 1 of meer
   // gelijktijdige MIDI-nummers — per stap). Sinds Fase 2.6 (v0.14.0)
@@ -182,12 +206,15 @@ const ScrollEngine = {
     const maxByViewport = Math.max(available, 0) / this.CANVAS_H;
     return Math.max(this.MIN_RENDER_SCALE, Math.min(this.RENDER_SCALE, maxByViewport));
   },
+  _slotW(){ return this.NOTE_SLOT_W * this._slotWidthScale; },
+  _barlineW(){ return this.BARLINE_SLOT_W * this._slotWidthScale; },
 
   render(containerId, events, opts = {}){
     this.stop();
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
+    this._slotWidthScale = opts.slotWidthScale || 1;
     this._activeScale = this._effectiveScale();
     container.style.height = Math.ceil(this.CANVAS_H * this._activeScale) + 'px';
     // Geen opts.cursorMeasures-ondersteuning hier (alleen startChallenge()
@@ -240,9 +267,9 @@ const ScrollEngine = {
     // gepasseerd zijn. 0 als slicesPerMeasure niet actief is (bestaande
     // aanroepers, geen wijziging).
     const barlineCorrection = this._slicesPerMeasure > 0
-      ? Math.floor(index / this._slicesPerMeasure) * this.BARLINE_SLOT_W * this._activeScale
+      ? Math.floor(index / this._slicesPerMeasure) * this._barlineW() * this._activeScale
       : 0;
-    return this._cursorX - (index * this.NOTE_SLOT_W * this._activeScale) - ((this.SLOT_ANCHOR_X - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
+    return this._cursorX - (index * this._slotW() * this._activeScale) - ((this.SLOT_ANCHOR_X - this.NOTE_LEAD_GAP) * this._activeScale) - barlineCorrection;
   },
 
   _buildStrip(container, events, opts){
@@ -284,7 +311,7 @@ const ScrollEngine = {
     // hierboven) — moet in verhouding blijven met de BARLINE_SLOT_W-
     // correctie in _slotOffset().
     const numBarlines = this._slicesPerMeasure > 0 ? Math.floor((events.length - 1) / this._slicesPerMeasure) : 0;
-    const canvasW = Math.max(events.length * this.NOTE_SLOT_W + numBarlines * this.BARLINE_SLOT_W + 160, 400);
+    const canvasW = Math.max(events.length * this._slotW() + numBarlines * this._barlineW() + 160, 400);
     const scale = this._activeScale;
     const renderer = new VF.Renderer(wrap, VF.Renderer.Backends.SVG);
     renderer.resize(canvasW * scale, this.CANVAS_H * scale);
@@ -398,8 +425,8 @@ const ScrollEngine = {
       // DEZELFDE index i DEZELFDE formule, dus per constructie identiek
       // uitgelijnd, ongeacht hoeveel voortekens de een of de ander heeft.
       const barlineOffset = (i) => this._slicesPerMeasure > 0
-        ? Math.floor(i / this._slicesPerMeasure) * this.BARLINE_SLOT_W : 0;
-      const desiredX = (i) => this.SLOT_ANCHOR_X + i * this.NOTE_SLOT_W + barlineOffset(i);
+        ? Math.floor(i / this._slicesPerMeasure) * this._barlineW() : 0;
+      const desiredX = (i) => this.SLOT_ANCHOR_X + i * this._slotW() + barlineOffset(i);
       const applyFixedX = (note, i) => {
         if (!note || typeof note.getAbsoluteX !== 'function' || typeof note.getSVGElement !== 'function') return;
         const el = note.getSVGElement();
@@ -421,7 +448,7 @@ const ScrollEngine = {
         const topY = trebleStave.getYForLine(0);
         const bottomY = bassStave.getYForLine(4);
         for (let i = this._slicesPerMeasure - 1; i < n - 1; i += this._slicesPerMeasure){
-          const x = desiredX(i) + (this.NOTE_SLOT_W + this.BARLINE_SLOT_W) / 2;
+          const x = desiredX(i) + (this._slotW() + this._barlineW()) / 2;
           ctx.beginPath();
           ctx.moveTo(x, topY);
           ctx.lineTo(x, bottomY);
@@ -623,18 +650,34 @@ const ScrollEngine = {
   // event-index) al gepasseerd is; alles wat daarbij nog niet gematched
   // was telt als MIS. Losse functie i.p.v. inline in step() omdat dit
   // twee keer per frame gebeurt (eenmaal per stem), zie startChallenge().
+  // Sinds v0.17.3 (bugfix) TWEE aparte voorwaarden i.p.v. één gedeelde:
+  // (a) zichtbaarheid — een noot verdwijnt zodra de klok 'm daadwerkelijk
+  // AANTIKT (targetIndex bereikt zijn eigen index), niet pas een volle tel
+  // later (de oude `< targetIndex`-vergelijking wachtte tot de VOLGENDE tel
+  // al begonnen was — zichtbaar als "de noot blijft nog even hangen na de
+  // lijn", gemeld door de gebruiker); (b) MIS-beoordeling — pas nadat de
+  // VOLLE genoteerde duur van deze stem is verstreken (_voiceTickSpan), niet
+  // na 1 rauwe tel. Zonder dit onderscheid werd bijv. een heel-noot-akkoord
+  // (4 tellen geldig) al na 1 tel als gemist afgekeurd — veel te vroeg, en
+  // precies de reden dat correcte akkoorden nauwelijks als goed telden.
+  // cursor schuift pas door zodra een noot ECHT afgehandeld is (gematcht via
+  // markVoiceCorrect, of hier als MIS beoordeeld) — een nog "hangende" noot
+  // (al zichtbaar-verdwenen, nog niet beoordeeld) blijft dus gewoon de
+  // huidige currentVoiceTarget() tot z'n volle speelvenster om is.
   _advanceVoiceMiss(role, targetIndex){
     const idxList = this._voiceEventIndices[role];
     const matched = this._voiceMatched[role];
+    const span = this._voiceTickSpan[role] || 1;
     let cursor = this._voiceCursors[role];
-    while (cursor < idxList.length && idxList[cursor] < targetIndex){
+    while (cursor < idxList.length){
       const eventIdx = idxList[cursor];
+      if (this._disappearOnPass && eventIdx <= targetIndex) this._hideVoiceNoteAt(role, eventIdx);
+      if (eventIdx + span > targetIndex) break; // nog binnen het speelvenster, nog niet beoordelen
       if (!matched[cursor]){
         this._colorVoiceNoteAt(role, eventIdx, '#ef4444');
         setTimeout(() => { this._colorVoiceNoteAt(role, eventIdx, this._ink); }, 400);
-        if (this._challengeCallbacks && this._challengeCallbacks.onMiss) this._challengeCallbacks.onMiss();
+        if (this._challengeCallbacks && this._challengeCallbacks.onMiss) this._challengeCallbacks.onMiss(role);
       }
-      if (this._disappearOnPass) this._hideVoiceNoteAt(role, eventIdx);
       cursor++;
     }
     this._voiceCursors[role] = cursor;
@@ -666,6 +709,7 @@ const ScrollEngine = {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
+    this._slotWidthScale = opts.slotWidthScale || 1;
     this._activeScale = this._effectiveScale();
     container.style.height = Math.ceil(this.CANVAS_H * this._activeScale) + 'px';
     const slices = Array.isArray(events[0]) ? events : events.map(m => [m]);
@@ -699,6 +743,18 @@ const ScrollEngine = {
         treble: new Array(this._voiceEventIndices.treble.length).fill(false),
         bass: new Array(this._voiceEventIndices.bass.length).fill(false)
       };
+      // Hoeveel ruwe klok-tellen (raw event-indices) een noot/akkoord van
+      // deze stem daadwerkelijk "geldig" blijft vóór het als MIS mag tellen
+      // (sinds v0.17.3, bugfix — zie _advanceVoiceMiss()) — een hele-noot-
+      // akkoord (trebleDuration/bassDuration:'w') beslaat de HELE maat
+      // (this._slicesPerMeasure tellen), een kwartnoot-melodie ('q', of geen
+      // opgegeven duur) precies 1 tel. Zonder dit werd een heel-noot-akkoord
+      // al na 1 tel (1/4 van zijn eigen genoteerde duur) als gemist
+      // afgekeurd — veel te vroeg.
+      this._voiceTickSpan = {
+        treble: this._durationTicks(opts.trebleDuration),
+        bass: this._durationTicks(opts.bassDuration)
+      };
     }
     // Cursorpositie (Vooruit Lezen, Fase 3.1, opts.cursorMeasures) —
     // schuift de VASTE cursorlijn opts.cursorMeasures maten voorbij
@@ -709,7 +765,7 @@ const ScrollEngine = {
     // ervan". 0 (default) = ongewijzigd HIT_LINE_X-gedrag voor alle
     // bestaande aanroepers.
     const cursorMeasures = opts.cursorMeasures || 0;
-    this._cursorX = this.HIT_LINE_X + (cursorMeasures * this._slicesPerMeasure * this.NOTE_SLOT_W * this._activeScale);
+    this._cursorX = this.HIT_LINE_X + (cursorMeasures * this._slicesPerMeasure * this._slotW() * this._activeScale);
     // --scroll-cursor-x verplaatst de CSS-cursorlijn zelf mee (zie
     // styles.css) — anders zou de VISUELE lijn op de oude HIT_LINE_X
     // blijven staan terwijl de nootpositionering (_slotOffset) al wél naar
@@ -808,6 +864,8 @@ const ScrollEngine = {
     this._voiceEventIndices = { treble: [], bass: [] };
     this._voiceCursors = { treble: 0, bass: 0 };
     this._voiceMatched = { treble: [], bass: [] };
+    this._voiceTickSpan = { treble: 1, bass: 1 };
     this._cursorX = this.HIT_LINE_X;
+    this._slotWidthScale = 1;
   }
 };
