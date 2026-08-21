@@ -14,6 +14,55 @@ const UI_ICONS = {
     <path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`
 };
+// Tegel-registry (sinds v0.17.5, gebruikersverzoek: MIDI-vereisende en
+// MIDI-vrije oefeningen liepen "kriskras door elkaar") — enige bron van
+// waarheid voor zowel de tegel-pagina (TilesUI.render(), js/tiles-ui.js) als
+// de module-titel in de topbar (App.updateModuleTitle()). Elke "Modus" die
+// voorheen een IN-module instelling was (Kaarten/Lopende Band/Challenge/
+// Reeks/Kwintencirkel-standen) is nu een eigen navigatie-tegel — zie
+// buildSettings() verderop, waar de bijbehorende Modus-knoppenrijen zijn
+// weggehaald (de opgeslagen `mode`-waarde blijft wel gewoon bestaan in
+// dezelfde pm_settings_<id>-blob, nu uitsluitend gezet via enterModule()).
+// tier: 'enabled' (MIDI optioneel), 'only' (MIDI verplicht), 'none' (geen
+// label) — drijft de badge op de tegel. sightreading heeft bewust geen
+// modes/tier: die tegel is inert (zie TilesUI), de module-code zelf blijft
+// ongewijzigd sinds v0.17.4 (tijdelijk uitgeschakeld, zie Root_Note_Context.md).
+// `descKey` (sinds v0.17.5-tegel-herontwerp, gebruikersverzoek: "echt
+// vierkante tegels, met een grafische weergave + korte omschrijving, zoals
+// bij Muziektheorie") — de bestaande app-emoji (icon) dient als grafisch
+// element (groot weergegeven op de tegel), descKey geeft er een korte
+// omschrijvende regel bij. Eén descKey per MODUS-tegel (specifieker/
+// nuttiger dan één tekst per app herhaald op alle tegels).
+// iconImg: sinds de logo-vervangingsronde (gebruikersverzoek, "deze logo's
+// wil ik exact zo overnemen") — geëxtraheerd uit een door de gebruiker
+// aangeleverde referentie-mockup (twee JPG's, licht/donker) via handmatige
+// crop+alpha-key-verwerking (wit-naar-transparant) op de originele pixels,
+// zie Root_Note_Context.md. `icon` (emoji) blijft staan als fallback/
+// bekend anker voor eventueel hergebruik elders, wordt niet meer getoond
+// op de tegel zelf zolang iconImg gezet is.
+const TILE_REGISTRY = [
+  { id:'notes', navKey:'nav_notes', icon:'🎯', iconImg:'assets/icons/notes.png', descKey:'tileDesc_notes', modes:[
+      {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_notes_kaarten'},
+      {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_notes_band'},
+      {value:'challenge', labelKey:'mode_challenge', tier:'only', descKey:'tileDesc_notes_challenge'} ] },
+  { id:'scales', navKey:'nav_scales', icon:'🎵', iconImg:'assets/icons/scales.png', tier:'enabled', descKey:'tileDesc_scales' },
+  { id:'chords', navKey:'nav_chords', icon:'🎹', descKey:'tileDesc_chords', modes:[
+      {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_chords_kaarten'},
+      {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_chords_band'},
+      {value:'challenge', labelKey:'mode_challenge', tier:'only', descKey:'tileDesc_chords_challenge'} ] },
+  { id:'circle', navKey:'nav_circle', icon:'🎼', iconImg:'assets/icons/circle.png', descKey:'tileDesc_circle', modes:[
+      {value:'visual', labelKey:'circle_mode_visual', tier:'none', descKey:'tileDesc_circle_visual'},
+      {value:'quiz-rel', labelKey:'circle_mode_rel', tier:'none', descKey:'tileDesc_circle_rel'},
+      {value:'quiz-acc', labelKey:'circle_mode_acc', tier:'none', descKey:'tileDesc_circle_acc'} ] },
+  { id:'intervals', navKey:'nav_intervals', icon:'👂', iconImg:'assets/icons/intervals.png', tier:'enabled', descKey:'tileDesc_intervals' },
+  { id:'progressions', navKey:'nav_progressions', icon:'📈', iconImg:'assets/icons/progressions.png', descKey:'tileDesc_progressions', modes:[
+      {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_prog_kaarten'},
+      {value:'reeks', labelKey:'mode_sequence', tier:'only', descKey:'tileDesc_prog_reeks'},
+      {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_prog_band'} ] },
+  { id:'sightreading', navKey:'nav_sightreading', icon:'👀', iconImg:'assets/icons/sightreading.png', inert:true, descKey:'tileDesc_sightreading' },
+  { id:'theory', navKey:'nav_theory', icon:'📖', iconImg:'assets/icons/theory.png', tier:'none', descKey:'tileDesc_theory' },
+  { id:'piano', navKey:'nav_piano', icon:'🎹', iconImg:'assets/icons/piano.png', tier:'enabled', descKey:'tileDesc_piano' }
+];
 const App = {
   currentModule: null, history: [], historyIndex: -1,
 
@@ -65,15 +114,27 @@ const App = {
     } catch(err){ console.warn('🎹 Automatisch herladen van samples mislukt:', err); }
   },
 
-  // Reset-knop: zet alle instellingen (per module + thema) terug naar
-  // standaard. Raakt bewust NIET de onthouden samples-map aan — dat is een
-  // losstaande, expliciet gekozen voorkeur, geen "instelling" in dezelfde
-  // zin, en opnieuw moeten kiezen zou de hele reden voor die functie
-  // tenietdoen.
-  resetAllSettings(){
-    if (!confirm(Lang.t('resetConfirm'))) return;
-    Object.keys(localStorage).filter(k => k.startsWith('pm_')).forEach(k => localStorage.removeItem(k));
-    location.reload();
+  // Reset-knop: sinds v0.17.5 per-app i.p.v. globaal (gebruikersverzoek, zie
+  // Root_Note_Context.md) — leeft nu in de instellingen-drawer van de
+  // huidige app, niet meer in een globale zijbalk/onderbalk (die vervallen
+  // zijn). Reset de VOLLEDIGE pm_settings_<id>-blob van de huidige app (dus
+  // alle modi ervan samen — level/type/octaveMode/challengeSpeed/enz.), maar
+  // zet de `mode`-sleutel direct terug zodat je in dezelfde tegel blijft
+  // i.p.v. terug te springen naar de eerste modus. Thema/taal/geluid staan
+  // in eigen localStorage-sleutels (pm_theme/pm_lang/pm_sound) en blijven
+  // bewust ongemoeid — dat was vroeger via resetAllSettings() WEL onderdeel
+  // van één klik, dat kan sinds deze ronde niet meer in één stap.
+  resetCurrentModuleSettings(){
+    const id = this.currentModule;
+    if (!id) return;
+    if (!confirm(Lang.t('resetModuleConfirm'))) return;
+    const preservedMode = this.getSetting(id, 'mode', null);
+    localStorage.removeItem('pm_settings_' + id);
+    if (preservedMode !== null) this.setSetting(id, 'mode', preservedMode);
+    this.buildSettings(id);
+    this.moveQuickControlsToDrawer();
+    this.history = []; this.historyIndex = -1;
+    this.nextQuestion();
   },
 
   init(){
@@ -86,7 +147,11 @@ const App = {
     // MIDI-module opent. NIET nogmaals aanroepen hier (zou een dubbele
     // requestMIDIAccess()-aanroep geven).
     this.tryAutoLoadSamples();
-    this.loadModule('notes');
+    // Sinds v0.17.5: de coverpagina leidt naar het tegel-overzicht i.p.v.
+    // rechtstreeks naar Noten Lezen (gebruikersverzoek, zie
+    // Root_Note_Context.md) — de gebruiker kiest daar expliciet een
+    // App+Modus-tegel.
+    this.showTiles();
   },
 
   toggleFullscreen(){
@@ -107,13 +172,21 @@ const App = {
   // (drawer, zie SettingsUI) — daarna hoeft dit niets meer te doen zolang
   // het al op zijn plek staat. Vervangt de oude breed/smal-scherm-splitsing
   // (header-rij vs. inklapbaar paneel): de drawer werkt nu overal hetzelfde.
+  // Sinds v0.17.5: insertBefore i.p.v. appendChild, zodat quick-controls
+  // altijd BOVEN de vaste #settings-reset-row blijft staan (die staat al in
+  // de HTML, zie index.html) i.p.v. erachter.
   moveQuickControlsToDrawer(){
     const qc = document.getElementById('quick-controls');
     const body = document.getElementById('settings-drawer-body');
-    if (qc && body && qc.parentElement !== body) body.appendChild(qc);
+    const resetRow = document.getElementById('settings-reset-row');
+    if (qc && body && qc.parentElement !== body) body.insertBefore(qc, resetRow);
   },
 
-  loadModule(moduleId){
+  // Verzamelt alle module-specifieke MIDI-listeners/timers-afkoppel-functies
+  // op één plek (sinds v0.17.5) — hergebruikt door zowel loadModule() (bij
+  // het wisselen naar een ANDERE module) als showTiles() (bij het terugkeren
+  // naar het tegel-overzicht, waar voorheen geen equivalent voor bestond).
+  _unwireAllModuleListeners(){
     this.clearAutoTimers();
     this.unwireMidiChordCheck();
     this.unwireMidiScaleCheck();
@@ -126,15 +199,112 @@ const App = {
     this.unwireChordsBand();
     this.unwireChordsChallenge();
     this.unwireSightReading();
+  },
+
+  // Terug naar het tegel-overzicht (sinds v0.17.5) — vervangt de oude
+  // zijbalk/onderbalk-navigatie: binnen een module wisselen kan niet meer
+  // rechtstreeks, altijd via dit tussenscherm. Koppelt ALLE lopende MIDI-
+  // listeners/timers los (zelfde functie als loadModule() gebruikt) zodat
+  // er niets op de achtergrond blijft doortikken terwijl de tegel-pagina
+  // getoond wordt.
+  showTiles(){
+    this._unwireAllModuleListeners();
+    this.currentModule = null;
+    SettingsUI.toggleDrawer(false);
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('tiles-page').style.display = 'flex';
+    TilesUI.render();
+  },
+
+  // Tegel-klik-doel (sinds v0.17.5, herzien in de tegel-consolidatie naar 1
+  // tegel per app): modeValue komt tegenwoordig altijd null binnen vanuit
+  // TilesUI (er zijn geen Modus-tegels meer) — de modus-keuze gebeurt nu
+  // ná binnenkomst, via de modus-schakelaar in de app-header (zie
+  // renderModeSwitcher/switchMode). modeValue blijft als parameter bestaan
+  // voor toekomstig hergebruik (bijv. een diepe link naar een specifieke
+  // modus). Vangt hier wél het randgeval af dat de LAATST gekozen modus
+  // MIDI vereist maar er nu geen keyboard aangesloten is (bijv. na een
+  // browser-herstart) — dan valt terug op de eerste niet-MIDI-modus, i.p.v.
+  // de gebruiker in een kapotte/lege modus te laten landen.
+  enterModule(id, modeValue){
+    if (modeValue) this.setSetting(id, 'mode', modeValue);
+    else {
+      const entry = TILE_REGISTRY.find(a => a.id === id);
+      if (entry && entry.modes){
+        const current = this.getSetting(id, 'mode', entry.modes[0].value);
+        const currentDef = entry.modes.find(m => m.value === current);
+        if (currentDef && currentDef.tier === 'only' && !MidiEngine.connected){
+          const fallback = entry.modes.find(m => m.tier !== 'only') || entry.modes[0];
+          this.setSetting(id, 'mode', fallback.value);
+        }
+      }
+    }
+    document.getElementById('tiles-page').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    this.loadModule(id);
+  },
+
+  // Titel toont sinds de modus-schakelaar (zie renderModeSwitcher hieronder)
+  // alleen nog de app-naam — de gekozen Modus is al zichtbaar via de actieve
+  // knop in de schakelaar zelf, dus geen dubbele "Akkoorden — Challenge"
+  // meer nodig zoals vóór deze ronde.
+  updateModuleTitle(id){
+    const entry = TILE_REGISTRY.find(a => a.id === id);
+    const t = document.getElementById('module-title');
+    if (!t || !entry) return;
+    t.innerText = Lang.t(entry.navKey);
+  },
+
+  // Modus-schakelaar in de app-header (sinds de tegel-consolidatie naar 1
+  // tegel per app, gebruikersverzoek: "geen extra tussenstap, maar de
+  // modus-keuze naar de header van de app zodat je daar makkelijk kan
+  // wisselen"). Vervangt de vroegere Modus-tegels op de tegel-pagina. Een
+  // MIDI-vereisende modus (tier 'only') is grijs en niet-klikbaar zolang
+  // MidiEngine.connected false is, met dezelfde tooltip-tekst
+  // ('scrollNeedsMidi') die ook elders al voor MIDI-only-standen gebruikt
+  // wordt. MidiEngine.updateStatusIndicator roept refreshModeSwitcher() aan
+  // bij elke connect/disconnect, dus dit blijft live kloppen terwijl de app
+  // openstaat — geen page-reload nodig zodra iemand alsnog een keyboard
+  // aansluit.
+  renderModeSwitcher(id){
+    const bar = document.getElementById('mode-switcher-bar');
+    if (!bar) return;
+    const entry = TILE_REGISTRY.find(a => a.id === id);
+    if (!entry || !entry.modes){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
+    const current = this.getSetting(id, 'mode', entry.modes[0].value);
+    bar.innerHTML = entry.modes.map(m => {
+      const disabled = m.tier === 'only' && !MidiEngine.connected;
+      const active = m.value === current;
+      const title = disabled ? Lang.t('scrollNeedsMidi') : Lang.t(m.descKey);
+      const cls = 'mode-switch-btn' + (active ? ' active' : '') + (disabled ? ' disabled' : '');
+      const action = disabled ? '' : ` onclick="App.switchMode('${id}','${m.value}')"`;
+      return `<button type="button" class="${cls}"${action} title="${title}">${Lang.t(m.labelKey)}</button>`;
+    }).join('');
+    bar.style.display = 'flex';
+  },
+
+  switchMode(id, value){
+    const entry = TILE_REGISTRY.find(a => a.id === id);
+    const modeDef = entry && entry.modes && entry.modes.find(m => m.value === value);
+    if (!modeDef || (modeDef.tier === 'only' && !MidiEngine.connected)) return;
+    this.setSetting(id, 'mode', value);
+    this.loadModule(id);
+  },
+
+  // Wordt vanuit MidiEngine.updateStatusIndicator aangeroepen bij elke
+  // connect/disconnect, zodat een openstaande modus-schakelaar meteen de
+  // juiste grijze/klikbare staat toont zonder dat de gebruiker iets hoeft
+  // te doen.
+  refreshModeSwitcher(){
+    if (this.currentModule) this.renderModeSwitcher(this.currentModule);
+  },
+
+  loadModule(moduleId){
+    this._unwireAllModuleListeners();
     this.currentModule = moduleId;
+    this.renderModeSwitcher(moduleId);
     const ws = document.getElementById('workspace');
     if (ws) ws.scrollTop = 0;
-
-    document.querySelectorAll('.nav-item, .bnav-item').forEach(el => el.classList.remove('active'));
-    const activeNav = document.getElementById('nav-' + moduleId);
-    if (activeNav) activeNav.classList.add('active');
-    const activeBnav = document.getElementById('bnav-' + moduleId);
-    if (activeBnav) activeBnav.classList.add('active');
 
     const flashUI = document.getElementById('flashcard-ui');
     const pianoUI = document.getElementById('piano-module');
@@ -148,7 +318,7 @@ const App = {
     if (moduleId === 'piano'){
       flashUI.style.display = 'none'; swipeHint.style.display = 'none'; theoryUI.style.display = 'none';
       pianoUI.style.display = 'flex'; quickControls.innerHTML = ''; settingsBtn.style.display = 'none';
-      document.getElementById('module-title').innerText = Lang.t('nav_piano');
+      this.updateModuleTitle('piano');
       PianoUI.init();
     } else if (moduleId === 'theory'){
       // Muziektheorie-naslagwerk (Fase 3.2): zelfde "los top-level scherm"-
@@ -159,7 +329,7 @@ const App = {
       flashUI.style.display = 'none'; swipeHint.style.display = 'none'; pianoUI.style.display = 'none';
       quickControls.innerHTML = ''; settingsBtn.style.display = 'none';
       theoryUI.style.display = 'flex';
-      document.getElementById('module-title').innerText = Lang.t('nav_theory');
+      this.updateModuleTitle('theory');
       TheoryUI.render();
     } else {
       flashUI.style.display = 'flex'; swipeHint.style.display = 'block';
@@ -1404,17 +1574,16 @@ const App = {
     // Sommige opties hebben een kortere `shortLabel` voor smal scherm (bijv.
     // "Niv 1 (C3-C5)" i.p.v. "Makkelijk (C3-C5)") — op breed scherm blijft
     // het volledige label staan, CSS wisselt tussen beide per breakpoint.
-    // `o.midi` (sinds v0.17.2, gebruikersverzoek: "structuur aanbrengen in
-    // oefeningen die alleen met MIDI-keyboard + groter scherm werken") zet
-    // er een klein badge-chipje bij — puur signalerend, geen gedragswijziging
-    // (die modi vereisten al langer `MidiEngine.connected`, zie de eigen
-    // "Sluit een MIDI-apparaat aan"-melding per module).
-    const midiBadge = `<span class="midi-badge" data-i18n-title="midiBadgeTitle" title="${Lang.t('midiBadgeTitle')}">${Lang.t('midiBadge')}</span>`;
+    // Het "MIDI"-badge-chipje dat hier sinds v0.17.2 op Modus-knoppen stond
+    // is sinds v0.17.5 vervallen — die Modus-keuzes zijn nu allemaal losse
+    // tegels op de tegel-pagina (zie TILE_REGISTRY/TilesUI), met hun EIGEN,
+    // fijnmaziger badge ("MIDI Enabled"/"MIDI Only") — dit was de enige
+    // aanroeper van `o.midi`, dus geen callers meer over.
     container.innerHTML = options.map(o => {
       const label = o.shortLabel
         ? `<span class="lbl-full">${o.label}</span><span class="lbl-short">${o.shortLabel}</span>`
         : o.label;
-      return `<button type="button" class="opt-btn" data-value="${o.value}">${label}${o.midi ? midiBadge : ''}</button>`;
+      return `<button type="button" class="opt-btn" data-value="${o.value}">${label}</button>`;
     }).join('');
     const saved = this.getSetting(moduleId, key, fallback);
     container.querySelectorAll('.opt-btn').forEach(btn => {
@@ -1519,21 +1688,19 @@ const App = {
   // opmerking bij I18N hierboven.
   buildSettings(id){
     const c = document.getElementById('quick-controls');
-    const t = document.getElementById('module-title');
     const extra = document.getElementById('interval-extra-controls');
     c.innerHTML = ''; extra.innerHTML = ''; extra.style.display = 'none';
+    // Titel (incl. "— Modus" voor apps met Modus-tegels) sinds v0.17.5 op
+    // één plek, i.p.v. losse `t.innerText=...`-regels per tak hieronder —
+    // zie updateModuleTitle().
+    this.updateModuleTitle(id);
 
     if (id === 'notes'){
-      t.innerText = Lang.t('nav_notes');
       const notesMode = this.getSetting('notes', 'mode', 'kaarten');
       c.innerHTML = `
         <div class="setting-group">
           <label>${Lang.t('level_label')}</label>
           <div class="opt-row" id="opt-notes-level"></div>
-        </div>
-        <div class="setting-group">
-          <label>${Lang.t('mode_label')}</label>
-          <div class="opt-row" id="opt-notes-mode"></div>
         </div>
         <div class="setting-group">
           <label>${Lang.t('clef_label')}</label>
@@ -1561,23 +1728,15 @@ const App = {
       // Werkt in Kaarten, Lopende Band ÉN Challenge.
       this.renderSingleSelect(document.getElementById('opt-notes-clef'), 'notes', 'clef',
         [{value:'both', label:Lang.t('clef_both')}, {value:'treble', label:Lang.t('clef_treble')}, {value:'bass', label:Lang.t('clef_bass')}], 'both');
-      // Modus-instelling (Fase 1.2/2.1c/1.3+2.1d): "Kaarten" is de bestaande
-      // flashcard-flow (zelfbeoordeling, ongewijzigd), "Lopende Band" is de
-      // MIDI-gestuurde scrollende notenbalk zonder tijdsdruk (sinds v0.10.0),
-      // "Challenge" (nieuw, sinds v0.16.0) is dezelfde scrollende notenbalk
-      // MET tijdsdruk — mist een noot de hit-lijn, dan telt hij als fout
-      // i.p.v. te wachten tot 'ie alsnog goed gespeeld wordt (zie
-      // ScrollEngine.startChallenge()/ChallengeEngine). "Automatisch
-      // doorgaan" hoort alleen bij Kaarten (er is in de andere twee niets om
-      // automatisch te "onthullen" — voortgang komt daar puur uit MIDI-
-      // input/de klok), dus die knoppenrij verschijnt alleen in die stand;
-      // Snelheid/Duur horen omgekeerd alleen bij Challenge.
-      this.renderSingleSelect(document.getElementById('opt-notes-mode'), 'notes', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band'), midi:true}, {value:'challenge', label:Lang.t('mode_challenge'), midi:true}], 'kaarten',
-        // Zonder deze her-render zouden de mode-afhankelijke instellingen-
-        // groepen (Auto / Snelheid+Duur) pas na het opnieuw openen van de
-        // module verschijnen/verdwijnen i.p.v. meteen bij het wisselen.
-        () => this.buildSettings('notes'));
+      // Modus (Kaarten/Lopende Band/Challenge) wordt gekozen via de modus-
+      // schakelaar in de app-header (App.renderModeSwitcher), niet meer
+      // hier — "Kaarten" is de bestaande flashcard-flow (zelfbeoordeling),
+      // "Lopende Band" de MIDI-gestuurde scrollende notenbalk zonder
+      // tijdsdruk (sinds v0.10.0), "Challenge" dezelfde scrollende notenbalk
+      // MET tijdsdruk (sinds v0.16.0). De opgeslagen `mode`-waarde
+      // (notesMode hierboven) bepaalt nog altijd welke ANDERE instellingen
+      // hier zichtbaar zijn: "Automatisch
+      // doorgaan" alleen bij Kaarten, Snelheid/Duur alleen bij Challenge.
       if (notesMode === 'kaarten') this.buildAutoAdvanceControls('notes', c);
       if (notesMode === 'challenge'){
         // Snelheid als slider i.p.v. drie knoppen (gebruikersfeedback, sinds
@@ -1600,7 +1759,6 @@ const App = {
       }
 
     } else if (id === 'scales'){
-      t.innerText = Lang.t('nav_scales');
       const keys = Object.keys(MusicTheory.scales);
       c.innerHTML = `
         <div class="setting-group"><label>${Lang.t('type_label')}</label><div class="opt-row" id="opt-scale-types"></div></div>
@@ -1629,14 +1787,9 @@ const App = {
       this.buildAutoAdvanceControls('scales', c);
 
     } else if (id === 'chords'){
-      t.innerText = Lang.t('nav_chords');
       const keys = Object.keys(MusicTheory.chords);
       const chordsMode = this.getSetting('chords', 'mode', 'kaarten');
       c.innerHTML = `
-        <div class="setting-group">
-          <label>${Lang.t('mode_label')}</label>
-          <div class="opt-row" id="opt-chords-mode"></div>
-        </div>
         <div class="setting-group"><label>${Lang.t('type_label')}</label><div class="opt-row" id="opt-chord-types"></div></div>
         <div class="setting-group"><label>${Lang.t('inversions_label')}</label><div class="opt-row" id="opt-chord-inv"></div></div>
         <div class="setting-group"><label>${Lang.t('octave_label')}</label><div class="opt-row" id="opt-chord-octave"></div></div>
@@ -1648,18 +1801,12 @@ const App = {
           <label>${Lang.t('challengeDuration_label')}</label>
           <div class="opt-row" id="opt-chords-challenge-duration"></div>
         </div>` : ''}`;
-      // Modus-instelling (sinds v0.16.3, gebruikersfeedback: "Lopende Band
-      // voegt weinig toe bij Akkoordprogressies maar wel bij Akkoorden, ook
-      // Challenge mag bij Akkoorden") — zelfde drie-standen-patroon als
-      // Noten Lezen (Kaarten/Lopende Band/Challenge), hier één akkoord per
-      // stap i.p.v. één losse noot. Type/Omkering/Octaaf blijven in ALLE
-      // standen zichtbaar (bepalen het akkoordmateriaal, ongeacht hoe je
-      // het oefent) — alleen Auto-doorgaan (Kaarten-only) en Snelheid/Duur
-      // (Challenge-only) zijn modus-afhankelijk, zelfde onderscheid als bij
-      // Noten Lezen.
-      this.renderSingleSelect(document.getElementById('opt-chords-mode'), 'chords', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'band', label:Lang.t('mode_band'), midi:true}, {value:'challenge', label:Lang.t('mode_challenge'), midi:true}], 'kaarten',
-        () => this.buildSettings('chords'));
+      // Modus (Kaarten/Lopende Band/Challenge) wordt gekozen via de modus-
+      // schakelaar in de app-header, niet meer hier — de opgeslagen
+      // `mode`-waarde (chordsMode hierboven) blijft wel bepalen welke ANDERE instellingen
+      // hier zichtbaar zijn (Auto-doorgaan alleen bij Kaarten, Snelheid/Duur
+      // alleen bij Challenge). Type/Omkering/Octaaf blijven in ALLE standen
+      // zichtbaar (bepalen het akkoordmateriaal, ongeacht hoe je het oefent).
       // Standaard alleen "Majeur" geselecteerd (was voorheen alle types) —
       // op verzoek van de gebruiker, zodat een nieuwe/gewiste sessie niet
       // meteen met alle 11 types tegelijk start.
@@ -1694,17 +1841,12 @@ const App = {
       }
 
     } else if (id === 'circle'){
-      t.innerText = Lang.t('nav_circle');
-      c.innerHTML = `
-        <div class="setting-group">
-          <label>${Lang.t('mode_label')}</label>
-          <div class="opt-row" id="opt-circle-mode"></div>
-        </div>`;
-      this.renderSingleSelect(document.getElementById('opt-circle-mode'), 'circle', 'mode',
-        [{value:'visual', label:Lang.t('circle_mode_visual')}, {value:'quiz-rel', label:Lang.t('circle_mode_rel')}, {value:'quiz-acc', label:Lang.t('circle_mode_acc')}], 'visual');
+      // Modus (Interactief/Relatieve Toonsoort/Voortekens) wordt sinds
+      // v0.17.5 gekozen op de tegel-pagina — deze module heeft verder geen
+      // eigen instellingen, dus blijft #quick-controls hier leeg (de
+      // titel is al gezet via updateModuleTitle() hierboven).
 
     } else if (id === 'intervals'){
-      t.innerText = Lang.t('nav_intervals');
       const names = Object.keys(MusicTheory.intervals);
       c.innerHTML = `
         <div class="setting-group"><label>${Lang.t('display_label')}</label><div class="opt-row" id="opt-int-display"></div></div>
@@ -1723,18 +1865,13 @@ const App = {
         [{value:'exact', label:Lang.t('octave_exact')}, {value:'vrij', label:Lang.t('octave_free')}], 'exact');
 
     } else if (id === 'progressions'){
-      t.innerText = Lang.t('nav_progressions');
-      // Modus-instelling (Fase 2.6, sinds v0.14.0): "Kaarten" = bestaande
-      // trap-voor-trap-pool (ongewijzigd, "Majeur/Mineur/Beide" hoort daar
-      // alleen bij). "Reeks"/"Lopende Band" gebruiken de nieuwe
-      // MusicTheory.progressions-bibliotheek (altijd majeur-context, zie
-      // daar) — geen Majeur/Mineur-instelling in die twee standen.
+      // Modus (Kaarten/Reeks/Lopende Band) wordt gekozen via de modus-
+      // schakelaar in de app-header — "Kaarten" gebruikt de bestaande trap-voor-trap-pool
+      // (waar "Majeur/Mineur/Beide" bij hoort); "Reeks"/"Lopende Band"
+      // gebruiken de MusicTheory.progressions-bibliotheek (altijd majeur-
+      // context) — geen Majeur/Mineur-instelling in die twee standen.
       const progMode = this.getSetting('progressions', 'mode', 'kaarten');
       c.innerHTML = `
-        <div class="setting-group">
-          <label>${Lang.t('mode_label')}</label>
-          <div class="opt-row" id="opt-prog-mode"></div>
-        </div>
         ${progMode === 'kaarten' ? `<div class="setting-group">
           <label>${Lang.t('key_label')}</label>
           <div class="opt-row" id="opt-prog-key"></div>
@@ -1743,12 +1880,6 @@ const App = {
           <label>${Lang.t('octave_label')}</label>
           <div class="opt-row" id="opt-prog-octave"></div>
         </div>`;
-      this.renderSingleSelect(document.getElementById('opt-prog-mode'), 'progressions', 'mode',
-        [{value:'kaarten', label:Lang.t('mode_cards')}, {value:'reeks', label:Lang.t('mode_sequence'), midi:true}, {value:'band', label:Lang.t('mode_band'), midi:true}], 'kaarten',
-        // Majeur/Mineur-rij en Auto-doorgaan horen alleen bij Kaarten —
-        // her-render nodig zodat ze meteen verschijnen/verdwijnen bij het
-        // wisselen, zelfde patroon als Noten Lezen se Modus-instelling.
-        () => this.buildSettings('progressions'));
       if (progMode === 'kaarten'){
         this.renderSingleSelect(document.getElementById('opt-prog-key'), 'progressions', 'key',
           [{value:'maj', label:Lang.t('prog_key_maj')}, {value:'min', label:Lang.t('prog_key_min')}, {value:'both', label:Lang.t('prog_key_both')}], 'maj');
@@ -1761,7 +1892,6 @@ const App = {
       if (progMode === 'kaarten') this.buildAutoAdvanceControls('progressions', c);
 
     } else if (id === 'sightreading'){
-      t.innerText = Lang.t('nav_sightreading');
       // Geen "Modus"-instelling (sinds Fase 3.1) — dit IS altijd de
       // auto-scroll-klok-mechaniek, geen Kaarten/Lopende-Band-keuze zoals
       // bij Noten Lezen/Akkoorden; dat is precies het punt van sight-

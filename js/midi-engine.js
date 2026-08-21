@@ -106,8 +106,14 @@ const MidiEngine = {
 
   updateStatusIndicator(){
     const dot = document.getElementById('midi-status-indicator');
-    if (!dot) return;
-    dot.classList.toggle('connected', this.connected);
-    dot.title = this.statusText();
+    if (dot){
+      dot.classList.toggle('connected', this.connected);
+      dot.title = this.statusText();
+    }
+    // Houdt een eventueel openstaande modus-schakelaar (zie
+    // App.renderModeSwitcher) live in sync met de connect-status, zodat een
+    // MIDI-only modus meteen klikbaar wordt zonder dat de gebruiker de app
+    // opnieuw hoeft te openen.
+    App.refreshModeSwitcher();
   }
 };

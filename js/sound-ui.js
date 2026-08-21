@@ -19,8 +19,6 @@ const SoundUI = {
     const title = Lang.t(on ? 'tooltip_sound_on' : 'tooltip_sound_off');
     const btnHeader = document.getElementById('sound-btn-header');
     if (btnHeader){ btnHeader.innerHTML = icon; btnHeader.title = title; }
-    const btnBnav = document.getElementById('sound-btn-bnav');
-    if (btnBnav){ const i = btnBnav.querySelector('.bnav-icon'); if (i) i.textContent = icon; }
   },
   init(){ this.updateIcons(); }
 };

@@ -17,16 +17,49 @@ const I18N = {
     tooltip_sightreading:'Vooruit Lezen — vereist een MIDI-keyboard, werkt het prettigst op een groter scherm',
     nav_theory:'Muziektheorie', nav_piano:'Virtuele Piano',
     navLabel_progressions:'Progressies', navLabel_theory:'Theorie', navLabel_piano:'Vrij Spelen',
-    bnav_notes:'Noten', bnav_scales:'Ladders', bnav_chords:'Akk.', bnav_circle:'Cirkel',
-    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_sightreading:'Vooruit', bnav_theory:'Theorie', bnav_piano:'Piano',
+    // Tegel-overzicht (sinds v0.17.5) — zie TilesUI/TILE_REGISTRY. De drie
+    // badge-teksten blijven bewust letterlijk Engels in beide talen, zelfde
+    // precedent als de eerdere (sinds vervallen) `midiBadge:'MIDI'`.
+    tiles_heading:'Kies je oefening', tooltip_back:'Terug',
+    tileMidiEnabled:'MIDI Enabled', tileMidiOnly:'MIDI Only', tileUnderConstruction:'Under Construction',
+    // Omschrijvingen op tegel-niveau (sinds de consolidatie naar 1 tegel per
+    // app, zie TILE_REGISTRY/TilesUI) — dekken alle modi van de app in één
+    // zin, zodat een eerste-keer-gebruiker meteen snapt wat de app kan
+    // zonder eerst te hoeven klikken. De losse tileDesc_<app>_<modus>-teksten
+    // hieronder blijven bestaan als tooltip op de modus-schakelaar-knoppen
+    // in de app-header (zie App.renderModeSwitcher).
+    tileDesc_notes:'Herken noten op de notenbalk — als kaarten, een scrollende band, of tegen de klok.',
+    tileDesc_chords:'Herken en speel akkoorden — als kaarten, een scrollende band, of tegen de klok.',
+    tileDesc_circle:'Verken het kwintencirkel-wiel, oefen relatieve toonsoorten en voortekens.',
+    tileDesc_progressions:'Herken en speel akkoordprogressies — als kaarten, een reeks, of een lopende band.',
+    // Korte omschrijvingen per Modus (gebruikersverzoek, herziene tegel-
+    // opzet) — nu hergebruikt als tooltip op de modus-schakelaar in de
+    // app-header, niet meer op losse Modus-tegels.
+    tileDesc_notes_kaarten:'Herken losse noten op de notenbalk, in je eigen tempo.',
+    tileDesc_notes_band:'Speel mee met een scrollende notenbalk, geen tijdsdruk.',
+    tileDesc_notes_challenge:'Tegen de klok — mis je de lijn, dan telt het als fout.',
+    tileDesc_scales:'Oefen toonladders in alle toonsoorten, met optioneel MIDI-speel-na.',
+    tileDesc_chords_kaarten:'Herken akkoorden en hun omkeringen op de notenbalk.',
+    tileDesc_chords_band:'Speel akkoorden mee op een scrollende notenbalk.',
+    tileDesc_chords_challenge:'Akkoorden spelen tegen de klok.',
+    tileDesc_circle_visual:'Verken het kwintencirkel-wiel en hoor elk akkoord.',
+    tileDesc_circle_rel:'Oefen relatieve majeur/mineur-paren.',
+    tileDesc_circle_acc:'Oefen het aantal voortekens per toonsoort.',
+    tileDesc_intervals:'Herken intervallen, visueel of op het gehoor.',
+    tileDesc_prog_kaarten:'Herken Romeinse-cijfer-trappen in bekende progressies.',
+    tileDesc_prog_reeks:'Speel een genoemde progressie stap voor stap na.',
+    tileDesc_prog_band:'Speel meerdere progressies achter elkaar mee.',
+    tileDesc_sightreading:'Melodie en akkoorden tegelijk lezen — nog in ontwikkeling.',
+    tileDesc_theory:'Naslagwerk met notatiesymbolen, geen quiz.',
+    tileDesc_piano:'Een virtueel 88-toetsen klavier om vrij op te spelen.',
+    reset_module_label:'Reset deze app',
+    resetModuleConfirm:'Instellingen van deze app terugzetten naar standaard? Dit geldt voor alle modi van deze app en kan niet ongedaan gemaakt worden.',
     sr_chords_label:'Akkoorden', sr_melodyhand_label:'Melodie',
     sr_melodyhand_right:'Rechts (vioolsleutel)', sr_melodyhand_left:'Links (basleutel)',
     sr_speedRate_label:'Afspeelsnelheid',
     sr_stat_melody:'Melodie', sr_stat_chords:'Akkoorden', sr_stat_score:'Score',
     sightReadingComplete:'🎉 Sessie afgerond — Melodie {melodyCorrect}/{melodyMiss}, Akkoorden {chordCorrect}/{chordMiss}, Score: {score}',
-    bnav_sound:'Geluid', bnav_theme:'Thema', bnav_fullscreen:'Scherm', bnav_reset:'Reset', bnav_lang:'Taal',
-    tooltip_theme:'Wissel thema', tooltip_fullscreen:'Volledig scherm',
-    tooltip_reset:'Instellingen resetten naar standaard', tooltip_samples:'Eigen pianogeluid laden',
+    tooltip_theme:'Wissel thema', tooltip_fullscreen:'Volledig scherm', tooltip_samples:'Eigen pianogeluid laden',
     tooltip_sound_on:'Geluid uitzetten', tooltip_sound_off:'Geluid aanzetten',
     tooltip_midi_connected:'MIDI verbonden: {device}', tooltip_midi_none:'Geen MIDI-apparaat gevonden',
     tooltip_midi_unsupported:'MIDI wordt niet ondersteund in deze browser',
@@ -38,8 +71,7 @@ const I18N = {
     type_label:'Type', inversions_label:'Omkeringen', mode_label:'Modus',
     octaves_label:'Octaven', oct_1:'1 Octaaf', oct_2:'2 Octaven',
     hint_label:'Hint', octave_label:'Octaaf', octave_exact:'Exact', octave_free:'Vrij',
-    mode_cards:'Kaarten', mode_band:'Lopende Band', mode_sequence:'Reeks', mode_challenge:'Challenge',
-    midiBadge:'MIDI', midiBadgeTitle:'Vereist een aangesloten MIDI-keyboard — werkt het prettigst op een groter scherm',
+    mode_cards:'Flashcards', mode_band:'Continu', mode_sequence:'Reeks', mode_challenge:'Challenge',
     challengeSpeed_label:'Snelheid',
     challengeDuration_label:'Duur', challengeDuration_s:'{s} sec',
     challengeStatus:'⏱ {time} — ✓ {correct} ✗ {miss}',
@@ -68,7 +100,6 @@ const I18N = {
     qDegreeIn:"Wat is trap '{deg}' in {key} {kw}?",
     major:'Majeur', minorLower:'mineur',
     zeroAccidentals:'0 voortekens', nSharps:'{n} kruisen (#)', nFlats:'{n} mollen (b)',
-    resetConfirm:'Alle instellingen terugzetten naar standaard? Dit geldt voor alle modules en kan niet ongedaan gemaakt worden.',
     piano_left:'Links', piano_center:'Midden (C4)', piano_right:'Rechts',
     homeSubtitle:'De Piano Trainer',
     // Muziektheorie-naslagwerk (Fase 3.2, sinds v0.15.0) — zie theory-data.js
@@ -104,16 +135,37 @@ const I18N = {
     tooltip_sightreading:'Sight Reading — requires a MIDI keyboard, works best on a larger screen',
     nav_theory:'Music Theory', nav_piano:'Virtual Piano',
     navLabel_progressions:'Progressions', navLabel_theory:'Theory', navLabel_piano:'Free Play',
-    bnav_notes:'Notes', bnav_scales:'Scales', bnav_chords:'Chords', bnav_circle:'Circle',
-    bnav_intervals:'Interv.', bnav_progressions:'Progr.', bnav_sightreading:'Sight', bnav_theory:'Theory', bnav_piano:'Piano',
+    tiles_heading:'Choose your exercise', tooltip_back:'Back',
+    tileMidiEnabled:'MIDI Enabled', tileMidiOnly:'MIDI Only', tileUnderConstruction:'Under Construction',
+    tileDesc_notes:'Recognize notes on the staff — as cards, a scrolling band, or against the clock.',
+    tileDesc_chords:'Recognize and play chords — as cards, a scrolling band, or against the clock.',
+    tileDesc_circle:'Explore the circle of fifths wheel, practice relative keys and accidentals.',
+    tileDesc_progressions:'Recognize and play chord progressions — as cards, a sequence, or a scrolling band.',
+    tileDesc_notes_kaarten:'Recognize single notes on the staff, at your own pace.',
+    tileDesc_notes_band:'Play along with a scrolling staff, no time pressure.',
+    tileDesc_notes_challenge:'Beat the clock — miss the line and it counts as wrong.',
+    tileDesc_scales:'Practice scales in every key, with optional MIDI play-along.',
+    tileDesc_chords_kaarten:'Recognize chords and their inversions on the staff.',
+    tileDesc_chords_band:'Play chords along with a scrolling staff.',
+    tileDesc_chords_challenge:'Play chords against the clock.',
+    tileDesc_circle_visual:'Explore the circle of fifths wheel and hear every chord.',
+    tileDesc_circle_rel:'Practice relative major/minor pairs.',
+    tileDesc_circle_acc:'Practice the number of accidentals per key.',
+    tileDesc_intervals:'Recognize intervals, visually or by ear.',
+    tileDesc_prog_kaarten:'Recognize Roman-numeral degrees in familiar progressions.',
+    tileDesc_prog_reeks:'Play a named progression step by step.',
+    tileDesc_prog_band:'Play several progressions along in a row.',
+    tileDesc_sightreading:'Read melody and chords at once — still under construction.',
+    tileDesc_theory:'Reference guide with notation symbols, no quiz.',
+    tileDesc_piano:'A virtual 88-key keyboard to play freely.',
+    reset_module_label:'Reset this app',
+    resetModuleConfirm:'Reset this app\'s settings to default? This applies to all modes of this app and cannot be undone.',
     sr_chords_label:'Chords', sr_melodyhand_label:'Melody',
     sr_melodyhand_right:'Right hand (treble clef)', sr_melodyhand_left:'Left hand (bass clef)',
     sr_speedRate_label:'Playback speed',
     sr_stat_melody:'Melody', sr_stat_chords:'Chords', sr_stat_score:'Score',
     sightReadingComplete:'🎉 Session complete — Melody {melodyCorrect}/{melodyMiss}, Chords {chordCorrect}/{chordMiss}, Score: {score}',
-    bnav_sound:'Sound', bnav_theme:'Theme', bnav_fullscreen:'Screen', bnav_reset:'Reset', bnav_lang:'Language',
-    tooltip_theme:'Switch theme', tooltip_fullscreen:'Fullscreen',
-    tooltip_reset:'Reset settings to default', tooltip_samples:'Load your own piano sound',
+    tooltip_theme:'Switch theme', tooltip_fullscreen:'Fullscreen', tooltip_samples:'Load your own piano sound',
     tooltip_sound_on:'Turn sound off', tooltip_sound_off:'Turn sound on',
     tooltip_midi_connected:'MIDI connected: {device}', tooltip_midi_none:'No MIDI device found',
     tooltip_midi_unsupported:'MIDI is not supported in this browser',
@@ -125,8 +177,7 @@ const I18N = {
     type_label:'Type', inversions_label:'Inversions', mode_label:'Mode',
     octaves_label:'Octaves', oct_1:'1 Octave', oct_2:'2 Octaves',
     hint_label:'Hint', octave_label:'Octave', octave_exact:'Exact', octave_free:'Free',
-    mode_cards:'Cards', mode_band:'Scrolling Band', mode_sequence:'Sequence', mode_challenge:'Challenge',
-    midiBadge:'MIDI', midiBadgeTitle:'Requires a connected MIDI keyboard — works best on a larger screen',
+    mode_cards:'Flashcards', mode_band:'Continuous', mode_sequence:'Sequence', mode_challenge:'Challenge',
     challengeSpeed_label:'Speed',
     challengeDuration_label:'Duration', challengeDuration_s:'{s} sec',
     challengeStatus:'⏱ {time} — ✓ {correct} ✗ {miss}',
@@ -155,7 +206,6 @@ const I18N = {
     qDegreeIn:"What is degree '{deg}' in {key} {kw}?",
     major:'Major', minorLower:'minor',
     zeroAccidentals:'0 accidentals', nSharps:'{n} sharps (#)', nFlats:'{n} flats (b)',
-    resetConfirm:'Reset all settings to default? This applies to all modules and cannot be undone.',
     piano_left:'Left', piano_center:'Center (C4)', piano_right:'Right',
     homeSubtitle:'The Piano Trainer',
     theory_cat_restsDuration:'Rests & Note Values', theory_cat_legatoSlur:'Legato & Slurs',
@@ -230,15 +280,16 @@ const Lang = {
     document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', this.t(el.dataset.i18nAria)); });
     // Taalknop(pen) tonen altijd de HUIDIG actieve taal (niet de taal
     // waarnaartoe je zou schakelen) — op verzoek van de gebruiker, zelfde
-    // "NL"/"EN"-tekst op alle drie plekken (home page, zijbalk, onderbalk).
+    // "NL"/"EN"-tekst op alle drie plekken (home page, tegel-pagina, topbar
+    // in-module — sinds v0.17.5, was voorheen home/zijbalk/onderbalk).
     const langLabel = this.current() === 'nl' ? 'NL' : 'EN';
     const langTitle = 'Switch language / Wissel taal';
     const langStart = document.getElementById('lang-btn-start');
     if (langStart) langStart.textContent = langLabel;
     const langHeader = document.getElementById('lang-btn-header');
     if (langHeader){ langHeader.textContent = langLabel; langHeader.title = langTitle; }
-    const langBnavIcon = document.getElementById('lang-btn-bnav-icon');
-    if (langBnavIcon) langBnavIcon.textContent = langLabel;
+    const langTiles = document.getElementById('lang-btn-tiles');
+    if (langTiles) langTiles.textContent = langLabel;
     if (typeof SoundUI !== 'undefined') SoundUI.updateIcons();
     if (typeof MidiEngine !== 'undefined') MidiEngine.updateStatusIndicator();
   },
@@ -249,13 +300,22 @@ const Lang = {
   // opgeslagen, taal-neutrale ruwe gegevens opnieuw uit, zie App.qa()).
   apply(){
     this.updateStaticText();
-    if (typeof App === 'undefined' || !App.currentModule) return;
+    if (typeof App === 'undefined') return;
+    // Tegel-pagina (sinds v0.17.5): App.currentModule is dan null — de 17
+    // tegels worden als rauwe innerHTML opgebouwd (TilesUI.render()), niet
+    // via [data-i18n], dus updateStaticText() hierboven ververst ze niet
+    // vanzelf. Bugfix: zonder deze regel bleef de tegel-INHOUD (titels/
+    // omschrijvingen/badges) in de oude taal staan na een taalwissel terwijl
+    // je al op de tegel-pagina stond — alleen de vaste kop ("Kies je
+    // oefening") volgde de taalwissel wel via [data-i18n].
+    if (!App.currentModule){
+      if (typeof TilesUI !== 'undefined') TilesUI.render();
+      return;
+    }
     if (App.currentModule === 'piano'){
-      const mt = document.getElementById('module-title');
-      if (mt) mt.innerText = this.t('nav_piano');
+      App.updateModuleTitle('piano');
     } else if (App.currentModule === 'theory'){
-      const mt = document.getElementById('module-title');
-      if (mt) mt.innerText = this.t('nav_theory');
+      App.updateModuleTitle('theory');
       if (typeof TheoryUI !== 'undefined') TheoryUI.render();
     } else {
       App.buildSettings(App.currentModule);

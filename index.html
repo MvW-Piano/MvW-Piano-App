@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.17.3 | Bèta Editie</p>
+      <p class="version-tag">v0.17.7 | Bèta Editie</p>
     </div>
   </div>
 
@@ -60,43 +60,32 @@
   <input type="file" id="global-sample-upload" multiple webkitdirectory directory accept="audio/wav,audio/mpeg,audio/x-wav,.wav" style="display:none;" onchange="App.handleFileUpload(event)">
 </div>
 
-<!-- App-schil -->
-<div id="app-shell">
-  <aside id="sidebar">
-    <div class="sidebar-brand">
-      <span class="brand-badge">
-        <svg viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg">
-          <rect x="1" y="1" width="10" height="30" rx="2" fill="#fff"/>
-          <rect x="12" y="1" width="10" height="30" rx="2" fill="#fff"/>
-          <rect x="23" y="1" width="10" height="30" rx="2" fill="#fff"/>
-          <rect x="34" y="1" width="10" height="30" rx="2" fill="#fff"/>
-          <rect x="7" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-          <rect x="18" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-          <rect x="29" y="1" width="7" height="18" rx="1.5" fill="#0f172a"/>
-        </svg>
-      </span>
-      <span class="brand-text">Root Note</span>
-    </div>
-    <nav class="sidebar-nav">
-      <button class="nav-item" id="nav-notes" onclick="App.loadModule('notes')" data-i18n-title="nav_notes" title="Noten Lezen"><span class="nav-icon">🎯</span><span class="nav-label" data-i18n="nav_notes">Noten Lezen</span></button>
-      <button class="nav-item" id="nav-scales" onclick="App.loadModule('scales')" data-i18n-title="nav_scales" title="Toonladders"><span class="nav-icon">🎵</span><span class="nav-label" data-i18n="nav_scales">Toonladders</span></button>
-      <button class="nav-item" id="nav-chords" onclick="App.loadModule('chords')" data-i18n-title="nav_chords" title="Akkoorden"><span class="nav-icon">🎹</span><span class="nav-label" data-i18n="nav_chords">Akkoorden</span></button>
-      <button class="nav-item" id="nav-circle" onclick="App.loadModule('circle')" data-i18n-title="nav_circle" title="Kwintencirkel"><span class="nav-icon">🎼</span><span class="nav-label" data-i18n="nav_circle">Kwintencirkel</span></button>
-      <button class="nav-item" id="nav-intervals" onclick="App.loadModule('intervals')" data-i18n-title="nav_intervals" title="Intervallen"><span class="nav-icon">👂</span><span class="nav-label" data-i18n="nav_intervals">Intervallen</span></button>
-      <button class="nav-item" id="nav-progressions" onclick="App.loadModule('progressions')" data-i18n-title="nav_progressions" title="Akkoordprogressies"><span class="nav-icon">📈</span><span class="nav-label" data-i18n="navLabel_progressions">Progressies</span></button>
-      <button class="nav-item" id="nav-sightreading" onclick="App.loadModule('sightreading')" data-i18n-title="tooltip_sightreading" title="Vooruit Lezen — vereist een MIDI-keyboard, werkt het prettigst op een groter scherm"><span class="nav-icon">👀<span class="nav-midi-dot"></span></span><span class="nav-label" data-i18n="nav_sightreading">Vooruit Lezen</span></button>
-      <button class="nav-item" id="nav-theory" onclick="App.loadModule('theory')" data-i18n-title="nav_theory" title="Muziektheorie"><span class="nav-icon">📖</span><span class="nav-label" data-i18n="navLabel_theory">Theorie</span></button>
-      <button class="nav-item" id="nav-piano" onclick="App.loadModule('piano')" data-i18n-title="nav_piano" title="Virtuele Piano"><span class="nav-icon">🎹</span><span class="nav-label" data-i18n="navLabel_piano">Vrij Spelen</span></button>
-    </nav>
-    <div class="sidebar-footer">
-      <button class="sidebar-icon-btn" onclick="SoundUI.toggle()" id="sound-btn-header" title="Geluid uitzetten">🔊</button>
-      <button class="sidebar-icon-btn" onclick="ThemeManager.toggle()" id="theme-btn-header" data-i18n-title="tooltip_theme" title="Wissel thema">☀️</button>
-      <button class="sidebar-icon-btn" onclick="App.toggleFullscreen()" id="fullscreen-btn-header" data-i18n-title="tooltip_fullscreen" title="Volledig scherm">⛶</button>
-      <button class="sidebar-icon-btn" onclick="App.resetAllSettings()" data-i18n-title="tooltip_reset" title="Instellingen resetten naar standaard">↺</button>
-      <button class="sidebar-icon-btn" onclick="Lang.toggle()" id="lang-btn-header" title="Switch language / Wissel taal">NL</button>
-    </div>
-  </aside>
+<!-- Tegel-overzicht (sinds v0.17.5) — tussenscherm tussen de coverpagina en
+     een module: elke (App, Modus)-combinatie is hier een eigen tegel, met een
+     MIDI-label erop, zodat MIDI-vereisende en MIDI-vrije oefeningen niet
+     langer door elkaar staan in dezelfde navigatie. Volledig door
+     TilesUI.render() (js/tiles-ui.js) opgebouwd uit TILE_REGISTRY
+     (js/app-core.js) — geen tegels met de hand in deze HTML, zie
+     Root_Note_Context.md voor de architectuur-toelichting. Zelfde
+     theme-toggle-container-patroon als #init-overlay hierboven, rechtsboven. -->
+<div id="tiles-page" style="display:none;">
+  <!-- Ambient gloed-blobs, zelfde als #init-overlay hierboven (gebruikersverzoek
+       bij de dashboard-herstijling: "referentiestijl is de gecentreerde
+       glow-esthetiek van het startscherm") — zie CSS voor de verbrede selectors. -->
+  <div class="welcome-bg-decor">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+  </div>
+  <div class="theme-toggle-container">
+    <button onclick="Lang.toggle()" id="lang-btn-tiles" class="start-theme-btn" title="Switch language">NL</button>
+    <button onclick="ThemeManager.toggle()" id="theme-btn-tiles" class="start-theme-btn"><span class="theme-icon">☀️</span></button>
+  </div>
+  <h1 class="tiles-heading" data-i18n="tiles_heading">Kies je oefening</h1>
+  <div id="tiles-grid"></div>
+</div>
 
+<!-- App-schil -->
+<div id="app-shell" style="display:none;">
   <!-- Instellingen-paneel (drawer): vervangt de oude header-instellingenrij
        (breed scherm) + het inklapbare paneel (smal scherm) door één en
        hetzelfde mechanisme op elke schermbreedte, geopend via #settings-btn
@@ -108,30 +97,43 @@
       <span data-i18n="settings_title">Instellingen</span>
       <button type="button" id="settings-drawer-close" onclick="SettingsUI.toggleDrawer(false)" data-i18n-aria="settings_close" aria-label="Sluiten">✕</button>
     </div>
-    <div class="settings-drawer-body" id="settings-drawer-body"></div>
+    <!-- #quick-controls (per-module instellingen) verhuist hier eenmalig
+         naartoe, vóór #settings-reset-row (zie App.moveQuickControlsToDrawer,
+         die insertBefore gebruikt i.p.v. appendChild zodat de reset-rij
+         altijd ONDERAAN blijft staan). Reset-knop sinds v0.17.5 per-app
+         i.p.v. globaal (zie Root_Note_Context.md) — reset alle instellingen
+         van de HUIDIGE app (alle modi ervan samen), niet alleen deze tegel. -->
+    <div class="settings-drawer-body" id="settings-drawer-body">
+      <div class="settings-reset-row" id="settings-reset-row">
+        <button type="button" id="reset-module-btn" onclick="App.resetCurrentModuleSettings()">↺ <span data-i18n="reset_module_label">Reset deze app</span></button>
+      </div>
+    </div>
   </aside>
 
-  <nav id="bottom-nav">
-    <button class="bnav-item" id="bnav-notes" onclick="App.loadModule('notes')"><span class="bnav-icon">🎯</span><span data-i18n="bnav_notes">Noten</span></button>
-    <button class="bnav-item" id="bnav-scales" onclick="App.loadModule('scales')"><span class="bnav-icon">🎵</span><span data-i18n="bnav_scales">Ladders</span></button>
-    <button class="bnav-item" id="bnav-chords" onclick="App.loadModule('chords')"><span class="bnav-icon">🎹</span><span data-i18n="bnav_chords">Akk.</span></button>
-    <button class="bnav-item" id="bnav-circle" onclick="App.loadModule('circle')"><span class="bnav-icon">🎼</span><span data-i18n="bnav_circle">Cirkel</span></button>
-    <button class="bnav-item" id="bnav-intervals" onclick="App.loadModule('intervals')"><span class="bnav-icon">👂</span><span data-i18n="bnav_intervals">Interv.</span></button>
-    <button class="bnav-item" id="bnav-progressions" onclick="App.loadModule('progressions')"><span class="bnav-icon">📈</span><span data-i18n="bnav_progressions">Progr.</span></button>
-    <button class="bnav-item" id="bnav-sightreading" onclick="App.loadModule('sightreading')" data-i18n-title="tooltip_sightreading" title="Vooruit Lezen — vereist een MIDI-keyboard, werkt het prettigst op een groter scherm"><span class="bnav-icon">👀<span class="nav-midi-dot"></span></span><span data-i18n="bnav_sightreading">Vooruit</span></button>
-    <button class="bnav-item" id="bnav-theory" onclick="App.loadModule('theory')"><span class="bnav-icon">📖</span><span data-i18n="bnav_theory">Theorie</span></button>
-    <button class="bnav-item" id="bnav-piano" onclick="App.loadModule('piano')"><span class="bnav-icon">🎹</span><span data-i18n="bnav_piano">Piano</span></button>
-    <button class="bnav-item" onclick="SoundUI.toggle()" id="sound-btn-bnav"><span class="bnav-icon">🔊</span><span data-i18n="bnav_sound">Geluid</span></button>
-    <button class="bnav-item" onclick="ThemeManager.toggle()" id="theme-btn-bnav"><span class="bnav-icon">☀️</span><span data-i18n="bnav_theme">Thema</span></button>
-    <button class="bnav-item" onclick="App.toggleFullscreen()" id="fullscreen-btn-bnav"><span class="bnav-icon">⛶</span><span data-i18n="bnav_fullscreen">Scherm</span></button>
-    <button class="bnav-item" onclick="App.resetAllSettings()"><span class="bnav-icon">↺</span><span data-i18n="bnav_reset">Reset</span></button>
-    <button class="bnav-item" onclick="Lang.toggle()" id="lang-btn-bnav"><span class="bnav-icon" id="lang-btn-bnav-icon">NL</span><span data-i18n="bnav_lang">Taal</span></button>
-  </nav>
-
   <div id="content-area">
+    <!-- Sinds v0.17.5: geen zijbalk/onderbalk meer tijdens het oefenen (zie
+         Root_Note_Context.md) — de terug-knop leidt naar #tiles-page, en de
+         geluid/thema/fullscreen/taal-iconen die voorheen in de zijbalk-
+         footer/onderbalk stonden wonen nu hier, naast het instellingen-
+         tandwiel. Behouden dezelfde ids (sound-btn-header/theme-btn-header/
+         fullscreen-btn-header/lang-btn-header) zodat SoundUI/ThemeManager/
+         Lang/syncFullscreenIcon() ze zonder JS-wijziging blijven vinden. -->
     <header id="content-topbar">
+      <button type="button" id="back-to-tiles-btn" class="topbar-icon-btn" onclick="App.showTiles()" data-i18n-title="tooltip_back" title="Terug">⬅</button>
+      <!-- Modus-schakelaar (sinds de tegel-consolidatie naar 1 tegel per app)
+           — naast het terug-pijltje in de BESTAANDE topbar i.p.v. een eigen
+           balk (gebruikersverzoek), alleen zichtbaar voor apps met meerdere
+           Modi (Flashcards/Continu/Challenge/enz.), volledig door
+           App.renderModeSwitcher() opgebouwd. Zie Root_Note_Context.md. -->
+      <div id="mode-switcher-bar" style="display:none;"></div>
       <h1 id="module-title" data-i18n="settings_title">Instellingen</h1>
-      <button type="button" id="settings-btn" onclick="SettingsUI.toggleDrawer()" data-i18n-title="settings_title" title="Instellingen">⚙</button>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" onclick="SoundUI.toggle()" id="sound-btn-header" title="Geluid uitzetten">🔊</button>
+        <button class="topbar-icon-btn" onclick="ThemeManager.toggle()" id="theme-btn-header" data-i18n-title="tooltip_theme" title="Wissel thema">☀️</button>
+        <button class="topbar-icon-btn" onclick="App.toggleFullscreen()" id="fullscreen-btn-header" data-i18n-title="tooltip_fullscreen" title="Volledig scherm">⛶</button>
+        <button class="topbar-icon-btn" onclick="Lang.toggle()" id="lang-btn-header" title="Switch language / Wissel taal">NL</button>
+        <button type="button" id="settings-btn" onclick="SettingsUI.toggleDrawer()" data-i18n-title="settings_title" title="Instellingen">⚙</button>
+      </div>
     </header>
 
     <main id="module-view">
@@ -239,6 +241,7 @@
 <script src="js/file-access.js"></script>
 <script src="js/app-core.js"></script>
 <script src="js/settings-ui.js"></script>
+<script src="js/tiles-ui.js"></script>
 <script src="js/sound-ui.js"></script>
 <script>
 (function initSwipe(){
@@ -280,11 +283,9 @@ MidiEngine.init();
 (function syncFullscreenIcon(){
   const update = () => {
     const btn = document.getElementById('fullscreen-btn-header');
-    const btnBnav = document.getElementById('fullscreen-btn-bnav');
     const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.documentElement.classList.toggle('fullscreen-active', isFs);
     if (btn){ btn.innerHTML = isFs ? '⤡' : '⛶'; btn.title = isFs ? 'Volledig scherm afsluiten' : 'Volledig scherm'; }
-    if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isFs ? '⤡' : '⛶'; }
   };
   document.addEventListener('fullscreenchange', update);
   document.addEventListener('webkitfullscreenchange', update);

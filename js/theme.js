@@ -60,12 +60,14 @@ const ThemeManager = {
     }
   },
   updateIcons(theme){
+    // theme-btn-tiles sinds v0.17.5 (tegel-pagina) i.p.v. het vervallen
+    // theme-btn-bnav (onderbalk).
     const btnStart = document.getElementById('theme-btn-start');
     const btnHeader = document.getElementById('theme-btn-header');
-    const btnBnav = document.getElementById('theme-btn-bnav');
+    const btnTiles = document.getElementById('theme-btn-tiles');
     const isDark = theme === 'dark';
     if (btnStart) btnStart.innerHTML = isDark ? '☀️' : '🌙';
     if (btnHeader) btnHeader.innerHTML = isDark ? '☀️' : '🌙';
-    if (btnBnav){ const icon = btnBnav.querySelector('.bnav-icon'); if (icon) icon.textContent = isDark ? '☀️' : '🌙'; }
+    if (btnTiles) btnTiles.innerHTML = isDark ? '☀️' : '🌙';
   }
 };
