@@ -4,11 +4,19 @@
      kwintencirkel-wedge-kleuren (--wheel-maj/--wheel-min) zijn BEWUST
      ongewijzigd t.o.v. het origineel gelaten — alleen de rest van de app
      (panelen/accent/radius/schaduw) is naar Aurora Glass gebracht. */
-  --bg-dark:#05060c; --bg-panel:#0d1020; --bg-card:#161a30; --bg-panel-glass:rgba(13,16,32,.6);
+  /* --bg-dark/--overlay-bg lichter gemaakt (was #05060c, gebruikersverzoek:
+     "achtergrond en tegels/knoppen zitten te dicht bij elkaar" — de basis-
+     canvas lag zo dicht bij zwart dat --bg-card er nauwelijks bovenuit
+     kwam) — hergebruikt de al bestaande --bg-panel-waarde i.p.v. een
+     nieuwe kleur te verzinnen, dus geen extra tint in de Aurora Glass-
+     palet. Werkt overal waar --bg-dark gebruikt wordt: body, #workspace
+     (de oefeningen), select/opt-btn-knoppen, EN #tiles-page/#init-overlay
+     via --overlay-bg. */
+  --bg-dark:#0d1020; --bg-panel:#0d1020; --bg-card:#161a30; --bg-panel-glass:rgba(13,16,32,.6);
   --text-main:#f5f7fb; --text-muted:#8b93a9; --border-color:rgba(255,255,255,.08);
   --accent:#818cf8; --accent-hover:#6366f1; --accent-2:#22d3ee;
   --paper-bg:#12142a; --paper-ink:#f2f4f9; --paper-border:rgba(255,255,255,.09); --paper-muted:#8b93a9;
-  --piano-white:#fdfbf3; --piano-black:#14110f; --overlay-bg:#05060c;
+  --piano-white:#fdfbf3; --piano-black:#14110f; --overlay-bg:#0d1020;
   --paper-btn-bg:#1c2140; --paper-btn-hover:#262c50;
   --radius-sm:12px; --radius-md:20px; --radius-lg:28px;
   --shadow-sm:0 2px 10px rgba(0,0,0,.35);
@@ -30,11 +38,16 @@
   --wheel-tonic: var(--accent);
 }
 [data-theme="light"]{
-  --bg-dark:#eef1fb; --bg-panel:#ffffff; --bg-card:#ffffff; --bg-panel-glass:rgba(255,255,255,.62);
+  /* --bg-dark/--overlay-bg donkerder gemaakt (was #eef1fb, bijna gelijk aan
+     het witte --bg-card) — zelfde gebruikersverzoek als het donkere thema
+     hierboven, nu de andere kant op: een merkbaar grijzer/lavendel-getint
+     canvas zodat de witte tegels/kaarten/knoppen (--bg-card/--bg-panel,
+     ongewijzigd wit) er duidelijker bovenuit springen. */
+  --bg-dark:#dde1f2; --bg-panel:#ffffff; --bg-card:#ffffff; --bg-panel-glass:rgba(255,255,255,.62);
   --text-main:#111827; --text-muted:#6b7280; --border-color:rgba(99,102,241,.14);
   --accent:#6366f1; --accent-hover:#4f46e5; --accent-2:#0ea5e9;
   --paper-bg:#ffffff; --paper-ink:#111827; --paper-border:rgba(99,102,241,.12); --paper-muted:#6b7280;
-  --overlay-bg:#eef1fb;
+  --overlay-bg:#dde1f2;
   --paper-btn-bg:#f3f4fb; --paper-btn-hover:#e7e9f7;
   --shadow-sm:0 2px 10px rgba(16,24,40,.06);
   --shadow-md:0 14px 32px rgba(16,24,40,.08);
@@ -101,14 +114,25 @@ body{
 #midi-status-indicator.connected{ background:#22c55e; opacity:.9; }
 
 #content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+/* Grid i.p.v. flex+space-between (gebruikersfeedback: met de modus-
+   schakelaar als los 4e flex-item stond die met een grote, onnette
+   tussenruimte los van de terug-knop, EN duwde de titel uit het midden).
+   `1fr auto auto 1fr` met #module-title in de middelste `auto`-kolom(men)
+   houdt de titel gegarandeerd gecentreerd t.o.v. de volledige breedte,
+   ongeacht hoeveel er links (.topbar-left) of rechts (.topbar-right) staat
+   — zolang geen van beide kolommen breder wordt dan zijn `1fr`-aandeel. */
 #content-topbar{
   background-color:transparent; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  padding:14px 22px; display:flex; justify-content:space-between;
-  align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); position:relative;
+  padding:14px 22px; display:grid; grid-template-columns:1fr auto 1fr;
+  align-items:center; gap:16px; border-bottom:1px solid var(--border-color); position:relative;
   z-index:30; transition:background-color .3s; flex-shrink:0;
 }
-#content-topbar h1{ font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; letter-spacing:.2px; color:var(--text-main); flex-shrink:0; }
-.topbar-right{ display:flex; gap:8px; align-items:center; }
+.topbar-left{ display:flex; align-items:center; gap:10px; grid-column:1; justify-self:start; min-width:0; }
+#content-topbar h1{
+  grid-column:2; justify-self:center; text-align:center;
+  font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; letter-spacing:.2px; color:var(--text-main);
+}
+.topbar-right{ display:flex; gap:8px; align-items:center; grid-column:3; justify-self:end; }
 
 /* Instellingen-knop (opent #settings-drawer) — vervangt de oude header-
    instellingenrij + het inklapbare mobiele paneel door één zelfde
@@ -144,18 +168,32 @@ body{
 #mode-switcher-bar{
   display:none; gap:6px; flex-wrap:wrap; flex-shrink:0;
 }
+/* Tekstkleur op gebruikersfeedback opgehoogd ("kleurcontrast niet goed te
+   lezen") — was `var(--text-muted)` voor ELKE niet-actieve knop, inclusief
+   gewoon-beschikbare modi (niet alleen de MIDI-only-gedimde), tegen de
+   doorzichtige/geblurde topbar-achtergrond te weinig contrast. Beschikbare
+   modi lezen nu net zo goed als de actieve knop; alleen `.disabled` (MIDI
+   vereist, geen keyboard) blijft bewust gedimd, maar minder extreem dan
+   voorheen (opacity .45→.55) zodat de tekst nog leesbaar blijft i.p.v.
+   vrijwel te verdwijnen. */
 .mode-switch-btn{
   padding:6px 13px; border-radius:999px; border:1px solid var(--border-color);
-  background:transparent; color:var(--text-muted); font-size:.78rem; font-weight:600;
+  background:transparent; color:var(--text-main); font-size:.78rem; font-weight:600;
   font-family:'Inter',sans-serif; cursor:pointer;
   transition:background-color .15s ease, color .15s ease, border-color .15s ease;
 }
-.mode-switch-btn:hover:not(.disabled):not(.active){ border-color:var(--accent); color:var(--text-main); }
+.mode-switch-btn:hover:not(.disabled):not(.active){ border-color:var(--accent); }
 .mode-switch-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
-.mode-switch-btn.disabled{ opacity:.45; cursor:not-allowed; }
+.mode-switch-btn.disabled{ color:var(--text-muted); opacity:.55; cursor:not-allowed; }
 
 @media (max-width:640px){
-  #content-topbar{ padding:12px 14px; }
+  #content-topbar{ padding:12px 14px; display:flex; flex-wrap:wrap; }
+  /* .topbar-left ontgrendeld terug naar gewone flex-children van de topbar
+     (`display:contents` laat de wrapper zelf geen doos meer vormen) zodat
+     de bestaande regel-per-regel-wikkel-logica hieronder (terug-knop+titel
+     op regel 1, schakelaar op regel 2, iconen op regel 3) ongewijzigd blijft
+     werken — de grid-indeling hierboven is puur voor breed scherm. */
+  .topbar-left{ display:contents; }
   #content-topbar h1{
     font-size:1.05rem; flex:1 1 auto; min-width:0; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap;
@@ -259,17 +297,26 @@ select:focus{ border-color:var(--accent); }
 }
 .tile-btn:hover{ transform:translateY(-4px); border-color:var(--accent); box-shadow:0 14px 32px rgba(129,140,248,.32); }
 .tile-btn:active{ transform:translateY(-1px) scale(.98); }
-/* Icoon in een eigen, licht-accentgetinte cirkel (gebruikersverzoek: "een
-   plaatje die bij de oefening past... in een eigen subtiele cirkel") —
-   sinds de logo-ronde een echte PNG (`iconImg`, uit de gebruikers-
-   referentie geëxtraheerd) i.p.v. de vergrote emoji; apps zonder eigen logo
-   (momenteel alleen Akkoorden) tonen nog altijd de emoji-fallback. */
+/* Icoon-cirkel — HERZIEN (logo-herzieningsronde): de eerder uit een
+   referentie-mockup geëxtraheerde PNG-logo's (blauwe lijntekening op een
+   lichte tint-cirkel) waren op de tegel-achtergrond niet goed leesbaar
+   ("logo's moeilijk leesbaar op deze achtergrond") — vervangen door een
+   EFFEN accent-kleurverloop-cirkel (zelfde recept als `.brand-mark-lg` op
+   de coverpagina) met een WIT SVG-icoon erop (zie TILE_ICONS in
+   tiles-ui.js). Wit-op-verzadigd-kleurverloop garandeert voldoende
+   contrast in beide thema's, i.p.v. te vertrouwen op een subtiele
+   tint-op-tint-combinatie — lost tegelijk het leesbaarheidsprobleem op
+   (geen fragiele lichte lijntjes meer) én de eerdere "consistentie"-vraag
+   (elke tegel exact dezelfde cirkel-stijl, alleen het icoon verschilt).
+   De halo-`box-shadow` uit de vorige ronde ("gloed vóór je erop klikt")
+   blijft staan — nu op een al fel-gekleurde cirkel valt hij nog beter op. */
 .tile-icon-wrap{
-  width:64px; height:64px; border-radius:50%; background:rgba(129,140,248,.14);
+  width:64px; height:64px; border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
+  box-shadow:0 0 14px rgba(129,140,248,.65), 0 0 34px rgba(99,102,241,.45);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.tile-icon{ font-size:1.9rem; line-height:1; }
-.tile-icon-img{ width:70%; height:70%; object-fit:contain; }
+.tile-icon-wrap svg{ width:56%; height:56%; }
 .tile-text{ display:flex; flex-direction:column; gap:4px; min-width:0; }
 .tile-label{ font-size:1.05rem; font-weight:800; color:var(--text-main); font-family:'Inter',sans-serif; }
 /* Max 3 regels (gebruikersverzoek) via line-clamp, geen aparte mobiele
@@ -279,20 +326,20 @@ select:focus{ border-color:var(--accent); }
   font-size:.74rem; color:var(--text-muted); line-height:1.35;
   display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
 }
-/* Badge in de rechterbovenhoek (sinds de dashboard-herstijling, was eerst
-   gecentreerd onderaan), kleurgecodeerd per MIDI-tier — expliciet gekozen
-   door de gebruiker (AskUserQuestion) boven één uniforme badge-stijl:
-   groen = optioneel (mag ook zonder MIDI), amber = verplicht, grijs =
-   Vooruit Lezen se "Under Construction". Groen/amber zijn dezelfde
-   correct/let-op-kleurtaal die elders in de app al gebruikt wordt (zie
-   bijv. .sr-good/#scroll-status.correct), geen nieuwe kleuren geïntroduceerd. */
+/* Badge in de rechterbovenhoek — de kleurgecodeerde vulling (groen/amber)
+   uit de dashboard-herstijling (v0.17.6) is op gebruikersverzoek weer
+   TERUGGEDRAAID naar de rustigere, uniforme outline-stijl uit v0.17.5
+   ("kwam rustiger en leesbaarder over dan de groene versie") — alleen de
+   TEKST verschilt nog tussen "MIDI Enabled"/"MIDI Only", geen apart
+   gevuld/solid-kleurtje meer. Positie (rechterbovenhoek i.p.v. v0.17.5's
+   gecentreerd-onderaan) blijft wél zoals in de dashboard-herstijling, dat
+   is niet waar de klacht over ging. */
 .tile-badge{
   position:absolute; top:10px; right:10px;
-  display:inline-block; padding:2px 9px; border-radius:999px; font-size:.58rem; font-weight:800;
-  letter-spacing:.03em; font-family:'JetBrains Mono',monospace; color:#fff; border:1px solid transparent;
+  display:inline-block; padding:2px 9px; border-radius:999px; font-size:.6rem; font-weight:800;
+  letter-spacing:.03em; font-family:'JetBrains Mono',monospace;
+  color:var(--accent); border:1px solid var(--accent); background:transparent;
 }
-.tile-badge-enabled{ background:#22c55e; }
-.tile-badge-only{ background:#f59e0b; }
 .tile-badge-construction{ color:var(--text-muted); border-color:var(--text-muted); background:transparent; }
 /* Vooruit Lezen-tegel (sinds v0.17.5 terug als tegel, was tot en met
    v0.17.4 volledig uit de navigatie verborgen): blijft een gewone, klikbare

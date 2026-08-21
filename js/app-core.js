@@ -33,35 +33,35 @@ const UI_ICONS = {
 // element (groot weergegeven op de tegel), descKey geeft er een korte
 // omschrijvende regel bij. Eén descKey per MODUS-tegel (specifieker/
 // nuttiger dan één tekst per app herhaald op alle tegels).
-// iconImg: sinds de logo-vervangingsronde (gebruikersverzoek, "deze logo's
-// wil ik exact zo overnemen") — geëxtraheerd uit een door de gebruiker
-// aangeleverde referentie-mockup (twee JPG's, licht/donker) via handmatige
-// crop+alpha-key-verwerking (wit-naar-transparant) op de originele pixels,
-// zie Root_Note_Context.md. `icon` (emoji) blijft staan als fallback/
-// bekend anker voor eventueel hergebruik elders, wordt niet meer getoond
-// op de tegel zelf zolang iconImg gezet is.
+// Iconen: sinds de logo-herzieningsronde GEEN geëxtraheerde PNG's/emoji
+// meer (die kwamen op de tegel-achtergrond niet goed leesbaar over, zie
+// Root_Note_Context.md) — elke tegel toont nu een zelf-getekend SVG-icoon
+// uit TILE_ICONS (tiles-ui.js), opgezocht op `id`. Bewust géén los
+// icon-veld meer hier: één iconenset per app-`id`, altijd in dezelfde witte
+// lijnstijl op een effen accent-gloed-cirkel (zie .tile-icon-wrap in
+// styles.css) — consistent en leesbaar in beide thema's.
 const TILE_REGISTRY = [
-  { id:'notes', navKey:'nav_notes', icon:'🎯', iconImg:'assets/icons/notes.png', descKey:'tileDesc_notes', modes:[
+  { id:'notes', navKey:'nav_notes', descKey:'tileDesc_notes', modes:[
       {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_notes_kaarten'},
       {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_notes_band'},
       {value:'challenge', labelKey:'mode_challenge', tier:'only', descKey:'tileDesc_notes_challenge'} ] },
-  { id:'scales', navKey:'nav_scales', icon:'🎵', iconImg:'assets/icons/scales.png', tier:'enabled', descKey:'tileDesc_scales' },
-  { id:'chords', navKey:'nav_chords', icon:'🎹', descKey:'tileDesc_chords', modes:[
+  { id:'scales', navKey:'nav_scales', tier:'enabled', descKey:'tileDesc_scales' },
+  { id:'chords', navKey:'nav_chords', descKey:'tileDesc_chords', modes:[
       {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_chords_kaarten'},
       {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_chords_band'},
       {value:'challenge', labelKey:'mode_challenge', tier:'only', descKey:'tileDesc_chords_challenge'} ] },
-  { id:'circle', navKey:'nav_circle', icon:'🎼', iconImg:'assets/icons/circle.png', descKey:'tileDesc_circle', modes:[
+  { id:'circle', navKey:'nav_circle', descKey:'tileDesc_circle', modes:[
       {value:'visual', labelKey:'circle_mode_visual', tier:'none', descKey:'tileDesc_circle_visual'},
       {value:'quiz-rel', labelKey:'circle_mode_rel', tier:'none', descKey:'tileDesc_circle_rel'},
       {value:'quiz-acc', labelKey:'circle_mode_acc', tier:'none', descKey:'tileDesc_circle_acc'} ] },
-  { id:'intervals', navKey:'nav_intervals', icon:'👂', iconImg:'assets/icons/intervals.png', tier:'enabled', descKey:'tileDesc_intervals' },
-  { id:'progressions', navKey:'nav_progressions', icon:'📈', iconImg:'assets/icons/progressions.png', descKey:'tileDesc_progressions', modes:[
+  { id:'intervals', navKey:'nav_intervals', tier:'enabled', descKey:'tileDesc_intervals' },
+  { id:'progressions', navKey:'nav_progressions', descKey:'tileDesc_progressions', modes:[
       {value:'kaarten', labelKey:'mode_cards', tier:'enabled', descKey:'tileDesc_prog_kaarten'},
       {value:'reeks', labelKey:'mode_sequence', tier:'only', descKey:'tileDesc_prog_reeks'},
       {value:'band', labelKey:'mode_band', tier:'only', descKey:'tileDesc_prog_band'} ] },
-  { id:'sightreading', navKey:'nav_sightreading', icon:'👀', iconImg:'assets/icons/sightreading.png', inert:true, descKey:'tileDesc_sightreading' },
-  { id:'theory', navKey:'nav_theory', icon:'📖', iconImg:'assets/icons/theory.png', tier:'none', descKey:'tileDesc_theory' },
-  { id:'piano', navKey:'nav_piano', icon:'🎹', iconImg:'assets/icons/piano.png', tier:'enabled', descKey:'tileDesc_piano' }
+  { id:'sightreading', navKey:'nav_sightreading', inert:true, descKey:'tileDesc_sightreading' },
+  { id:'theory', navKey:'nav_theory', tier:'none', descKey:'tileDesc_theory' },
+  { id:'piano', navKey:'nav_piano', tier:'enabled', descKey:'tileDesc_piano' }
 ];
 const App = {
   currentModule: null, history: [], historyIndex: -1,

@@ -47,7 +47,7 @@
     </button>
     <div class="start-meta">
       <p class="creator-credit">Designed by Martijn van Willigen · © 2026</p>
-      <p class="version-tag">v0.17.7 | Bèta Editie</p>
+      <p class="version-tag">v0.17.8 | Bèta Editie</p>
     </div>
   </div>
 
@@ -119,13 +119,22 @@
          fullscreen-btn-header/lang-btn-header) zodat SoundUI/ThemeManager/
          Lang/syncFullscreenIcon() ze zonder JS-wijziging blijven vinden. -->
     <header id="content-topbar">
-      <button type="button" id="back-to-tiles-btn" class="topbar-icon-btn" onclick="App.showTiles()" data-i18n-title="tooltip_back" title="Terug">⬅</button>
-      <!-- Modus-schakelaar (sinds de tegel-consolidatie naar 1 tegel per app)
-           — naast het terug-pijltje in de BESTAANDE topbar i.p.v. een eigen
-           balk (gebruikersverzoek), alleen zichtbaar voor apps met meerdere
-           Modi (Flashcards/Continu/Challenge/enz.), volledig door
-           App.renderModeSwitcher() opgebouwd. Zie Root_Note_Context.md. -->
-      <div id="mode-switcher-bar" style="display:none;"></div>
+      <!-- Terug-knop + modus-schakelaar SAMEN in .topbar-left (gebruikers-
+           feedback: stonden los van elkaar los-geplaatst met een grote,
+           onnette tussenruimte door de flex-space-between-verdeling over
+           4 losse elementen). .topbar-left/.topbar-right zijn nu de 2
+           buitenste kolommen van een 1fr/auto/1fr-grid, met #module-title
+           gegarandeerd gecentreerd in de middelste kolom — was verschoven
+           doordat de schakelaar eerst als los 4e flex-item meetelde in de
+           ruimteverdeling. Zie Root_Note_Context.md. -->
+      <div class="topbar-left">
+        <button type="button" id="back-to-tiles-btn" class="topbar-icon-btn" onclick="App.showTiles()" data-i18n-title="tooltip_back" title="Terug">⬅</button>
+        <!-- Modus-schakelaar (sinds de tegel-consolidatie naar 1 tegel per
+             app) — alleen zichtbaar voor apps met meerdere Modi
+             (Flashcards/Continu/Challenge/enz.), volledig door
+             App.renderModeSwitcher() opgebouwd. -->
+        <div id="mode-switcher-bar" style="display:none;"></div>
+      </div>
       <h1 id="module-title" data-i18n="settings_title">Instellingen</h1>
       <div class="topbar-right">
         <button class="topbar-icon-btn" onclick="SoundUI.toggle()" id="sound-btn-header" title="Geluid uitzetten">🔊</button>
