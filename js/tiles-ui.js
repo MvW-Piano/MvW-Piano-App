@@ -15,38 +15,51 @@
 // (horizontaal), sluit aan bij de vormgeving van een eerdere logo-
 // referentie van de gebruiker.
 //
-// Iconen (sinds de logo-herzieningsronde): de eerder uit een referentie-
-// mockup geëxtraheerde PNG's waren op de tegel-achtergrond niet goed
-// leesbaar (te veel blauw-op-blauw) — vervangen door een zelf-getekende,
-// consistente SVG-set (TILE_ICONS), één simpel wit lijn-icoon per app-`id`,
-// altijd getoond op een effen accent-gloed-cirkel (zie .tile-icon-wrap in
-// styles.css: `background:linear-gradient(var(--accent),var(--accent-2))`)
-// — wit-op-verzadigd-kleurverloop geeft in beide thema's gegarandeerd
-// voldoende contrast, i.p.v. te vertrouwen op een subtiele tint-op-tint
-// combinatie. Elk icoon is een klein, herkenbaar symbool voor wat de
-// oefening inhoudelijk doet (notenbalk+noten, oplopende toonladder-trapjes,
-// gestapeld akkoord, kwintencirkel-wiel, interval-maatstreepjes,
-// akkoordprogressie-lijngrafiek, vooruitlezen-pijl, opengeslagen boek,
-// pianotoetsen) — bewust GEEN emoji (rendert inconsistent per OS/browser)
-// en geen fotorealistische illustraties (zouden qua stijl niet
-// samenhangen). viewBox 24x24, alle strokes `currentColor` zodat de
-// tegel-CSS de kleur (wit) op één plek bepaalt.
+// Iconen (sinds de Neon-herstijling, v0.18.0): niet langer een zelf-
+// getekende SVG-set — vervangen door negen pictogrammen uit de door de
+// gebruiker aangeleverde "PianoICO_Library" (neon lijntekening,
+// cyaan/magenta-kleurverloop op een eigen donkere cirkel-badge, PNG). Elk
+// icoon draagt die eigen cirkel-badge AL ingebakken (getekend als onderdeel
+// van de PNG) — anders dan de vorige SVG-aanpak hoeft `.tile-icon-wrap` dus
+// GEEN losse gradient-achtergrondcirkel meer te leveren, puur de <img> zelf
+// tonen (zie styles.css). Bestanden staan in `assets/icons/tile-<id>.png`,
+// hernoemd vanaf hun originele volgnummer in de library (zie
+// Root_Note_Context.md voor de volledige nummer-toewijzing + hoe die
+// gekozen is via een zelfgemaakt contactvel van alle 396 iconen).
 const TILE_ICONS = {
-  notes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="11" x2="21" y2="11"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="8" cy="17" r="2.1" fill="currentColor" stroke="none"/><line x1="10" y1="17" x2="10" y2="6"/><circle cx="16" cy="9" r="2.1" fill="currentColor" stroke="none"/><line x1="18" y1="9" x2="18" y2="19"/></svg>',
-  scales: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 L8 18 L8 14 L13 14 L13 10 L18 10 L18 6 L21 6"/><circle cx="8" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="13" cy="14" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="10" r="1.4" fill="currentColor" stroke="none"/></svg>',
-  chords: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8.5" cy="18" rx="3.4" ry="2.5" fill="currentColor" stroke="none" transform="rotate(-18 8.5 18)"/><ellipse cx="8.5" cy="12.3" rx="3.4" ry="2.5" fill="currentColor" stroke="none" transform="rotate(-18 8.5 12.3)"/><ellipse cx="8.5" cy="6.6" rx="3.4" ry="2.5" fill="currentColor" stroke="none" transform="rotate(-18 8.5 6.6)"/><line x1="11.6" y1="6.6" x2="11.6" y2="18"/></svg>',
-  circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><line x1="12" y1="3.5" x2="12" y2="5.2"/><line x1="12" y1="18.8" x2="12" y2="20.5"/><line x1="3.5" y1="12" x2="5.2" y2="12"/><line x1="18.8" y1="12" x2="20.5" y2="12"/></svg>',
-  intervals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4 L18 4"/><path d="M6 4 L8.5 1.5 M6 4 L8.5 6.5"/><path d="M18 4 L15.5 1.5 M18 4 L15.5 6.5"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="8" cy="14.5" r="2.1" fill="currentColor" stroke="none"/><line x1="10" y1="14.5" x2="10" y2="9"/><circle cx="16" cy="9.5" r="2.1" fill="currentColor" stroke="none"/><line x1="18" y1="9.5" x2="18" y2="15"/></svg>',
-  progressions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 L9 11 L14 14 L21 5"/><circle cx="3" cy="18" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="11" r="1.6" fill="currentColor" stroke="none"/><circle cx="14" cy="14" r="1.6" fill="currentColor" stroke="none"/><circle cx="21" cy="5" r="1.6" fill="currentColor" stroke="none"/></svg>',
-  sightreading: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/><line x1="2" y1="16" x2="14" y2="16"/><circle cx="6" cy="16" r="1.7" fill="currentColor" stroke="none"/><path d="M15 6 L21 12 L15 18"/></svg>',
-  theory: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5 C10 3.5 6 3 3 3.5 L3 17 C6 16.5 10 17 12 18.5 C14 17 18 16.5 21 17 L21 3.5 C18 3 14 3.5 12 5 Z"/><line x1="12" y1="5" x2="12" y2="18.5"/></svg>',
-  piano: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><line x1="7.5" y1="5" x2="7.5" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="16.5" y1="5" x2="16.5" y2="19"/><rect x="6" y="5" width="3" height="8" fill="currentColor" stroke="none"/><rect x="14.5" y="5" width="3" height="8" fill="currentColor" stroke="none"/></svg>'
+  notes: 'assets/icons/tile-notes.png',
+  scales: 'assets/icons/tile-scales.png',
+  chords: 'assets/icons/tile-chords.png',
+  circle: 'assets/icons/tile-circle.png',
+  intervals: 'assets/icons/tile-intervals.png',
+  progressions: 'assets/icons/tile-progressions.png',
+  sightreading: 'assets/icons/tile-sightreading.png',
+  theory: 'assets/icons/tile-theory.png',
+  piano: 'assets/icons/tile-piano.png'
 };
 const TilesUI = {
   render(){
     const grid = document.getElementById('tiles-grid');
     if (!grid) return;
-    grid.innerHTML = TILE_REGISTRY.map(app => this._renderTile(app)).join('');
+    grid.innerHTML = this._orderedRegistry().map(app => this._renderTile(app)).join('');
+  },
+  // Vaste weergavevolgorde (gebruikersverzoek, sinds v0.18.1): "Under
+  // Construction"-tegels (`inert:true`, momenteel alleen Vooruit Lezen)
+  // staan ALTIJD helemaal onderaan, met Vrij Spelen (`piano`) daar altijd
+  // direct vóór. Gewone tegels behouden onderling gewoon hun
+  // TILE_REGISTRY-volgorde. Puur een DISPLAY-sortering — TILE_REGISTRY zelf
+  // (app-core.js) blijft de bron van waarheid voor tegel-inhoud/volgorde-
+  // basis; zodra een tegel niet langer `inert` is (de oefening is af) valt
+  // hij hierdoor vanzelf terug tussen de gewone tegels op zijn eigen
+  // registry-positie, geen handmatige volgorde-fix nodig. Werkt ook voor
+  // een eventuele TOEKOMSTIGE tweede "Under Construction"-tegel: elke
+  // `inert`-tegel verhuist automatisch mee naar onderaan, in hun onderlinge
+  // registry-volgorde.
+  _orderedRegistry(){
+    const normal = TILE_REGISTRY.filter(app => !app.inert && app.id !== 'piano');
+    const piano = TILE_REGISTRY.filter(app => app.id === 'piano');
+    const inert = TILE_REGISTRY.filter(app => app.inert);
+    return [...normal, ...piano, ...inert];
   },
   _renderTile(app){
     if (app.inert){
@@ -79,7 +92,7 @@ const TilesUI = {
     const onclickAttr = onclick ? ` onclick="${onclick}"` : '';
     return `<button type="button" class="tile-btn ${extraClass}"${onclickAttr}>
       ${badge}
-      <span class="tile-icon-wrap">${TILE_ICONS[id] || ''}</span>
+      <span class="tile-icon-wrap"><img src="${TILE_ICONS[id] || ''}" alt="" draggable="false"></span>
       <span class="tile-text">
         <span class="tile-label">${label}</span>
         <span class="tile-desc">${desc}</span>
